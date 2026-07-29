@@ -1,0 +1,137 @@
+/* Self-hosted fonts (no external Google round-trip). */
+@import "./assets/fonts/fonts.css";
+@import "tailwindcss";
+
+@theme {
+  /* Typography — editorial serif display + humanist sans body */
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Manrope", system-ui, sans-serif;
+
+  /* SHUGAR MOMMY "Atelier Crème" — warm-canvas editorial system.
+     One cream family + one terracotta accent + one warm dark. Flat surfaces,
+     hairline borders, no gradients, no glows. */
+  --color-canvas: #FAF7F2;       /* page floor — tinted cream, never pure white */
+  --color-soft: #F3EDE3;         /* soft section bands */
+  --color-surface: #EFE8DB;      /* content cards — one step darker than canvas */
+  --color-strong: #E7DECD;       /* selected fills, tags */
+  --color-hairline: #E4DBCC;     /* 1px borders on cream */
+  --color-ink: #1D1712;          /* headlines & primary text */
+  --color-body: #433B33;         /* running text */
+  --color-muted: #6F6558;        /* secondary text, captions */
+  --color-faint: #978C7E;        /* fine print */
+  --color-primary: #C17456;      /* terracotta — the single accent */
+  --color-primary-dark: #A45C42; /* hover/active */
+  --color-primary-soft: #F0E0D6; /* tint fill behind accents */
+  --color-dark: #1B1512;         /* dark CTA band, footer, receipt card */
+  --color-dark-2: #2A221B;       /* elevated cards on dark */
+  --color-ondark: #FAF7F2;       /* text on dark (echoes canvas) */
+  --color-ondark-soft: #A79C8E;  /* secondary text on dark */
+  --color-success: #5D8B62;
+  --color-danger: #C05548;
+
+  /* Legacy aliases — admin panel & booking modal keep working unchanged. */
+  --color-cream: #FAF7F2;
+  --color-linen: #F3EDE3;
+  --color-blush: #F0E4DA;
+  --color-rose: #C99A82;
+  --color-rose-deep: #A9714F;
+  --color-caramel: #C17456;
+  --color-caramel-dark: #A45C42;
+  --color-honey: #E7DECD;
+  --color-cocoa: #1D1712;
+  --color-taupe: #6F6558;
+  --color-card: #FFFCF7;
+  --color-espresso: #1B1512;
+  --color-espresso-2: #2A221B;
+  --color-champagne: #CBB89D;
+}
+
+/* Smooth anchor scrolling — but not for users who asked for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+::selection {
+  background: #E7DECD;
+  color: #1D1712;
+}
+
+/* Serif display headings carry slight negative tracking — without it the
+   serif reads generic. Applied via utility so components stay terse. */
+.display {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+}
+
+/* Full-viewport hero height with graceful fallback (iOS URL-bar safe). */
+.hero-vh {
+  min-height: 100vh;
+  min-height: 100svh;
+}
+
+/* Hide the scrollbar on horizontal strips (date picker) but keep scrolling. */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Nav link underline that draws in from the left on hover. */
+.nav-underline {
+  position: relative;
+}
+.nav-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav-underline:hover::after,
+.nav-underline:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* Button micro-press: colors + a 1.5% scale dip on :active. */
+.btn-press {
+  transition:
+    transform 150ms ease,
+    color 200ms ease,
+    background-color 200ms ease,
+    border-color 200ms ease;
+}
+.btn-press:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-underline::after {
+    transition: none;
+  }
+  .btn-press,
+  .btn-press:active {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Mobile input auto-zoom guard (iOS Safari zooms on <16px inputs).
+--------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
