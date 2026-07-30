@@ -13,8 +13,10 @@ import Gallery from './components/Gallery';
 import Reviews from './components/Reviews';
 import Faq from './components/Faq';
 import Contacts from './components/Contacts';
+import JarSection from './components/JarSection';
 import Footer from './components/Footer';
 import BookingModal from './components/BookingModal';
+import LiquidJourney from './components/LiquidJourney';
 
 // Admin panel is code-split — visitors never download it.
 const AdminGate = lazy(() => import('./components/AdminGate'));
@@ -76,7 +78,9 @@ export default function App() {
   const selectedZones = SERVICE_ZONES.filter((z) => selectedZoneIds.includes(z.id));
 
   return (
-    <div className="min-h-screen bg-canvas font-sans text-ink antialiased">
+    <div className="relative min-h-screen bg-canvas font-sans text-ink antialiased">
+      {/* Scroll-driven liquid narrative overlay (desktop only, decor) */}
+      <LiquidJourney />
       <Header language={language} onChangeLanguage={changeLanguage} onBook={() => setBookingOpen(true)} />
       <main>
         <Hero language={language} onBook={() => setBookingOpen(true)} />
@@ -101,6 +105,7 @@ export default function App() {
         <Reviews language={language} />
         <Faq language={language} />
         <Contacts language={language} />
+        <JarSection language={language} />
       </main>
       <Footer language={language} />
       {bookingOpen && (

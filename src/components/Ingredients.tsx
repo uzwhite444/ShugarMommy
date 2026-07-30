@@ -88,7 +88,7 @@ export default function Ingredients({ language }: IngredientsProps) {
   const objectY = useTransform(scrollYProgress, [0, 1], [28, -28]);
 
   return (
-    <section ref={sectionRef} className="overflow-hidden px-4 py-20 sm:px-6 sm:py-24">
+    <section ref={sectionRef} id="ingredients" className="overflow-hidden px-4 py-20 sm:px-6 sm:py-24">
       <div className="mx-auto max-w-6xl">
         <Reveal className="text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
@@ -111,7 +111,7 @@ export default function Ingredients({ language }: IngredientsProps) {
           </div>
 
           {/* The object */}
-          <div className="order-1 justify-self-center lg:order-2">
+          <div id="paste-anchor" className="order-1 justify-self-center lg:order-2">
             <motion.div
               initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.92, filter: 'blur(8px)' }}
               whileInView={
