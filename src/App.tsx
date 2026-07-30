@@ -13,7 +13,6 @@ import Gallery from './components/Gallery';
 import Reviews from './components/Reviews';
 import Faq from './components/Faq';
 import Contacts from './components/Contacts';
-import JarSection from './components/JarSection';
 import Footer from './components/Footer';
 import BookingModal from './components/BookingModal';
 
@@ -102,7 +101,6 @@ export default function App() {
         <Reviews language={language} />
         <Faq language={language} />
         <Contacts language={language} />
-        <JarSection language={language} />
       </main>
       <Footer language={language} />
       {bookingOpen && (
