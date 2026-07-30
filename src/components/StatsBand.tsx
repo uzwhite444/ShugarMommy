@@ -25,7 +25,7 @@ const STATS: Stat[] = [
 /** Quiet numbers row separated by hairlines — no dark band, no decoration. */
 export default function StatsBand({ language }: StatsBandProps) {
   return (
-    <section className="border-y border-hairline px-4 sm:px-6">
+    <section id="stats-band" className="border-y border-hairline px-4 sm:px-6">
       <div className="mx-auto grid max-w-6xl grid-cols-2 lg:grid-cols-4">
         {STATS.map((stat, i) => (
           <div

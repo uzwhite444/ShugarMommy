@@ -170,7 +170,7 @@ export default function Services({ language, selectedZoneIds, onToggleZone, onBo
           {/* Sticky calculator — quiet dark receipt */}
           <div className="lg:sticky lg:top-24 lg:self-start">
             <Reveal>
-              <div className="rounded-2xl bg-dark p-7 text-ondark sm:p-8">
+              <div id="receipt-card" className="rounded-2xl bg-dark p-7 text-ondark sm:p-8">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ondark-soft">
                   {getLocalized(TR.summaryTitle, language)}
                 </p>
