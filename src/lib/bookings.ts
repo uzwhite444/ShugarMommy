@@ -63,6 +63,27 @@ export async function fetchBookings(): Promise<Booking[]> {
   }
 }
 
+/** Removes a booking entirely (requires supabase/03_admin_delete.sql). */
+export async function deleteBooking(id: string): Promise<boolean> {
+  try {
+    const supabase = await getClient();
+    if (!supabase) return false;
+    const { error, count } = await supabase
+      .from('bookings')
+      .delete({ count: 'exact' })
+      .eq('id', id);
+    if (error) {
+      console.error('deleteBooking failed:', error.message);
+      return false;
+    }
+    // RLS without a delete policy silently deletes 0 rows — treat as failure.
+    return (count ?? 0) > 0;
+  } catch (err) {
+    console.error('deleteBooking failed:', err);
+    return false;
+  }
+}
+
 export async function updateBookingStatus(id: string, status: BookingStatus): Promise<boolean> {
   try {
     const supabase = await getClient();
