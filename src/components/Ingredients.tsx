@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import Reveal from './ui/Reveal';
+import LiquidVideo from './ui/LiquidVideo';
 import { LanguageCode, Localized } from '../types';
 import { getLocalized } from '../utils';
 import pasteDrop from '../assets/paste-drop.webp';
@@ -121,51 +122,25 @@ export default function Ingredients({ language }: IngredientsProps) {
               transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
               style={reduced ? undefined : { y: objectY }}
             >
-              {/* Liquid jelly: the drop stretches slightly as it rises and
-                  settles back — squash-and-stretch keyed to the float. */}
-              <motion.div
-                animate={
-                  reduced
-                    ? undefined
-                    : { y: [0, -10, 0], scaleY: [1, 1.025, 1], scaleX: [1, 0.985, 1] }
+              {/* Higgsfield film: a droplet falls into the standing drop with
+                  a crown splash, ripples and settles — loops while in view. */}
+              <LiquidVideo
+                src="/videos/paste-drop.mp4"
+                label={getLocalized(TR.alt, language)}
+                loop
+                className="h-80 w-80 select-none object-cover sm:h-[420px] sm:w-[420px]"
+                fallback={
+                  <img
+                    src={pasteDrop}
+                    alt={getLocalized(TR.alt, language)}
+                    width={461}
+                    height={760}
+                    loading="lazy"
+                    className="h-72 w-auto select-none sm:h-96"
+                    draggable={false}
+                  />
                 }
-                transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-                style={{ transformOrigin: '50% 90%' }}
-                className="relative"
-              >
-                <img
-                  src={pasteDrop}
-                  alt={getLocalized(TR.alt, language)}
-                  width={461}
-                  height={760}
-                  loading="lazy"
-                  className="h-72 w-auto select-none sm:h-96"
-                  draggable={false}
-                />
-                {/* Shine sweep — a light band glides across, clipped to the
-                    drop's silhouette via its own alpha channel as a mask. */}
-                {!reduced && (
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 overflow-hidden"
-                    style={{
-                      WebkitMaskImage: `url(${pasteDrop})`,
-                      maskImage: `url(${pasteDrop})`,
-                      WebkitMaskSize: '100% 100%',
-                      maskSize: '100% 100%',
-                      WebkitMaskRepeat: 'no-repeat',
-                      maskRepeat: 'no-repeat',
-                    }}
-                  >
-                    <motion.span
-                      className="absolute bottom-[-25%] top-[-25%] w-1/3 rotate-[18deg] bg-gradient-to-r from-transparent via-white/50 to-transparent"
-                      initial={{ left: '-45%' }}
-                      animate={{ left: '115%' }}
-                      transition={{ duration: 1.7, ease: [0.45, 0, 0.55, 1], repeat: Infinity, repeatDelay: 3.6 }}
-                    />
-                  </span>
-                )}
-              </motion.div>
+              />
               {/* Soft contact shadow that breathes with the float */}
               <motion.div
                 aria-hidden
