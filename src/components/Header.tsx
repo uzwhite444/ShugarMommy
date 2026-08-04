@@ -145,7 +145,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
             role="dialog"
             aria-modal="true"
             aria-label={getLocalized(MENU_LABEL, language)}
-            className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-canvas pb-10 text-ink lg:hidden"
+            className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-canvas pb-6 text-ink lg:hidden"
           >
             <div className="flex h-16 items-center justify-between border-b border-hairline px-4">
               <Wordmark />
@@ -153,19 +153,20 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
                 <X size={22} />
               </button>
             </div>
-            <nav aria-label="Mobile navigation" className="flex flex-col px-6 pt-6">
+            {/* Compact rhythm so the CTA still fits on short phones (568px). */}
+            <nav aria-label="Mobile navigation" className="flex flex-col px-6 pt-3">
               {NAV_ITEMS.map((item) => (
                 <a
                   key={item.href}
                   href={item.href}
                   onClick={() => setMenuOpen(false)}
-                  className="border-b border-hairline py-4 font-serif text-2xl font-medium text-ink"
+                  className="border-b border-hairline py-3 font-serif text-xl font-medium text-ink sm:py-4 sm:text-2xl"
                 >
                   {getLocalized(item.label, language)}
                 </a>
               ))}
             </nav>
-            <div className="mt-8 flex items-center gap-2 px-6">
+            <div className="mt-5 flex items-center gap-2 px-6">
               {LANGS.map((lang) => (
                 <button
                   key={lang}
@@ -179,7 +180,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
                 </button>
               ))}
             </div>
-            <div className="px-6 pt-6">
+            <div className="px-6 pt-5">
               <button
                 onClick={() => {
                   setMenuOpen(false);
