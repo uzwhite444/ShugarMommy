@@ -24,7 +24,7 @@ const TR = {
   points: [
     { RU: 'Гипоаллергенная паста — сахар, вода, лимон', UZ: 'Gipoallergen pasta — shakar, suv, limon', EN: 'Hypoallergenic paste — sugar, water, lemon' },
     { RU: 'Одноразовые материалы на каждой процедуре', UZ: 'Har muolajada bir martalik materiallar', EN: 'Single-use materials at every visit' },
-    { RU: 'Гладкость до четырёх недель', UZ: "To'rt haftagacha silliqlik", EN: 'Smoothness for up to four weeks' },
+    { RU: 'Гладкость до трёх недель', UZ: 'Uch haftagacha silliqlik', EN: 'Smoothness for up to three weeks' },
   ],
   /* Booking-preview card (static product mock, like a receipt) */
   mockTitle: { RU: 'Ваша запись', UZ: 'Sizning yozuvingiz', EN: 'Your booking' },

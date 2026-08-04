@@ -18,9 +18,9 @@ const TR = {
   eyebrow: { RU: 'Прайс', UZ: 'Narxlar', EN: 'Pricing' },
   title: { RU: 'Услуги и цены', UZ: 'Xizmatlar va narxlar', EN: 'Services & prices' },
   subtitle: {
-    RU: 'Отметьте нужные зоны — калькулятор посчитает стоимость и применит скидку за комплекс.',
-    UZ: 'Kerakli zonalarni belgilang — kalkulyator narxni hisoblab, chegirmani qo‘llaydi.',
-    EN: 'Tick the zones you need — the calculator totals them up and applies the combo discount.',
+    RU: 'Отметьте нужные зоны — калькулятор посчитает стоимость и применит скидку за сет. Цены указаны по прайсу топ-мастера: у остальных мастеров дешевле на 25%.',
+    UZ: 'Kerakli zonalarni belgilang — kalkulyator narxni hisoblab, set chegirmasini qo‘llaydi. Narxlar top-usta bo‘yicha: boshqa ustalarda 25% arzonroq.',
+    EN: 'Tick the zones you need — the calculator totals them and applies the set discount. Prices are the top master’s rate; other masters are 25% lower.',
   },
   popular: { RU: 'Хит', UZ: 'Xit', EN: 'Top' },
   min: { RU: 'мин', UZ: 'daq', EN: 'min' },
@@ -31,7 +31,12 @@ const TR = {
     EN: 'No zones selected yet. Tick them in the list to see your total.',
   },
   subtotal: { RU: 'Сумма', UZ: 'Jami', EN: 'Subtotal' },
-  discount: { RU: 'Скидка за комплекс', UZ: 'Kompleks chegirmasi', EN: 'Combo discount' },
+  discount: { RU: 'Скидка за сет', UZ: 'Set chegirmasi', EN: 'Set discount' },
+  masterHint: {
+    RU: 'У Севары и Нилюфар — на 25% дешевле. Выберите мастера при записи.',
+    UZ: 'Sevara va Nilufarda 25% arzonroq. Yozilishda ustani tanlang.',
+    EN: 'Sevara and Nilufar are 25% cheaper. Pick a master when booking.',
+  },
   total: { RU: 'Итого', UZ: 'Yakuniy', EN: 'Total' },
   duration: { RU: 'Время процедуры', UZ: 'Muolaja vaqti', EN: 'Duration' },
   book: { RU: 'Записаться на этот комплекс', UZ: 'Shu kompleksga yozilish', EN: 'Book this combo' },
@@ -240,6 +245,7 @@ export default function Services({ language, selectedZoneIds, onToggleZone, onBo
                   </button>
                 )}
                 <p className="mt-4 text-center text-xs text-ondark-soft">{getLocalized(TR.tiersHint, language)}</p>
+                <p className="mt-1.5 text-center text-xs text-ondark-soft">{getLocalized(TR.masterHint, language)}</p>
               </div>
             </Reveal>
           </div>

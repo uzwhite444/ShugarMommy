@@ -62,9 +62,9 @@ const TR = {
   tips: { RU: 'Советы перед визитом', UZ: 'Tashrifdan oldin maslahatlar', EN: 'Tips before your visit' },
   tipMethod: {
     razor: {
-      RU: 'После бритвы отрастите волоски 10–14 дней — оптимальная длина 4–5 мм.',
-      UZ: "Ustaradan keyin tuklarni 10–14 kun o'stiring — eng maqbul uzunlik 4–5 mm.",
-      EN: 'After razor, let hair grow 10–14 days — the ideal length is 4–5 mm.',
+      RU: 'После бритвы отрастите волоски 2–3 недели — оптимальная длина от 8 мм до 1 см.',
+      UZ: "Ustaradan keyin tuklarni 2–3 hafta o'stiring — eng maqbul uzunlik 8 mm dan 1 sm gacha.",
+      EN: 'After a razor, let hair grow 2–3 weeks — the ideal length is 8 mm to 1 cm.',
     },
     wax: {
       RU: 'После воска шугаринг переносится легче: паста тянет только волоски, а не кожу.',
@@ -72,9 +72,9 @@ const TR = {
       EN: 'After wax, sugaring feels gentler: the paste grips hair, not skin.',
     },
     sugaring: {
-      RU: 'Вы уже с нами! Поддерживающие визиты раз в 3–4 недели сохранят идеальный результат.',
-      UZ: 'Siz allaqachon bizdasiz! Har 3–4 haftada tashriflar natijani saqlaydi.',
-      EN: 'Already sugaring! Maintenance visits every 3–4 weeks keep the result perfect.',
+      RU: 'Вы уже с нами! Поддерживающие визиты раз в 2–3 недели сохранят идеальный результат.',
+      UZ: 'Siz allaqachon bizdasiz! Har 2–3 haftada tashriflar natijani saqlaydi.',
+      EN: 'Already sugaring! Maintenance visits every 2–3 weeks keep the result perfect.',
     },
     none: {
       RU: 'Отлично — длина волосков наверняка уже подходит, можно записываться сразу.',

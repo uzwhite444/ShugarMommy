@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { X, Send, Loader2, CheckCircle2, Copy, Check } from 'lucide-react';
 import { LanguageCode, ServiceZone } from '../types';
-import { calcTotal, formatPrice, getLocalized, MANAGER_TELEGRAM, WORK_HOURS } from '../utils';
+import { calcTotal, DAY_OFF, formatPrice, getLocalized, MANAGER_TELEGRAM, WORK_HOURS } from '../utils';
 import { MASTERS } from '../data';
 import { createBooking } from '../lib/bookings';
 import { fetchDayAvailability, isSlotTaken, type DayAvailability } from '../lib/availability';
@@ -16,6 +16,8 @@ interface BookingModalProps {
   onClose: () => void;
   /** Removes a zone straight from the summary chips. */
   onRemoveZone?: (zoneId: string) => void;
+  /** Opens the self-service cancellation form. */
+  onCancelBooking?: () => void;
 }
 
 const TR = {
@@ -27,6 +29,8 @@ const TR = {
     EN: 'No zones selected — we will agree on services in the chat.',
   },
   total: { RU: 'Итого', UZ: 'Yakuniy', EN: 'Total' },
+  setDiscount: { RU: 'сет', UZ: 'set', EN: 'set' },
+  masterDiscount: { RU: 'мастер', UZ: 'usta', EN: 'master' },
   stepContacts: { RU: 'Ваши данные', UZ: "Ma'lumotlaringiz", EN: 'Your details' },
   stepMaster: { RU: 'Мастер', UZ: 'Usta', EN: 'Master' },
   stepWhen: { RU: 'Дата и время', UZ: 'Sana va vaqt', EN: 'Date & time' },
@@ -40,6 +44,12 @@ const TR = {
   },
   today: { RU: 'Сегодня', UZ: 'Bugun', EN: 'Today' },
   tomorrow: { RU: 'Завтра', UZ: 'Ertaga', EN: 'Tomorrow' },
+  dayOff: { RU: 'выходной', UZ: 'dam olish', EN: 'closed' },
+  dayOffNote: {
+    RU: 'Воскресенье — выходной. Мастер может выйти по двойному тарифу — напишите нам в Telegram.',
+    UZ: 'Yakshanba — dam olish kuni. Usta ikki baravar tarif bilan chiqishi mumkin — Telegramga yozing.',
+    EN: 'Sunday is our day off. A master can come in at double rate — message us on Telegram.',
+  },
   comment: { RU: 'Комментарий (необязательно)', UZ: 'Izoh (ixtiyoriy)', EN: 'Comment (optional)' },
   submit: { RU: 'Отправить заявку в Telegram', UZ: 'Arizani Telegramga yuborish', EN: 'Send request via Telegram' },
   disclaimer: {
@@ -85,6 +95,12 @@ const TR = {
   openTg: { RU: 'Открыть Telegram', UZ: 'Telegramni ochish', EN: 'Open Telegram' },
   copyMsg: { RU: 'Скопировать заявку', UZ: 'Arizani nusxalash', EN: 'Copy request' },
   copied: { RU: 'Скопировано!', UZ: 'Nusxalandi!', EN: 'Copied!' },
+  changedMind: {
+    RU: 'Планы изменились? Запись можно отменить на сайте или по телефону.',
+    UZ: 'Rejalar o‘zgardimi? Yozuvni saytda yoki telefon orqali bekor qilish mumkin.',
+    EN: 'Plans changed? You can cancel on the site or by phone.',
+  },
+  cancelLink: { RU: 'Отменить запись', UZ: 'Yozuvni bekor qilish', EN: 'Cancel booking' },
 };
 
 /** 30-minute slots between opening and one hour before closing. */
@@ -126,7 +142,13 @@ function StepLabel({ number, children }: { number: string; children: string }) {
   );
 }
 
-export default function BookingModal({ language, selectedZones, onClose, onRemoveZone }: BookingModalProps) {
+export default function BookingModal({
+  language,
+  selectedZones,
+  onClose,
+  onRemoveZone,
+  onCancelBooking,
+}: BookingModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, true, onClose);
 
@@ -155,7 +177,8 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
   const [copied, setCopied] = useState(false);
 
   const t = (loc: (typeof TR)[keyof typeof TR]) => getLocalized(loc, language);
-  const calc = calcTotal(selectedZones);
+  const selectedMaster = MASTERS.find((m) => m.id === masterId);
+  const calc = calcTotal(selectedZones, selectedMaster?.discountPct ?? 0);
   const tgLink = `https://t.me/${MANAGER_TELEGRAM}?text=${encodeURIComponent(requestMsg)}`;
 
   const days = useMemo(() => buildDays(), []);
@@ -166,7 +189,7 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
 
   const [availability, setAvailability] = useState<DayAvailability | null>(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
-  const selectedMasterName = MASTERS.find((m) => m.id === masterId)?.name ?? null;
+  const selectedMasterName = selectedMaster?.name ?? null;
 
   // Load real availability whenever the customer picks a date. A stale flag
   // guards against out-of-order responses when dates are switched quickly.
@@ -220,7 +243,7 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
     }
     setError('');
 
-    const master = MASTERS.find((m) => m.id === masterId);
+    const master = selectedMaster;
     const masterName = master ? master.name : t(TR.anyMaster);
     const servicesText =
       selectedZones.length > 0
@@ -247,7 +270,11 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
     message += `📅 ${labels.date}: ${date}\n`;
     message += `🕐 ${labels.time}: ${time}\n`;
     if (selectedZones.length > 0) {
-      const discountNote = calc.discountPct > 0 ? ` (−${calc.discountPct}%)` : '';
+      const notes = [
+        calc.discountPct > 0 ? `сет −${calc.discountPct}%` : '',
+        calc.masterDiscountPct > 0 ? `мастер −${calc.masterDiscountPct}%` : '',
+      ].filter(Boolean);
+      const discountNote = notes.length > 0 ? ` (${notes.join(', ')})` : '';
       message += `💰 ${labels.total}: ${formatPrice(calc.total, language)}${discountNote}\n`;
     }
     message += `\n👤 ${labels.name}: ${name.trim()}\n📞 ${labels.phone}: ${phone.trim()}`;
@@ -342,6 +369,17 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
                 {copied ? t(TR.copied) : t(TR.copyMsg)}
               </button>
             </div>
+            {onCancelBooking && (
+              <p className="mt-6 border-t border-hairline pt-4 text-xs leading-relaxed text-muted">
+                {t(TR.changedMind)}{' '}
+                <button
+                  onClick={onCancelBooking}
+                  className="font-semibold text-primary-dark underline underline-offset-2 hover:no-underline"
+                >
+                  {t(TR.cancelLink)}
+                </button>
+              </p>
+            )}
           </div>
         ) : (
           <>
@@ -371,10 +409,19 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
                   </ul>
                   <p className="mt-3 border-t border-ink/10 pt-3 font-serif text-xl font-semibold text-ink">
                     {t(TR.total)}: {formatPrice(calc.total, language)}
-                    {calc.discountPct > 0 && (
-                      <span className="ml-2 font-sans text-sm font-semibold text-primary-dark">−{calc.discountPct}%</span>
-                    )}
                   </p>
+                  {(calc.discountPct > 0 || calc.masterDiscountPct > 0) && (
+                    <p className="mt-1 font-sans text-xs font-semibold text-primary-dark">
+                      {[
+                        calc.discountPct > 0 ? `${t(TR.setDiscount)} −${calc.discountPct}%` : '',
+                        calc.masterDiscountPct > 0
+                          ? `${t(TR.masterDiscount)} −${calc.masterDiscountPct}%`
+                          : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  )}
                 </>
               ) : (
                 <p className="mt-2 text-sm text-muted">{t(TR.noZones)}</p>
@@ -455,7 +502,13 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-semibold">{master.name}</span>
                           <span className={`block truncate text-xs ${selected ? 'text-canvas/60' : 'text-faint'}`}>
-                            {getLocalized(master.role, language)}
+                            {master.discountPct > 0 ? (
+                              <span className={selected ? 'text-canvas' : 'font-semibold text-primary-dark'}>
+                                −{master.discountPct}% к прайсу
+                              </span>
+                            ) : (
+                              getLocalized(master.role, language)
+                            )}
                           </span>
                         </span>
                       </button>
@@ -475,15 +528,26 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
                   {days.map((day, i) => {
                     const iso = toIsoDay(day);
                     const selected = date === iso;
-                    const topLabel =
-                      i === 0 ? t(TR.today) : i === 1 ? t(TR.tomorrow) : weekdayFmt.format(day);
+                    const closed = day.getDay() === DAY_OFF;
+                    const topLabel = closed
+                      ? t(TR.dayOff)
+                      : i === 0
+                        ? t(TR.today)
+                        : i === 1
+                          ? t(TR.tomorrow)
+                          : weekdayFmt.format(day);
                     return (
                       <button
                         key={iso}
-                        onClick={() => setDate(iso)}
+                        onClick={() => !closed && setDate(iso)}
+                        disabled={closed}
                         aria-pressed={selected}
                         className={`btn-press w-16 shrink-0 snap-start rounded-lg border py-2.5 text-center transition-colors ${
-                          selected ? 'border-ink bg-ink text-canvas' : 'border-hairline bg-canvas hover:border-muted'
+                          closed
+                            ? 'cursor-not-allowed border-hairline/60 bg-surface/50 text-faint'
+                            : selected
+                              ? 'border-ink bg-ink text-canvas'
+                              : 'border-hairline bg-canvas hover:border-muted'
                         }`}
                       >
                         <span className={`block text-[11px] font-medium capitalize ${selected ? 'text-canvas/60' : 'text-faint'}`}>
@@ -496,6 +560,7 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
                     );
                   })}
                 </div>
+                <p className="mt-2.5 text-xs leading-relaxed text-faint">{t(TR.dayOffNote)}</p>
                 {loadingSlots && <p className="mt-3 text-xs text-faint">{t(TR.loadingSlots)}</p>}
                 {availability?.dayClosed && (
                   <p className="mt-3 text-xs font-semibold text-danger">{t(TR.dayClosed)}</p>

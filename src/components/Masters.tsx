@@ -11,10 +11,12 @@ const TR = {
   eyebrow: { RU: 'Команда', UZ: 'Jamoa', EN: 'The team' },
   title: { RU: 'Наши мастера', UZ: 'Bizning ustalar', EN: 'Our masters' },
   subtitle: {
-    RU: 'Сертифицированные специалисты с медицинским подходом к каждой процедуре.',
-    UZ: 'Har bir muolajaga tibbiy yondashuvga ega sertifikatlangan mutaxassislar.',
-    EN: 'Certified specialists with a medical-grade approach to every procedure.',
+    RU: 'Сертифицированные специалисты с медицинским подходом к каждой процедуре. У каждого мастера свои цены — выбирайте при записи.',
+    UZ: 'Har bir muolajaga tibbiy yondashuvga ega sertifikatlangan mutaxassislar. Har bir ustaning o‘z narxi bor — yozilishda tanlang.',
+    EN: 'Certified specialists with a medical-grade approach. Each master has their own rate — pick one when booking.',
   },
+  basePrice: { RU: 'Цены по прайсу', UZ: 'Narxlar prays bo‘yicha', EN: 'Standard price list' },
+  discount: { RU: 'к прайсу', UZ: 'praysga', EN: 'off the price list' },
 };
 
 /** "5 лет опыта" / "3 года опыта" — правильная русская плюрализация. */
@@ -56,6 +58,11 @@ export default function Masters({ language }: MastersProps) {
                 <h3 className="display mt-5 text-2xl text-ink">{master.name}</h3>
                 <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-primary-dark">
                   {getLocalized(master.role, language)} · {experienceLabel(master.experienceYears, language)}
+                </p>
+                <p className="mt-3 inline-block rounded-full bg-primary-soft px-3 py-1 text-xs font-bold text-primary-dark">
+                  {master.discountPct > 0
+                    ? `−${master.discountPct}% ${getLocalized(TR.discount, language)}`
+                    : getLocalized(TR.basePrice, language)}
                 </p>
                 <p className="mt-3 text-sm leading-relaxed text-muted">
                   {getLocalized(master.description, language)}

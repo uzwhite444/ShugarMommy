@@ -25,6 +25,11 @@ export interface Master {
   description: Localized;
   /** Initials shown in the avatar placeholder until a real photo is added. */
   initials: string;
+  /**
+   * Discount off the base price list, in percent. Base prices belong to the
+   * top master; junior masters work at a lower rate.
+   */
+  discountPct: number;
 }
 
 export interface Review {

@@ -17,7 +17,7 @@ interface Stat {
 /* Цифры — маркетинговые, отредактируйте под реальные показатели студии. */
 const STATS: Stat[] = [
   { to: 1000, suffix: '+', label: { RU: 'довольных клиенток', UZ: 'mamnun mijozlar', EN: 'happy clients' } },
-  { to: 12, label: { RU: 'лет суммарного опыта', UZ: 'yillik umumiy tajriba', EN: 'years of combined experience' } },
+  { to: 7, label: { RU: 'лет суммарного опыта', UZ: 'yillik umumiy tajriba', EN: 'years of combined experience' } },
   { to: 4.9, decimals: 1, label: { RU: 'средняя оценка', UZ: "o'rtacha baho", EN: 'average rating' } },
   { to: 98, suffix: '%', label: { RU: 'возвращаются снова', UZ: 'yana qaytishadi', EN: 'come back again' } },
 ];

@@ -16,8 +16,11 @@ export const ADDRESS: Localized = {
   EN: '1 Example St., Andijan',
 };
 
-/** Working hours, same for every day. */
-export const WORK_HOURS = { open: '09:00', close: '20:00' };
+/** Working hours, Monday to Saturday. */
+export const WORK_HOURS = { open: '08:30', close: '21:00' };
+
+/** Sunday is the day off — a master can come in at double rate on request. */
+export const DAY_OFF = 0; // 0 = Sunday (Date.getDay())
 
 /** Combo discounts: pick N+ zones → percentage off the subtotal. */
 export const DISCOUNT_TIERS: ReadonlyArray<{ minZones: number; pct: number }> = [
@@ -38,25 +41,41 @@ export function formatPrice(price: number, lang: LanguageCode = 'RU'): string {
 
 export interface CalcResult {
   subtotal: number;
+  /** Set discount for picking several zones. */
   discountPct: number;
   discountAmount: number;
+  /** Discount that comes with the chosen master (0 for the top master). */
+  masterDiscountPct: number;
+  masterDiscountAmount: number;
   total: number;
   durationMin: number;
 }
 
-/** Totals for the selected zones including the combo discount. */
-export function calcTotal(zones: ServiceZone[]): CalcResult {
+/**
+ * Totals for the selected zones. Two discounts stack: the set discount for
+ * booking several zones, then the chosen master's rate on top of it.
+ */
+export function calcTotal(zones: ServiceZone[], masterDiscountPct = 0): CalcResult {
   const subtotal = zones.reduce((sum, z) => sum + z.price, 0);
   const tier = DISCOUNT_TIERS.find((t) => zones.length >= t.minZones);
   const discountPct = tier ? tier.pct : 0;
   const discountAmount = Math.round((subtotal * discountPct) / 100);
+  const afterSet = subtotal - discountAmount;
+  const masterDiscountAmount = Math.round((afterSet * masterDiscountPct) / 100);
   return {
     subtotal,
     discountPct,
     discountAmount,
-    total: subtotal - discountAmount,
+    masterDiscountPct,
+    masterDiscountAmount,
+    total: afterSet - masterDiscountAmount,
     durationMin: zones.reduce((sum, z) => sum + z.durationMin, 0),
   };
+}
+
+/** Price of a single zone for a given master. */
+export function zonePriceFor(price: number, masterDiscountPct: number): number {
+  return Math.round(price * (1 - masterDiscountPct / 100));
 }
 
 /**

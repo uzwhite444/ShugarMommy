@@ -199,6 +199,42 @@ revoke all on function public.booked_slots(date) from public;
 grant execute on function public.booked_slots(date) to anon, authenticated;
 
 -- ============================================================
+-- 4. ОТМЕНА ЗАПИСИ клиенткой через сайт
+-- ============================================================
+
+-- Клиентка вводит телефон и дату визита; функция отменяет её активные
+-- записи. Личные данные наружу не отдаются — только число отменённых.
+create or replace function public.cancel_booking(customer_phone text, target_date date)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  digits text;
+  affected integer;
+begin
+  digits := regexp_replace(coalesce(customer_phone, ''), '\D', '', 'g');
+
+  if char_length(digits) < 7 then
+    return 0;
+  end if;
+
+  update public.bookings b
+  set status = 'cancelled'
+  where b.visit_date = target_date
+    and b.status in ('new', 'confirmed')
+    and regexp_replace(b.phone, '\D', '', 'g') = digits;
+
+  get diagnostics affected = row_count;
+  return affected;
+end;
+$$;
+
+revoke all on function public.cancel_booking(text, date) from public;
+grant execute on function public.cancel_booking(text, date) to anon, authenticated;
+
+-- ============================================================
 -- ГОТОВО. Проверьте: Table Editor → должны быть bookings и blocked_slots.
 -- Затем Authentication → Users → Add user (это вход в админку),
 -- и Authentication → Sign In / Up → выключите «Allow new users to sign up».

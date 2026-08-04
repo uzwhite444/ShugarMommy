@@ -31,11 +31,11 @@ const TR = {
     },
     {
       icon: BadgePercent,
-      title: { RU: 'Честные комплексы', UZ: 'Halol komplekslar', EN: 'Fair combos' },
+      title: { RU: 'Выгодные сеты', UZ: 'Foydali setlar', EN: 'Value sets' },
       text: {
-        RU: 'Скидка до 15% при выборе нескольких зон — считается автоматически в калькуляторе.',
-        UZ: "Bir necha zona tanlansa 15% gacha chegirma — kalkulyatorda avtomatik hisoblanadi.",
-        EN: 'Up to 15% off for multiple zones — calculated automatically.',
+        RU: 'Скидка до 15% за несколько зон плюс до 25% у отдельных мастеров — считается автоматически.',
+        UZ: 'Bir necha zona uchun 15% gacha va ayrim ustalarda 25% gacha chegirma — avtomatik hisoblanadi.',
+        EN: 'Up to 15% off for multiple zones plus up to 25% with selected masters — calculated automatically.',
       },
     },
     {

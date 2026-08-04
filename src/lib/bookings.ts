@@ -74,6 +74,30 @@ export async function fetchBookings(): Promise<Booking[]> {
   }
 }
 
+/**
+ * Cancels the customer's own bookings for a date, identified by phone.
+ * Returns how many were cancelled, or null if the feature is not installed
+ * (supabase/06_cancel.sql) so the UI can fall back to "call us".
+ */
+export async function cancelBookingByPhone(phone: string, date: string): Promise<number | null> {
+  try {
+    const supabase = await getClient();
+    if (!supabase) return null;
+    const { data, error } = await supabase.rpc('cancel_booking', {
+      customer_phone: phone,
+      target_date: date,
+    });
+    if (error) {
+      console.error('cancelBooking failed:', error.message);
+      return null;
+    }
+    return typeof data === 'number' ? data : 0;
+  } catch (err) {
+    console.error('cancelBooking failed:', err);
+    return null;
+  }
+}
+
 /** Removes a booking entirely (requires supabase/03_admin_delete.sql). */
 export async function deleteBooking(id: string): Promise<boolean> {
   try {

@@ -32,15 +32,20 @@ export const CATEGORY_LABELS = {
   body: { RU: 'Тело', UZ: 'Tana', EN: 'Body' },
 } as const;
 
+/**
+ * Мастера. Базовые цены прайса — цены топ-мастера; у остальных ниже
+ * на discountPct. Суммарный опыт команды = 7 лет.
+ */
 export const MASTERS: Master[] = [
   {
     id: 'master-1',
     name: 'Мадина',
     initials: 'М',
-    experienceYears: 5,
+    experienceYears: 3,
+    discountPct: 0,
     role: { RU: 'Топ-мастер', UZ: 'Top-usta', EN: 'Top master' },
     description: {
-      RU: 'Специалист по чувствительной коже. Работает в четыре руки быстро и деликатно.',
+      RU: 'Специалист по чувствительной коже. Работает быстро и деликатно.',
       UZ: 'Sezgir teri bo‘yicha mutaxassis. Tez va ehtiyotkor ishlaydi.',
       EN: 'Sensitive-skin specialist. Fast and delicate technique.',
     },
@@ -49,7 +54,8 @@ export const MASTERS: Master[] = [
     id: 'master-2',
     name: 'Севара',
     initials: 'С',
-    experienceYears: 3,
+    experienceYears: 2,
+    discountPct: 25,
     role: { RU: 'Мастер шугаринга', UZ: 'Shugaring ustasi', EN: 'Sugaring master' },
     description: {
       RU: 'Сертифицированный мастер. Идеальная гладкость даже на сложных зонах.',
@@ -61,7 +67,8 @@ export const MASTERS: Master[] = [
     id: 'master-3',
     name: 'Нилюфар',
     initials: 'Н',
-    experienceYears: 4,
+    experienceYears: 2,
+    discountPct: 25,
     role: { RU: 'Мастер шугаринга', UZ: 'Shugaring ustasi', EN: 'Sugaring master' },
     description: {
       RU: 'Внимательна к деталям, подберёт уход после процедуры под ваш тип кожи.',
@@ -130,25 +137,25 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: { RU: 'Какая длина волос нужна?', UZ: 'Tuk qancha uzun bo‘lishi kerak?', EN: 'How long should hair be?' },
     answer: {
-      RU: 'Оптимально 4–5 мм — примерно 10–14 дней после бритвы. Если длиннее — не страшно, мастер всё сделает.',
-      UZ: 'Eng maqbul 4–5 mm — ustaradan keyin 10–14 kun. Uzunroq bo‘lsa ham muammo emas.',
-      EN: 'Ideally 4–5 mm — about 10–14 days after shaving. Longer is fine too.',
+      RU: 'Оптимально от 8 мм до 1 см — примерно 2–3 недели после бритвы. Если длиннее, мастер всё равно всё сделает.',
+      UZ: 'Eng maqbul 8 mm dan 1 sm gacha — ustaradan keyin taxminan 2–3 hafta. Uzunroq bo‘lsa ham usta hammasini qiladi.',
+      EN: 'Ideally 8 mm to 1 cm — about 2–3 weeks after shaving. Longer is fine, the master will handle it.',
     },
   },
   {
     question: { RU: 'Как подготовиться к процедуре?', UZ: 'Muolajaga qanday tayyorlanish kerak?', EN: 'How do I prepare?' },
     answer: {
-      RU: 'За сутки не загорайте и не пользуйтесь скрабом, в день процедуры не наносите кремы и масла на зону. Всё остальное мы возьмём на себя.',
-      UZ: 'Bir kun oldin quyoshda toblanmang va skrab ishlatmang, muolaja kuni krem yoki moy surtmang.',
-      EN: 'No sunbathing or scrubs 24h before; skip creams and oils on the day. We handle the rest.',
+      RU: 'Скрабом пользоваться можно — он даже помогает против вросших волосков. За сутки не загорайте, а в день процедуры не наносите кремы и масла на зону.',
+      UZ: 'Skrabdan foydalanish mumkin — u hatto ichki o‘sgan tuklarga qarshi yordam beradi. Bir kun oldin quyoshda toblanmang, muolaja kuni krem yoki moy surtmang.',
+      EN: 'A scrub is fine — it even helps against ingrown hairs. Just avoid sunbathing for 24h and skip creams and oils on the day.',
     },
   },
   {
     question: { RU: 'Сколько держится эффект?', UZ: 'Natija qancha davom etadi?', EN: 'How long does it last?' },
     answer: {
-      RU: 'В среднем 3–4 недели гладкой кожи. При регулярных процедурах волосы растут медленнее и реже.',
-      UZ: 'O‘rtacha 3–4 hafta silliq teri. Muntazam muolajada tuklar sekinroq o‘sadi.',
-      EN: 'On average 3–4 weeks of smooth skin. With regular visits hair grows back slower and thinner.',
+      RU: 'В среднем 2–3 недели гладкой кожи. При регулярных процедурах волосы растут медленнее и реже.',
+      UZ: 'O‘rtacha 2–3 hafta silliq teri. Muntazam muolajada tuklar sekinroq o‘sadi.',
+      EN: 'On average 2–3 weeks of smooth skin. With regular visits hair grows back slower and thinner.',
     },
   },
   {

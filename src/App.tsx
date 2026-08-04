@@ -15,6 +15,7 @@ import Faq from './components/Faq';
 import Contacts from './components/Contacts';
 import Footer from './components/Footer';
 import BookingModal from './components/BookingModal';
+import CancelModal from './components/CancelModal';
 import StickyCta from './components/StickyCta';
 import { captureSource } from './lib/attribution';
 import { calcTotal } from './utils';
@@ -41,6 +42,7 @@ export default function App() {
     return param.split(',').filter((id) => validIds.has(id));
   });
   const [bookingOpen, setBookingOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
   const [route, setRoute] = useState(() => window.location.hash);
 
   useEffect(() => {
@@ -129,7 +131,7 @@ export default function App() {
         <Gallery language={language} />
         <Reviews language={language} />
         <Faq language={language} />
-        <Contacts language={language} />
+        <Contacts language={language} onCancelBooking={() => setCancelOpen(true)} />
       </main>
       <Footer language={language} />
       <StickyCta
@@ -145,8 +147,13 @@ export default function App() {
           selectedZones={selectedZones}
           onClose={() => setBookingOpen(false)}
           onRemoveZone={toggleZone}
+          onCancelBooking={() => {
+            setBookingOpen(false);
+            setCancelOpen(true);
+          }}
         />
       )}
+      {cancelOpen && <CancelModal language={language} onClose={() => setCancelOpen(false)} />}
     </div>
   );
 }

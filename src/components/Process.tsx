@@ -61,9 +61,9 @@ const TR = {
       number: '05',
       title: { RU: 'Уход и рекомендации', UZ: 'Parvarish va tavsiyalar', EN: 'Aftercare & tips' },
       text: {
-        RU: 'Советы по уходу, чтобы гладкость держалась до 4 недель.',
-        UZ: "Silliqlik 4 haftagacha saqlanishi uchun parvarish bo'yicha maslahatlar.",
-        EN: 'Aftercare advice so smoothness lasts up to 4 weeks.',
+        RU: 'Советы по уходу, чтобы гладкость держалась до 3 недель.',
+        UZ: "Silliqlik 3 haftagacha saqlanishi uchun parvarish bo'yicha maslahatlar.",
+        EN: 'Aftercare advice so smoothness lasts up to 3 weeks.',
       },
     },
   ] as Step[],
