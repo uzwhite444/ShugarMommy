@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { X, Send, Loader2, CheckCircle2, Copy, Check } from 'lucide-react';
 import { LanguageCode, ServiceZone } from '../types';
@@ -99,6 +100,16 @@ function StepLabel({ number, children }: { number: string; children: string }) {
 export default function BookingModal({ language, selectedZones, onClose, onRemoveZone }: BookingModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, true, onClose);
+
+  // Lock the page behind the modal — without this the background scrolls
+  // under the dialog on touch devices and the user loses their place.
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -205,13 +216,13 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
     'w-full rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm text-ink outline-none transition-colors focus:border-primary';
 
   const pillCls = (selected: boolean) =>
-    `btn-press rounded-lg border px-1 py-2 text-sm font-medium transition-colors ${
+    `btn-press min-h-11 rounded-lg border px-1 text-sm font-medium transition-colors ${
       selected
         ? 'border-ink bg-ink text-canvas'
         : 'border-hairline bg-canvas text-body hover:border-muted'
     }`;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 sm:items-center sm:p-4"
       onClick={onClose}
@@ -444,6 +455,7 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
           </>
         )}
       </motion.div>
-    </div>
+    </div>,
+    document.body,
   );
 }

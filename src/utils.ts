@@ -11,9 +11,9 @@ export const PHONE = '+998 90 000-00-00'; // TODO: заменить на реа�
 
 /** Studio address per language. */
 export const ADDRESS: Localized = {
-  RU: 'г. Ташкент, ул. Примерная, 1',
-  UZ: "Toshkent sh., Namuna ko'chasi, 1",
-  EN: '1 Example St., Tashkent',
+  RU: 'г. Андижан, ул. Примерная, 1', // TODO: заменить на реальный адрес
+  UZ: "Andijon sh., Namuna ko'chasi, 1",
+  EN: '1 Example St., Andijan',
 };
 
 /** Working hours, same for every day. */

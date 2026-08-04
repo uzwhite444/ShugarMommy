@@ -72,23 +72,29 @@ export default function BodyMap({ language, selectedZoneIds, onToggleZone }: Bod
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true, margin: '-40px' }}
               transition={{ duration: 0.4, delay: 0.15 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
-              className={`group absolute flex items-center gap-1.5 ${
+              className={`group absolute flex items-center ${
                 point.side === 'left' ? 'flex-row-reverse' : ''
               }`}
               style={{
                 left: `${point.x}%`,
                 top: `${point.y}%`,
-                transform: `translate(${point.side === 'left' ? '-100%' : '0'}, -50%)`,
+                // The 44px hit area is centred on the dot, so pull the row back
+                // by half of it to keep the visual dot exactly on the anchor.
+                transform: `translate(${point.side === 'left' ? 'calc(-100% + 22px)' : '-22px'}, -50%)`,
               }}
             >
-              <span
-                className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-                  selected
-                    ? 'border-primary bg-primary text-white'
-                    : 'border-primary bg-canvas group-hover:bg-primary-soft'
-                }`}
-              >
-                {selected && <Check size={10} strokeWidth={3.5} />}
+              {/* 44px touch target around an 18px visual dot: the padding is
+                  transparent, so the map stays clean but stays tappable. */}
+              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center">
+                <span
+                  className={`flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 transition-all ${
+                    selected
+                      ? 'scale-110 border-primary bg-primary text-white'
+                      : 'border-primary bg-canvas group-hover:bg-primary-soft'
+                  }`}
+                >
+                  {selected && <Check size={10} strokeWidth={3.5} />}
+                </span>
               </span>
               <span aria-hidden className={`hidden h-px w-4 sm:block ${selected ? 'bg-primary/70' : 'bg-primary/40'}`} />
               <span

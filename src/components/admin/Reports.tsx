@@ -117,7 +117,8 @@ export default function Reports({ bookings }: ReportsProps) {
           {metrics.byMaster.length === 0 ? (
             <p className="mt-3 text-sm text-muted">Нет данных за период.</p>
           ) : (
-            <table className="mt-3 w-full text-sm">
+            <div className="-mx-1 mt-3 overflow-x-auto px-1">
+            <table className="w-full min-w-[280px] text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wide text-faint">
                   <th className="pb-2 font-semibold">Мастер</th>
@@ -135,6 +136,7 @@ export default function Reports({ bookings }: ReportsProps) {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 
@@ -148,7 +150,7 @@ export default function Reports({ bookings }: ReportsProps) {
                 const max = metrics.topServices[0].count;
                 return (
                   <li key={s.service} className="flex items-center gap-3 text-sm">
-                    <span className="w-40 shrink-0 truncate font-medium text-ink">{s.service}</span>
+                    <span className="w-28 shrink-0 truncate font-medium text-ink sm:w-40">{s.service}</span>
                     <span className="h-2 rounded-full bg-primary/70" style={{ width: `${(s.count / max) * 100}%`, minWidth: 8 }} />
                     <span className="text-muted">{s.count}</span>
                   </li>

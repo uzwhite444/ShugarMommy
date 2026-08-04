@@ -11,7 +11,7 @@ interface HeroProps {
 }
 
 const TR = {
-  eyebrow: { RU: 'Студия шугаринга — Ташкент', UZ: 'Shugaring studiyasi — Toshkent', EN: 'Sugaring studio — Tashkent' },
+  eyebrow: { RU: 'Студия шугаринга — Андижан', UZ: 'Shugaring studiyasi — Andijon', EN: 'Sugaring studio — Andijan' },
   title1: { RU: 'Кожа, к которой', UZ: 'Teginish istagini', EN: "Skin you can't" },
   title2: { RU: 'хочется прикасаться', UZ: 'uyg‘otadigan teri', EN: 'help but touch' },
   subtitle: {

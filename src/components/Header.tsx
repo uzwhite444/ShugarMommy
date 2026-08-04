@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Menu, X } from 'lucide-react';
 import { LanguageCode } from '../types';
 import { getLocalized } from '../utils';
@@ -134,59 +135,64 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
         </div>
       </div>
 
-      {menuOpen && (
-        <div
-          ref={menuRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label={getLocalized(MENU_LABEL, language)}
-          className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-canvas pb-10 text-ink lg:hidden"
-        >
-          <div className="flex h-16 items-center justify-between border-b border-hairline px-4">
-            <Wordmark />
-            <button onClick={() => setMenuOpen(false)} aria-label="Close" className="rounded-lg p-2">
-              <X size={22} />
-            </button>
-          </div>
-          <nav aria-label="Mobile navigation" className="flex flex-col px-6 pt-6">
-            {NAV_ITEMS.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                onClick={() => setMenuOpen(false)}
-                className="border-b border-hairline py-4 font-serif text-2xl font-medium text-ink"
-              >
-                {getLocalized(item.label, language)}
-              </a>
-            ))}
-          </nav>
-          <div className="mt-8 flex items-center gap-2 px-6">
-            {LANGS.map((lang) => (
-              <button
-                key={lang}
-                onClick={() => onChangeLanguage(lang)}
-                aria-pressed={language === lang}
-                className={`rounded-lg border px-4 py-2 text-sm font-semibold ${
-                  language === lang ? 'border-ink bg-ink text-canvas' : 'border-hairline text-muted'
-                }`}
-              >
-                {lang}
+      {/* Portalled to <body>: the header's backdrop-blur creates a containing
+          block, which would trap this fixed overlay inside the 64px bar and
+          make its links unclickable. */}
+      {menuOpen &&
+        createPortal(
+          <div
+            ref={menuRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={getLocalized(MENU_LABEL, language)}
+            className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-canvas pb-10 text-ink lg:hidden"
+          >
+            <div className="flex h-16 items-center justify-between border-b border-hairline px-4">
+              <Wordmark />
+              <button onClick={() => setMenuOpen(false)} aria-label="Close" className="rounded-lg p-2.5">
+                <X size={22} />
               </button>
-            ))}
-          </div>
-          <div className="px-6 pt-6">
-            <button
-              onClick={() => {
-                setMenuOpen(false);
-                onBook();
-              }}
-              className="w-full rounded-lg bg-primary px-5 py-3.5 font-semibold text-white transition-colors hover:bg-primary-dark"
-            >
-              {getLocalized(BOOK_LABEL, language)}
-            </button>
-          </div>
-        </div>
-      )}
+            </div>
+            <nav aria-label="Mobile navigation" className="flex flex-col px-6 pt-6">
+              {NAV_ITEMS.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMenuOpen(false)}
+                  className="border-b border-hairline py-4 font-serif text-2xl font-medium text-ink"
+                >
+                  {getLocalized(item.label, language)}
+                </a>
+              ))}
+            </nav>
+            <div className="mt-8 flex items-center gap-2 px-6">
+              {LANGS.map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => onChangeLanguage(lang)}
+                  aria-pressed={language === lang}
+                  className={`rounded-lg border px-4 py-2.5 text-sm font-semibold ${
+                    language === lang ? 'border-ink bg-ink text-canvas' : 'border-hairline text-muted'
+                  }`}
+                >
+                  {lang}
+                </button>
+              ))}
+            </div>
+            <div className="px-6 pt-6">
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  onBook();
+                }}
+                className="w-full rounded-lg bg-primary px-5 py-3.5 font-semibold text-white transition-colors hover:bg-primary-dark"
+              >
+                {getLocalized(BOOK_LABEL, language)}
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
     </header>
   );
 }
