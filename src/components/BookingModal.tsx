@@ -6,6 +6,7 @@ import { LanguageCode, ServiceZone } from '../types';
 import { calcTotal, formatPrice, getLocalized, MANAGER_TELEGRAM, WORK_HOURS } from '../utils';
 import { MASTERS } from '../data';
 import { createBooking } from '../lib/bookings';
+import { fetchDayAvailability, isSlotTaken, type DayAvailability } from '../lib/availability';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface BookingModalProps {
@@ -57,6 +58,23 @@ const TR = {
   },
   errFill: { RU: 'Укажите имя и телефон.', UZ: 'Ism va telefonni kiriting.', EN: 'Please enter your name and phone.' },
   errDate: { RU: 'Выберите дату и время.', UZ: 'Sana va vaqtni tanlang.', EN: 'Please pick a date and time.' },
+  errTaken: {
+    RU: 'Это время уже занято — выберите другое.',
+    UZ: 'Bu vaqt band — boshqasini tanlang.',
+    EN: 'That time is taken — please pick another.',
+  },
+  loadingSlots: { RU: 'Проверяем свободное время…', UZ: "Bo'sh vaqtni tekshiryapmiz…", EN: 'Checking availability…' },
+  dayClosed: {
+    RU: 'В этот день студия не принимает — выберите другую дату.',
+    UZ: 'Bu kuni studiya ishlamaydi — boshqa sanani tanlang.',
+    EN: 'The studio is closed that day — please pick another date.',
+  },
+  noSlotsLeft: {
+    RU: 'На эту дату всё занято — выберите другой день.',
+    UZ: "Bu sanaga hammasi band — boshqa kunni tanlang.",
+    EN: 'Fully booked that day — please pick another one.',
+  },
+  slotTaken: { RU: 'занято', UZ: 'band', EN: 'taken' },
   doneTitle: { RU: 'Заявка готова!', UZ: 'Ariza tayyor!', EN: 'Request ready!' },
   doneText: {
     RU: 'Если Telegram не открылся автоматически — нажмите кнопку ниже или скопируйте текст заявки.',
@@ -145,6 +163,43 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
     [language],
   );
 
+  const [availability, setAvailability] = useState<DayAvailability | null>(null);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const selectedMasterName = MASTERS.find((m) => m.id === masterId)?.name ?? null;
+
+  // Load real availability whenever the customer picks a date. A stale flag
+  // guards against out-of-order responses when dates are switched quickly.
+  useEffect(() => {
+    if (!date) {
+      setAvailability(null);
+      return;
+    }
+    let stale = false;
+    setLoadingSlots(true);
+    fetchDayAvailability(date).then((data) => {
+      if (stale) return;
+      setAvailability(data);
+      setLoadingSlots(false);
+    });
+    return () => {
+      stale = true;
+    };
+  }, [date]);
+
+  const slots = useMemo(() => buildTimeSlots(), []);
+  const takenSet = useMemo(() => {
+    if (!availability) return new Set<string>();
+    return new Set(slots.filter((slot) => isSlotTaken(availability, slot, selectedMasterName)));
+  }, [availability, slots, selectedMasterName]);
+
+  // Switching to a master who is busy at the chosen time clears the choice,
+  // so a taken slot can never be submitted.
+  useEffect(() => {
+    if (time && takenSet.has(time)) setTime('');
+  }, [takenSet, time]);
+
+  const allTaken = Boolean(date) && !loadingSlots && takenSet.size >= slots.length;
+
   const handleSubmit = async () => {
     if (!name.trim() || !phone.trim()) {
       setError(t(TR.errFill));
@@ -152,6 +207,14 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
     }
     if (!date || !time) {
       setError(t(TR.errDate));
+      return;
+    }
+    // Someone may have taken the slot while the form was open.
+    const fresh = await fetchDayAvailability(date);
+    if (isSlotTaken(fresh, time, selectedMasterName)) {
+      setAvailability(fresh);
+      setTime('');
+      setError(t(TR.errTaken));
       return;
     }
     setError('');
@@ -431,12 +494,33 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
                     );
                   })}
                 </div>
+                {loadingSlots && <p className="mt-3 text-xs text-faint">{t(TR.loadingSlots)}</p>}
+                {availability?.dayClosed && (
+                  <p className="mt-3 text-xs font-semibold text-danger">{t(TR.dayClosed)}</p>
+                )}
+                {allTaken && !availability?.dayClosed && (
+                  <p className="mt-3 text-xs font-semibold text-danger">{t(TR.noSlotsLeft)}</p>
+                )}
                 <div className="mt-2.5 grid grid-cols-4 gap-1.5 sm:grid-cols-5" role="group" aria-label={t(TR.stepWhen)}>
-                  {buildTimeSlots().map((slot) => (
-                    <button key={slot} onClick={() => setTime(slot)} aria-pressed={time === slot} className={pillCls(time === slot)}>
-                      {slot}
-                    </button>
-                  ))}
+                  {slots.map((slot) => {
+                    const taken = takenSet.has(slot);
+                    return (
+                      <button
+                        key={slot}
+                        onClick={() => !taken && setTime(slot)}
+                        disabled={taken}
+                        aria-pressed={time === slot}
+                        aria-label={taken ? `${slot} — ${t(TR.slotTaken)}` : slot}
+                        className={
+                          taken
+                            ? 'min-h-11 cursor-not-allowed rounded-lg border border-hairline/60 bg-surface/50 px-1 text-sm font-medium text-faint line-through'
+                            : pillCls(time === slot)
+                        }
+                      >
+                        {slot}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

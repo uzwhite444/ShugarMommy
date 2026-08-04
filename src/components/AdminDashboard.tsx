@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
-import { CalendarClock, FileBarChart, Home, LayoutDashboard, Loader2, LogOut, RefreshCw } from 'lucide-react';
+import { CalendarClock, CalendarOff, FileBarChart, Home, LayoutDashboard, Loader2, LogOut, RefreshCw } from 'lucide-react';
 import { Booking, BookingStatus } from '../types';
 import { deleteBooking, fetchBookings, updateBookingStatus } from '../lib/bookings';
 import { supabase } from '../lib/supabase';
 import Overview from './admin/Overview';
 import BookingsManager from './admin/BookingsManager';
+import Schedule from './admin/Schedule';
 import Reports from './admin/Reports';
 
-type Section = 'overview' | 'bookings' | 'reports';
+type Section = 'overview' | 'bookings' | 'schedule' | 'reports';
 
 const NAV: Array<{ id: Section; label: string; icon: typeof LayoutDashboard }> = [
   { id: 'overview', label: 'Обзор', icon: LayoutDashboard },
   { id: 'bookings', label: 'Заявки', icon: CalendarClock },
+  { id: 'schedule', label: 'Расписание', icon: CalendarOff },
   { id: 'reports', label: 'Отчёты', icon: FileBarChart },
 ];
 
@@ -152,6 +154,8 @@ export default function AdminDashboard() {
           <Overview bookings={bookings} />
         ) : section === 'bookings' ? (
           <BookingsManager bookings={bookings} onStatus={handleStatus} onDelete={handleDelete} />
+        ) : section === 'schedule' ? (
+          <Schedule bookings={bookings} />
         ) : (
           <Reports bookings={bookings} />
         )}
