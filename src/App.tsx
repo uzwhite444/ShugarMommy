@@ -16,8 +16,10 @@ import Contacts from './components/Contacts';
 import Footer from './components/Footer';
 import BookingModal from './components/BookingModal';
 
-// Admin panel is code-split — visitors never download it.
+// Admin panel and the legal page are code-split — visitors never download
+// them unless they navigate there.
 const AdminGate = lazy(() => import('./components/AdminGate'));
+const PrivacyPage = lazy(() => import('./components/PrivacyPage'));
 import { SERVICE_ZONES } from './data';
 import { LanguageCode } from './types';
 import { loadFromStorage } from './utils';
@@ -67,8 +69,16 @@ export default function App() {
 
   if (route.startsWith('#/admin')) {
     return (
-      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-cream" />}>
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-canvas" />}>
         <AdminGate />
+      </Suspense>
+    );
+  }
+
+  if (route.startsWith('#/privacy')) {
+    return (
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-canvas" />}>
+        <PrivacyPage language={language} />
       </Suspense>
     );
   }

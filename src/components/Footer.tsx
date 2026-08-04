@@ -12,6 +12,7 @@ const TR = {
     EN: 'Sugaring studio — smooth skin and confidence every day.',
   },
   rights: { RU: 'Все права защищены', UZ: 'Barcha huquqlar himoyalangan', EN: 'All rights reserved' },
+  privacy: { RU: 'Политика конфиденциальности', UZ: 'Maxfiylik siyosati', EN: 'Privacy policy' },
 };
 
 export default function Footer({ language }: FooterProps) {
@@ -24,9 +25,14 @@ export default function Footer({ language }: FooterProps) {
           </p>
           <p className="mt-2 max-w-xs text-sm text-ondark-soft">{getLocalized(TR.tagline, language)}</p>
         </div>
-        <p className="text-xs text-ondark-soft">
-          © {new Date().getFullYear()} Shugar Mommy · {getLocalized(TR.rights, language)}
-        </p>
+        <div className="text-xs text-ondark-soft sm:text-right">
+          <a href="#/privacy" className="font-semibold underline-offset-4 transition-colors hover:text-ondark hover:underline">
+            {getLocalized(TR.privacy, language)}
+          </a>
+          <p className="mt-2">
+            © {new Date().getFullYear()} Shugar Mommy · {getLocalized(TR.rights, language)}
+          </p>
+        </div>
       </div>
     </footer>
   );

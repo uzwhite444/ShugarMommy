@@ -45,6 +45,16 @@ const TR = {
     UZ: 'Telegramda administrator bilan chat ochiladi — bo‘sh vaqtni tasdiqlab, sizni yozamiz.',
     EN: 'A Telegram chat with our administrator opens — we confirm the slot and book you in.',
   },
+  consentPre: {
+    RU: 'Отправляя заявку, вы соглашаетесь с',
+    UZ: 'Ariza yuborish orqali siz rozilik bildirasiz:',
+    EN: 'By sending the request you agree to our',
+  },
+  consentLink: {
+    RU: 'политикой конфиденциальности',
+    UZ: 'maxfiylik siyosati',
+    EN: 'privacy policy',
+  },
   errFill: { RU: 'Укажите имя и телефон.', UZ: 'Ism va telefonni kiriting.', EN: 'Please enter your name and phone.' },
   errDate: { RU: 'Выберите дату и время.', UZ: 'Sana va vaqtni tanlang.', EN: 'Please pick a date and time.' },
   doneTitle: { RU: 'Заявка готова!', UZ: 'Ariza tayyor!', EN: 'Request ready!' },
@@ -452,6 +462,18 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
               {t(TR.submit)}
             </button>
             <p className="mt-3 text-center text-xs leading-relaxed text-muted">{t(TR.disclaimer)}</p>
+            <p className="mt-2 text-center text-xs leading-relaxed text-faint">
+              {t(TR.consentPre)}{' '}
+              <a
+                href="#/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:text-muted"
+              >
+                {t(TR.consentLink)}
+              </a>
+              .
+            </p>
           </>
         )}
       </motion.div>
