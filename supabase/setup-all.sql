@@ -209,12 +209,14 @@ returns integer
 language plpgsql
 security definer
 set search_path = public
-as $$
+as $function$
 declare
   digits text;
   affected integer;
 begin
-  digits := regexp_replace(coalesce(customer_phone, ''), '\D', '', 'g');
+  -- [^0-9] вместо \D: без обратных слешей, чтобы не зависеть
+  -- от настроек экранирования строк.
+  digits := regexp_replace(coalesce(customer_phone, ''), '[^0-9]', '', 'g');
 
   if char_length(digits) < 7 then
     return 0;
@@ -224,12 +226,12 @@ begin
   set status = 'cancelled'
   where b.visit_date = target_date
     and b.status in ('new', 'confirmed')
-    and regexp_replace(b.phone, '\D', '', 'g') = digits;
+    and regexp_replace(b.phone, '[^0-9]', '', 'g') = digits;
 
   get diagnostics affected = row_count;
   return affected;
 end;
-$$;
+$function$;
 
 revoke all on function public.cancel_booking(text, date) from public;
 grant execute on function public.cancel_booking(text, date) to anon, authenticated;

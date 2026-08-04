@@ -3,6 +3,9 @@ import { LanguageCode, Localized, ServiceZone } from './types';
 /** Telegram DM of the studio administrator — receives booking requests. */
 export const MANAGER_TELEGRAM = 'ShugarMommyUz'; // TODO: заменить на реальный ник
 
+/** Studio bot — sends visit reminders to clients who opt in. */
+export const MANAGER_BOT = 'Shugarr_Mommy_bot';
+
 /** Studio Instagram handle. */
 export const INSTAGRAM = 'shugar.mommy'; // TODO: заменить на реальный ник
 

@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
-import { X, Send, Loader2, CheckCircle2, Copy, Check } from 'lucide-react';
+import { X, Send, Loader2, CheckCircle2, Copy, Check, BellRing } from 'lucide-react';
 import { LanguageCode, ServiceZone } from '../types';
-import { calcTotal, DAY_OFF, formatPrice, getLocalized, MANAGER_TELEGRAM, WORK_HOURS } from '../utils';
+import {
+  calcTotal,
+  DAY_OFF,
+  formatPrice,
+  getLocalized,
+  MANAGER_BOT,
+  MANAGER_TELEGRAM,
+  WORK_HOURS,
+} from '../utils';
 import { MASTERS } from '../data';
 import { createBooking } from '../lib/bookings';
 import { fetchDayAvailability, isSlotTaken, type DayAvailability } from '../lib/availability';
@@ -101,6 +109,17 @@ const TR = {
     EN: 'Plans changed? You can cancel on the site or by phone.',
   },
   cancelLink: { RU: 'Отменить запись', UZ: 'Yozuvni bekor qilish', EN: 'Cancel booking' },
+  remindTitle: {
+    RU: 'Напомнить за час до визита?',
+    UZ: 'Tashrifdan bir soat oldin eslataylikmi?',
+    EN: 'Want a reminder an hour before?',
+  },
+  remindText: {
+    RU: 'Нажмите — откроется наш бот, останется нажать «Старт». Пришлём напоминание ровно за час.',
+    UZ: 'Bosing — botimiz ochiladi, «Start» tugmasini bosing. Roppa-rosa bir soat oldin eslatamiz.',
+    EN: 'Tap to open our bot and press “Start”. We will remind you exactly an hour before.',
+  },
+  remindBtn: { RU: 'Напомнить в Telegram', UZ: 'Telegramda eslatish', EN: 'Remind me on Telegram' },
 };
 
 /** 30-minute slots between opening and one hour before closing. */
@@ -175,6 +194,8 @@ export default function BookingModal({
   // copy button — the redirect is often blocked in in-app browsers (Instagram).
   const [requestMsg, setRequestMsg] = useState('');
   const [copied, setCopied] = useState(false);
+  // Set after a successful save — powers the "remind me" deep link.
+  const [bookingId, setBookingId] = useState<string | null>(null);
 
   const t = (loc: (typeof TR)[keyof typeof TR]) => getLocalized(loc, language);
   const selectedMaster = MASTERS.find((m) => m.id === masterId);
@@ -282,7 +303,7 @@ export default function BookingModal({
 
     // Persist to the backend (Telegram still opens even if this fails).
     setSubmitting(true);
-    await createBooking({
+    const newId = await createBooking({
       customer_name: name.trim(),
       phone: phone.trim(),
       services: servicesText,
@@ -295,6 +316,7 @@ export default function BookingModal({
     });
     setSubmitting(false);
 
+    setBookingId(newId);
     setRequestMsg(message);
     setPlaced(true);
 
@@ -352,6 +374,23 @@ export default function BookingModal({
             <CheckCircle2 size={56} className="mx-auto text-success" />
             <h3 className="display mt-4 text-2xl text-ink">{t(TR.doneTitle)}</h3>
             <p className="mt-2 text-sm leading-relaxed text-muted">{t(TR.doneText)}</p>
+
+            {/* Opt-in reminder: works only when the booking reached the base,
+                since the deep link carries its id. */}
+            {bookingId && (
+              <div className="mt-5 rounded-xl bg-surface p-5 text-left">
+                <p className="text-sm font-semibold text-ink">{t(TR.remindTitle)}</p>
+                <p className="mt-1.5 text-xs leading-relaxed text-muted">{t(TR.remindText)}</p>
+                <a
+                  href={`https://t.me/${MANAGER_BOT}?start=${bookingId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-press mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-ink/20 px-5 py-3 text-sm font-semibold text-ink hover:border-ink"
+                >
+                  <BellRing size={16} /> {t(TR.remindBtn)}
+                </a>
+              </div>
+            )}
             <div className="mt-6 space-y-3">
               <a
                 href={tgLink}

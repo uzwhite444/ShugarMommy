@@ -51,6 +51,16 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
+  // #/cancel — the link we put in reminder messages: open the form straight
+  // away and clear the hash so refreshing does not reopen it.
+  useEffect(() => {
+    if (route.startsWith('#/cancel')) {
+      setCancelOpen(true);
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      setRoute('');
+    }
+  }, [route]);
+
   // Keep <html lang> in sync so screen readers and search engines see the
   // actual page language (WCAG 3.1.1), not the hardcoded "ru" from index.html.
   useEffect(() => {

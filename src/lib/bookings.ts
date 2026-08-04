@@ -11,6 +11,8 @@ async function getClient() {
 }
 
 export interface NewBooking {
+  /** Set client-side so the confirmation screen can reference the booking. */
+  id?: string;
   customer_name: string;
   phone: string;
   services: string;
@@ -27,29 +29,38 @@ export interface NewBooking {
  * configured or the insert failed — the Telegram handoff still happens either
  * way, so a backend hiccup never blocks the client.
  */
-export async function createBooking(booking: NewBooking): Promise<boolean> {
+/**
+ * Saves the booking and returns its id, which the confirmation screen uses to
+ * offer a Telegram reminder. The id is generated client-side because RLS lets
+ * anonymous visitors insert but not read back. Returns null when the backend
+ * is unavailable — the Telegram handoff still happens, so nothing is lost.
+ */
+export async function createBooking(booking: NewBooking): Promise<string | null> {
+  const id =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : undefined;
   try {
     const supabase = await getClient();
-    if (!supabase) return false;
-    const { error } = await supabase.from('bookings').insert(booking);
-    if (!error) return true;
+    if (!supabase) return null;
+    const row = id ? { ...booking, id } : booking;
+    const { error } = await supabase.from('bookings').insert(row);
+    if (!error) return id ?? null;
 
     // `source` is optional (added by 05_source.sql). If that migration has
     // not been applied yet, retry without it rather than losing the booking.
     const missingColumn = error.code === 'PGRST204' || /source/i.test(error.message);
     if (missingColumn && booking.source !== undefined) {
-      const { source: _omitted, ...rest } = booking;
+      const { source: _omitted, ...rest } = row;
       const retry = await supabase.from('bookings').insert(rest);
-      if (!retry.error) return true;
+      if (!retry.error) return id ?? null;
       console.error('createBooking retry failed:', retry.error.message);
-      return false;
+      return null;
     }
 
     console.error('createBooking failed:', error.message);
-    return false;
+    return null;
   } catch (err) {
     console.error('createBooking failed:', err);
-    return false;
+    return null;
   }
 }
 
