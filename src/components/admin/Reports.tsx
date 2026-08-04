@@ -161,6 +161,25 @@ export default function Reports({ bookings }: ReportsProps) {
         </div>
       </div>
 
+      {/* Traffic sources */}
+      <div className="mt-4 rounded-xl bg-surface p-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Откуда пришли клиентки</p>
+        {metrics.bySource.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">Нет данных за период.</p>
+        ) : (
+          <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {metrics.bySource.map((s) => (
+              <li key={s.source} className="flex items-center justify-between gap-3 rounded-lg bg-canvas px-3.5 py-2.5 text-sm">
+                <span className="min-w-0 truncate font-medium text-ink">{s.source}</span>
+                <span className="shrink-0 text-muted">
+                  {s.count} · <span className="font-semibold text-ink">{formatPrice(s.revenue)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       {/* Export */}
       <div className="mt-6 rounded-xl bg-surface p-5">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">

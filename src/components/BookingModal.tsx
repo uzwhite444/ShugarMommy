@@ -7,6 +7,7 @@ import { calcTotal, formatPrice, getLocalized, MANAGER_TELEGRAM, WORK_HOURS } fr
 import { MASTERS } from '../data';
 import { createBooking } from '../lib/bookings';
 import { fetchDayAvailability, isSlotTaken, type DayAvailability } from '../lib/availability';
+import { getSource } from '../lib/attribution';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface BookingModalProps {
@@ -263,6 +264,7 @@ export default function BookingModal({ language, selectedZones, onClose, onRemov
       visit_time: time,
       total_price: calc.total,
       comment: comment.trim() || null,
+      source: getSource(),
     });
     setSubmitting(false);
 

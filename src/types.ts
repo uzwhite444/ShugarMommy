@@ -55,4 +55,6 @@ export interface Booking {
   total_price: number;
   comment: string | null;
   status: BookingStatus;
+  /** Traffic channel the booking came from (requires 05_source.sql). */
+  source?: string | null;
 }

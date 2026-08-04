@@ -15,6 +15,9 @@ import Faq from './components/Faq';
 import Contacts from './components/Contacts';
 import Footer from './components/Footer';
 import BookingModal from './components/BookingModal';
+import StickyCta from './components/StickyCta';
+import { captureSource } from './lib/attribution';
+import { calcTotal } from './utils';
 
 // Admin panel and the legal page are code-split — visitors never download
 // them unless they navigate there.
@@ -51,6 +54,11 @@ export default function App() {
   useEffect(() => {
     document.documentElement.lang = language.toLowerCase();
   }, [language]);
+
+  // Remember the traffic channel once per session for booking attribution.
+  useEffect(() => {
+    captureSource();
+  }, []);
 
   const changeLanguage = (lang: LanguageCode) => {
     setLanguage(lang);
@@ -113,6 +121,13 @@ export default function App() {
         <Contacts language={language} />
       </main>
       <Footer language={language} />
+      <StickyCta
+        language={language}
+        total={calcTotal(selectedZones).total}
+        zoneCount={selectedZones.length}
+        onBook={() => setBookingOpen(true)}
+        hidden={bookingOpen}
+      />
       {bookingOpen && (
         <BookingModal
           language={language}

@@ -138,6 +138,11 @@ export default function BookingsManager({ bookings, onStatus, onDelete }: Bookin
                     )}
                   </p>
                   {b.comment && <p className="mt-1.5 text-sm italic text-muted">«{b.comment}»</p>}
+                  {b.source && (
+                    <p className="mt-1.5 inline-block rounded-full bg-canvas px-2.5 py-0.5 text-xs font-medium text-muted">
+                      Источник: {b.source}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex shrink-0 flex-col items-end gap-2">

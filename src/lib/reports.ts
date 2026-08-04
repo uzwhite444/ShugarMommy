@@ -21,6 +21,7 @@ export interface ReportMetrics {
   conversion: number;
   byMaster: Array<{ master: string; count: number; revenue: number }>;
   topServices: Array<{ service: string; count: number }>;
+  bySource: Array<{ source: string; count: number; revenue: number }>;
 }
 
 export function filterByPeriod(bookings: Booking[], from: string | null, to: string | null): Booking[] {
@@ -35,6 +36,7 @@ export function computeMetrics(bookings: Booking[]): ReportMetrics {
   const byStatus: Record<BookingStatus, number> = { new: 0, confirmed: 0, done: 0, cancelled: 0 };
   const masters = new Map<string, { count: number; revenue: number }>();
   const services = new Map<string, number>();
+  const sources = new Map<string, { count: number; revenue: number }>();
   let revenueDone = 0;
 
   for (const b of bookings) {
@@ -46,6 +48,12 @@ export function computeMetrics(bookings: Booking[]): ReportMetrics {
     m.count += 1;
     if (b.status === 'done') m.revenue += b.total_price || 0;
     masters.set(masterName, m);
+
+    const sourceName = b.source || 'Не определён';
+    const s = sources.get(sourceName) ?? { count: 0, revenue: 0 };
+    s.count += 1;
+    if (b.status === 'done') s.revenue += b.total_price || 0;
+    sources.set(sourceName, s);
 
     for (const raw of b.services.split(',')) {
       const s = raw.trim();
@@ -67,6 +75,9 @@ export function computeMetrics(bookings: Booking[]): ReportMetrics {
       .map(([service, count]) => ({ service, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10),
+    bySource: [...sources.entries()]
+      .map(([source, v]) => ({ source, ...v }))
+      .sort((a, b) => b.count - a.count),
   };
 }
 
@@ -94,6 +105,7 @@ const DETAIL_HEADERS = [
   'Мастер',
   'Сумма (сум)',
   'Статус',
+  'Источник',
   'Комментарий',
   'Заявка создана',
 ];
@@ -108,6 +120,7 @@ function bookingRow(b: Booking): string[] {
     b.master || 'Любой мастер',
     String(b.total_price || 0),
     STATUS_LABELS[b.status],
+    b.source || '',
     b.comment || '',
     new Date(b.created_at).toLocaleString('ru-RU'),
   ];
@@ -172,6 +185,10 @@ ${metrics.byMaster.map((m) => `<tr>${td(m.master)}${td(String(m.count))}${td(`${
 <h2>Популярные зоны</h2>
 <table><tr>${th('Зона')}${th('Раз в заявках')}</tr>
 ${metrics.topServices.map((s) => `<tr>${td(s.service)}${td(String(s.count))}</tr>`).join('')}</table>
+
+<h2>Источники заявок</h2>
+<table><tr>${th('Источник')}${th('Заявок')}${th('Выручка (выполненные)')}</tr>
+${metrics.bySource.map((s) => `<tr>${td(s.source)}${td(String(s.count))}${td(`${fmt(s.revenue)} сум`)}</tr>`).join('')}</table>
 
 <h2>Все заявки за период (${bookings.length})</h2>
 <table><tr>${DETAIL_HEADERS.map(th).join('')}</tr>

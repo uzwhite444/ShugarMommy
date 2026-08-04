@@ -19,6 +19,7 @@ export interface NewBooking {
   visit_time: string;
   total_price: number;
   comment: string | null;
+  source?: string | null;
 }
 
 /**
@@ -31,11 +32,21 @@ export async function createBooking(booking: NewBooking): Promise<boolean> {
     const supabase = await getClient();
     if (!supabase) return false;
     const { error } = await supabase.from('bookings').insert(booking);
-    if (error) {
-      console.error('createBooking failed:', error.message);
+    if (!error) return true;
+
+    // `source` is optional (added by 05_source.sql). If that migration has
+    // not been applied yet, retry without it rather than losing the booking.
+    const missingColumn = error.code === 'PGRST204' || /source/i.test(error.message);
+    if (missingColumn && booking.source !== undefined) {
+      const { source: _omitted, ...rest } = booking;
+      const retry = await supabase.from('bookings').insert(rest);
+      if (!retry.error) return true;
+      console.error('createBooking retry failed:', retry.error.message);
       return false;
     }
-    return true;
+
+    console.error('createBooking failed:', error.message);
+    return false;
   } catch (err) {
     console.error('createBooking failed:', err);
     return false;
