@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, Moon, Sun, X } from 'lucide-react';
 import { LanguageCode } from '../types';
 import { getLocalized } from '../utils';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { useTheme } from '../hooks/useTheme';
 
 interface HeaderProps {
   language: LanguageCode;
@@ -26,6 +27,12 @@ const BOOK_LABEL = { RU: 'Записаться', UZ: 'Yozilish', EN: 'Book now' 
 
 const MENU_LABEL = { RU: 'Меню', UZ: 'Menyu', EN: 'Menu' };
 
+const THEME_LABEL = {
+  RU: 'Сменить тему',
+  UZ: 'Mavzuni almashtirish',
+  EN: 'Switch theme',
+};
+
 /** Wordmark: quiet serif with a single terracotta full stop. */
 function Wordmark() {
   return (
@@ -40,6 +47,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { theme, toggleTheme } = useTheme();
 
   // Dialog semantics for the mobile menu: focus trap + Escape to close.
   useFocusTrap(menuRef, menuOpen, () => setMenuOpen(false));
@@ -117,6 +125,14 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
               </button>
             ))}
           </div>
+          <button
+            onClick={toggleTheme}
+            aria-label={getLocalized(THEME_LABEL, language)}
+            title={getLocalized(THEME_LABEL, language)}
+            className="btn-press rounded-lg p-2.5 text-muted transition-colors hover:text-ink"
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
           <button
             onClick={onBook}
             className="btn-press hidden rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark sm:block"

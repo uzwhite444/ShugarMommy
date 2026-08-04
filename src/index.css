@@ -46,11 +46,90 @@
   --color-champagne: #CBB89D;
 }
 
+/* ---------------------------------------------------------------------------
+   Night mode. The palette is the same warm system inverted: espresso paper,
+   ivory ink, a slightly lifted terracotta so it keeps AA contrast on dark.
+   Applied only when the visitor explicitly picks it (data-theme="dark").
+--------------------------------------------------------------------------- */
+:root[data-theme='dark'] {
+  --color-canvas: #17120E;
+  --color-soft: #1E1712;
+  --color-surface: #241C16;
+  --color-strong: #2E241C;
+  --color-hairline: #332920;
+  --color-ink: #F6EFE5;
+  --color-body: #DDD1C3;
+  --color-muted: #A99B8B;
+  --color-faint: #8A7C6E;
+  --color-primary: #D9946F;
+  --color-primary-dark: #C57C55;
+  --color-primary-soft: #3A2A20;
+  /* Dark bands must lift off the dark canvas, not sink into it. */
+  --color-dark: #241C16;
+  --color-dark-2: #2E241C;
+  --color-ondark: #F6EFE5;
+  --color-ondark-soft: #A99B8B;
+  --color-success: #7BA680;
+  --color-danger: #D97B6B;
+  color-scheme: dark;
+}
+
+/* The product videos are shot on a cream backdrop: multiply melts them into
+   a light page, but would turn into a black box on the dark canvas. */
+:root[data-theme='dark'] .liquid-video {
+  mix-blend-mode: normal;
+  background: #FAF7F2;
+  border-radius: 1rem;
+}
+
+/* Buttons that carry white labels need a deeper terracotta: the brand tone
+   #C17456 only reaches 3.6:1 with white, below the 4.5:1 AA bar. The accent
+   itself stays untouched for icons, links and small marks. */
+.bg-primary.text-white {
+  background-color: #A9603F;
+}
+.bg-primary.text-white:hover {
+  background-color: #945234;
+}
+
+/* On the lifted terracotta of night mode, white labels drop to ~2.5:1 —
+   the canvas ink reads far better and keeps buttons AA-compliant. */
+:root[data-theme='dark'] .bg-primary.text-white,
+:root[data-theme='dark'] .bg-primary .text-white {
+  background-color: var(--color-primary);
+  color: #17120E;
+}
+:root[data-theme='dark'] .bg-primary.text-white:hover {
+  background-color: var(--color-primary-dark);
+}
+
+/* Espresso bands sit only a hair above the dark canvas, so give them a
+   hairline edge to stay readable as separate surfaces. */
+:root[data-theme='dark'] .bg-dark {
+  border: 1px solid var(--color-hairline);
+}
+
 /* Smooth anchor scrolling — but not for users who asked for reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;
   }
+}
+
+/* Cross-fade the whole page when the language or theme changes. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 280ms;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* Visible, on-brand keyboard focus everywhere. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 ::selection {

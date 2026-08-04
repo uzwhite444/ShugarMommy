@@ -61,11 +61,22 @@ export default function App() {
   }, []);
 
   const changeLanguage = (lang: LanguageCode) => {
-    setLanguage(lang);
-    try {
-      localStorage.setItem(LANG_KEY, JSON.stringify(lang));
-    } catch {
-      // Storage full/blocked — language just won't persist.
+    const apply = () => {
+      setLanguage(lang);
+      try {
+        localStorage.setItem(LANG_KEY, JSON.stringify(lang));
+      } catch {
+        // Storage full/blocked — language just won't persist.
+      }
+    };
+
+    // Cross-fade the copy instead of snapping to the new language.
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const doc = document as Document & { startViewTransition?: (cb: () => void) => void };
+    if (!reduced && typeof doc.startViewTransition === 'function') {
+      doc.startViewTransition(apply);
+    } else {
+      apply();
     }
   };
 
