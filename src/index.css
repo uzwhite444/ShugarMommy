@@ -129,6 +129,30 @@
     animation-duration: 280ms;
     animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
+
+  /* Theme switch: the new palette spills out of the toggle as a circle. The
+     attribute is only set for the theme transition, so these rules win over the
+     language cross-fade above by specificity and never apply to it. */
+  :root[data-theme-vt]::view-transition-old(root) {
+    /* The outgoing page stays put and fully opaque underneath — the default
+       plus-lighter blend would wash out the overlap into a bright flash. */
+    animation: none;
+    mix-blend-mode: normal;
+  }
+  :root[data-theme-vt]::view-transition-new(root) {
+    animation: theme-reveal 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    mix-blend-mode: normal;
+    z-index: 1;
+  }
+
+  @keyframes theme-reveal {
+    from {
+      clip-path: circle(0 at var(--theme-x, 50vw) var(--theme-y, 50vh));
+    }
+    to {
+      clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, 50vw) var(--theme-y, 50vh));
+    }
+  }
 }
 
 /* Visible, on-brand keyboard focus everywhere. */
@@ -199,6 +223,28 @@
   transform: scale(0.98);
 }
 
+/* Theme toggle: sun and moon are stacked and rotate through each other, on the
+   same curve as the reveal, so the icon reads as part of the same gesture. */
+.theme-icon {
+  position: relative;
+  display: block;
+  height: 18px;
+  width: 18px;
+}
+.theme-icon-face {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: rotate(-75deg) scale(0.5);
+  transition:
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 260ms ease;
+}
+.theme-icon-face.is-on {
+  opacity: 1;
+  transform: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .nav-underline::after {
     transition: none;
@@ -207,6 +253,9 @@
   .btn-press:active {
     transition: none;
     transform: none;
+  }
+  .theme-icon-face {
+    transition: none;
   }
 }
 

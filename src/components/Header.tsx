@@ -48,7 +48,15 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
   const [hidden, setHidden] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
+  const themeBtnRef = useRef<HTMLButtonElement>(null);
   const { theme, toggleTheme } = useTheme();
+
+  // The reveal grows from the button box, not from the pointer: keyboard
+  // activation carries no usable coordinates.
+  const onToggleTheme = () => {
+    const rect = themeBtnRef.current?.getBoundingClientRect();
+    toggleTheme(rect && { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+  };
 
   // Dialog semantics for the mobile menu: focus trap + Escape to close.
   useFocusTrap(menuRef, menuOpen, () => setMenuOpen(false));
@@ -140,12 +148,20 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
             ))}
           </div>
           <button
-            onClick={toggleTheme}
+            ref={themeBtnRef}
+            onClick={onToggleTheme}
             aria-label={getLocalized(THEME_LABEL, language)}
             title={getLocalized(THEME_LABEL, language)}
             className="btn-press flex min-h-11 min-w-11 items-center justify-center rounded-lg text-muted transition-colors hover:text-ink"
           >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            <span aria-hidden className="theme-icon">
+              <span className={`theme-icon-face${theme === 'dark' ? ' is-on' : ''}`}>
+                <Sun size={18} />
+              </span>
+              <span className={`theme-icon-face${theme === 'dark' ? '' : ' is-on'}`}>
+                <Moon size={18} />
+              </span>
+            </span>
           </button>
           <button
             onClick={onBook}

@@ -131,7 +131,9 @@ export default function Ingredients({ language }: IngredientsProps) {
               {/* Higgsfield film: a droplet falls into the standing drop with
                   a crown splash, ripples and settles — loops while in view. */}
               <LiquidVideo
-                src="/videos/paste-drop.mp4"
+                // /videos/* is served immutable for a year, so a re-encode must
+                // ship under a new filename or cached clients keep the old one.
+                src="/videos/paste-drop-v2.mp4"
                 label={getLocalized(TR.alt, language)}
                 loop
                 className="h-80 w-80 select-none object-cover sm:h-[420px] sm:w-[420px]"
