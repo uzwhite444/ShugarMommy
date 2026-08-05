@@ -76,7 +76,7 @@ export default function Schedule({ bookings }: ScheduleProps) {
     .sort((a, b) => a.visit_time.localeCompare(b.visit_time));
 
   const fieldCls =
-    'rounded-lg border border-hairline bg-canvas px-3 py-2 text-sm outline-none transition-colors focus:border-primary';
+    'field rounded-lg border border-hairline bg-canvas px-3 py-2 text-sm outline-none focus:border-primary';
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_1fr]">
@@ -126,7 +126,7 @@ export default function Schedule({ bookings }: ScheduleProps) {
           <button
             onClick={handleAdd}
             disabled={saving}
-            className="btn-press flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
+            className="btn-press press-slab flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
           >
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} Закрыть время
           </button>
@@ -185,7 +185,7 @@ export default function Schedule({ bookings }: ScheduleProps) {
                   onClick={() => handleDelete(b.id)}
                   aria-label="Снять блокировку"
                   title="Снять блокировку"
-                  className="btn-press shrink-0 rounded-lg border border-hairline p-1.5 text-muted hover:border-danger hover:text-danger"
+                  className="press-inner shrink-0 rounded-lg border border-hairline p-1.5 text-muted transition-colors hover:border-danger hover:text-danger"
                 >
                   <Trash2 size={14} />
                 </button>

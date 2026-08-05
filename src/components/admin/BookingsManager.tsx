@@ -58,7 +58,7 @@ export default function BookingsManager({ bookings, onStatus, onDelete }: Bookin
   }, [bookings, status, dateFilter, sort, query]);
 
   const chip = (active: boolean) =>
-    `btn-press rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors ${
+    `btn-press ink-rule rule-chip rule-short rounded-lg px-3.5 py-2 text-sm font-semibold ${
       active ? 'bg-ink text-canvas' : 'border border-hairline text-muted hover:text-ink'
     }`;
 
@@ -67,13 +67,23 @@ export default function BookingsManager({ bookings, onStatus, onDelete }: Bookin
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-2">
         {STATUS_FILTERS.map((f) => (
-          <button key={f.value} onClick={() => setStatus(f.value)} className={chip(status === f.value)}>
+          <button
+            key={f.value}
+            onClick={() => setStatus(f.value)}
+            aria-pressed={status === f.value}
+            className={chip(status === f.value)}
+          >
             {f.label}
           </button>
         ))}
         <span className="mx-1 hidden h-5 w-px bg-hairline sm:block" />
         {DATE_FILTERS.map((f) => (
-          <button key={f.value} onClick={() => setDateFilter(f.value)} className={chip(dateFilter === f.value)}>
+          <button
+            key={f.value}
+            onClick={() => setDateFilter(f.value)}
+            aria-pressed={dateFilter === f.value}
+            className={chip(dateFilter === f.value)}
+          >
             {f.label}
           </button>
         ))}
@@ -85,13 +95,13 @@ export default function BookingsManager({ bookings, onStatus, onDelete }: Bookin
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Имя, телефон или зона…"
-            className="w-full rounded-lg border border-hairline bg-canvas py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary"
+            className="field w-full rounded-lg border border-hairline bg-canvas py-2 pl-9 pr-3 text-sm outline-none focus:border-primary"
           />
         </div>
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as SortMode)}
-          className="rounded-lg border border-hairline bg-canvas px-3 py-2 text-sm outline-none focus:border-primary"
+          className="field rounded-lg border border-hairline bg-canvas px-3 py-2 text-sm outline-none focus:border-primary"
           aria-label="Сортировка"
         >
           <option value="created">Сначала свежие заявки</option>
@@ -153,7 +163,7 @@ export default function BookingsManager({ bookings, onStatus, onDelete }: Bookin
                     {b.status === 'new' && (
                       <button
                         onClick={() => onStatus(b.id, 'confirmed')}
-                        className="btn-press flex items-center gap-1 rounded-lg bg-success/90 px-3 py-1.5 text-xs font-bold text-white hover:bg-success"
+                        className="btn-press press-slab flex items-center gap-1 rounded-lg bg-success/90 px-3 py-1.5 text-xs font-bold text-white hover:bg-success"
                       >
                         <Check size={13} /> Подтвердить
                       </button>
@@ -161,7 +171,7 @@ export default function BookingsManager({ bookings, onStatus, onDelete }: Bookin
                     <select
                       value={b.status}
                       onChange={(e) => onStatus(b.id, e.target.value as BookingStatus)}
-                      className="rounded-lg border border-hairline bg-canvas px-2.5 py-1.5 text-xs outline-none focus:border-primary"
+                      className="field rounded-lg border border-hairline bg-canvas px-2.5 py-1.5 text-xs outline-none focus:border-primary"
                       aria-label="Изменить статус"
                     >
                       {(Object.keys(STATUS_META) as BookingStatus[]).map((s) => (
@@ -174,7 +184,7 @@ export default function BookingsManager({ bookings, onStatus, onDelete }: Bookin
                       onClick={() => onDelete(b.id)}
                       aria-label="Удалить заявку"
                       title="Удалить заявку"
-                      className="btn-press rounded-lg border border-hairline p-1.5 text-muted hover:border-danger hover:text-danger"
+                      className="press-inner rounded-lg border border-hairline p-1.5 text-muted transition-colors hover:border-danger hover:text-danger"
                     >
                       <Trash2 size={14} />
                     </button>

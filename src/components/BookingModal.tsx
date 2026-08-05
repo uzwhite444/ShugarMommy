@@ -456,10 +456,10 @@ export default function BookingModal({
   };
 
   const inputCls =
-    'w-full rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm text-ink outline-none transition-colors focus:border-primary';
+    'field w-full rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm text-ink outline-none focus:border-primary';
 
   const pillCls = (selected: boolean) =>
-    `btn-press min-h-11 rounded-lg border px-1 text-sm font-medium transition-colors ${
+    `btn-press ink-rule rule-chip rule-short min-h-11 rounded-lg border px-1 text-sm font-medium ${
       selected
         ? 'border-ink bg-ink text-canvas'
         : 'border-hairline bg-canvas text-body hover:border-muted'
@@ -496,7 +496,7 @@ export default function BookingModal({
           <button
             onClick={onClose}
             aria-label={t(TR.close)}
-            className="-mr-2 flex min-h-11 min-w-11 items-center justify-center rounded-lg text-muted hover:text-ink"
+            className="press-inner -mr-2 flex min-h-11 min-w-11 items-center justify-center rounded-lg text-muted transition-colors hover:text-ink"
           >
             <X size={22} />
           </button>
@@ -524,7 +524,7 @@ export default function BookingModal({
                   href={`https://t.me/${MANAGER_BOT}?start=${bookingId}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-press mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-ink/20 px-5 py-3 text-sm font-semibold text-ink hover:border-ink"
+                  className="btn-press ink-rule rule-slab mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-ink/20 px-5 py-3 text-sm font-semibold text-ink hover:border-ink"
                 >
                   <BellRing size={16} /> {t(TR.remindBtn)}
                 </a>
@@ -535,13 +535,13 @@ export default function BookingModal({
                 href={tgLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-press flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark"
+                className="btn-press press-slab flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark"
               >
                 <Send size={18} /> {t(TR.openTg)}
               </a>
               <button
                 onClick={handleCopy}
-                className="btn-press flex w-full items-center justify-center gap-2 rounded-lg border border-hairline px-5 py-3.5 text-sm font-semibold text-ink hover:border-ink"
+                className="btn-press ink-rule rule-slab flex w-full items-center justify-center gap-2 rounded-lg border border-hairline px-5 py-3.5 text-sm font-semibold text-ink hover:border-ink"
               >
                 {copied ? <Check size={18} /> : <Copy size={18} />}
                 {copied ? t(TR.copied) : t(TR.copyMsg)}
@@ -556,7 +556,7 @@ export default function BookingModal({
                 {t(TR.changedMind)}{' '}
                 <button
                   onClick={onCancelBooking}
-                  className="font-semibold text-primary-dark underline underline-offset-2 hover:no-underline"
+                  className="btn-press ink-rule rule-link rule-short font-semibold text-primary-dark"
                 >
                   {t(TR.cancelLink)}
                 </button>
@@ -579,7 +579,7 @@ export default function BookingModal({
                           <button
                             onClick={() => onRemoveZone(zone.id)}
                             aria-label={`${t(TR.removeZone)}: ${getLocalized(zone.name, language)}`}
-                            className="group flex min-h-11 min-w-11 items-center"
+                            className="group press-inner flex min-h-11 min-w-11 items-center"
                           >
                             <span className="flex items-center gap-1.5 rounded-full border border-ink/15 bg-canvas py-1 pl-3 pr-2 text-xs font-medium text-body transition-colors group-hover:border-danger/40 group-hover:text-danger">
                               {getLocalized(zone.name, language)}
@@ -650,7 +650,7 @@ export default function BookingModal({
                   <button
                     onClick={() => setMasterId('')}
                     aria-pressed={masterId === ''}
-                    className={`btn-press flex items-center gap-2.5 rounded-lg border p-2.5 text-left transition-colors ${
+                    className={`btn-press ink-rule rule-chip flex items-center gap-2.5 rounded-lg border p-2.5 text-left ${
                       masterId === '' ? 'border-ink bg-ink text-canvas' : 'border-hairline bg-canvas hover:border-muted'
                     }`}
                   >
@@ -675,7 +675,7 @@ export default function BookingModal({
                         key={master.id}
                         onClick={() => setMasterId(master.id)}
                         aria-pressed={selected}
-                        className={`btn-press flex items-center gap-2.5 rounded-lg border p-2.5 text-left transition-colors ${
+                        className={`btn-press ink-rule rule-chip flex items-center gap-2.5 rounded-lg border p-2.5 text-left ${
                           selected ? 'border-ink bg-ink text-canvas' : 'border-hairline bg-canvas hover:border-muted'
                         }`}
                       >
@@ -710,7 +710,9 @@ export default function BookingModal({
               <div>
                 <StepLabel number="03">{t(TR.stepWhen)}</StepLabel>
                 <div
-                  className="scrollbar-none -mx-1 mt-3 flex snap-x gap-2 overflow-x-auto px-1 pb-1"
+                  // overflow-x:auto forces overflow-y:auto, so the focus ring
+                  // (2px at 2px offset) needs real padding or it gets clipped.
+                  className="scrollbar-none -mx-1 mt-2 flex snap-x gap-2 overflow-x-auto p-1"
                   role="group"
                   aria-label={t(TR.stepWhen)}
                 >
@@ -731,7 +733,7 @@ export default function BookingModal({
                         onClick={() => !closed && setDate(iso)}
                         disabled={closed}
                         aria-pressed={selected}
-                        className={`btn-press w-16 shrink-0 snap-start rounded-lg border py-2.5 text-center transition-colors ${
+                        className={`btn-press ink-rule rule-chip rule-short w-16 shrink-0 snap-start rounded-lg border py-2.5 text-center ${
                           closed
                             ? 'cursor-not-allowed border-hairline/60 bg-surface/50 text-faint'
                             : selected
@@ -811,7 +813,7 @@ export default function BookingModal({
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="btn-press mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
+              className="btn-press press-slab mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
             >
               {submitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
               {t(TR.submit)}

@@ -87,7 +87,7 @@ export default function AdminGate() {
           <a
             href="#top"
             onClick={() => (window.location.hash = '')}
-            className="mt-5 inline-block text-sm font-semibold text-primary-dark hover:underline"
+            className="btn-press ink-rule rule-link rule-short mt-5 inline-block text-sm font-semibold text-primary-dark"
           >
             ← На сайт
           </a>
@@ -119,7 +119,7 @@ export default function AdminGate() {
             placeholder="Email"
             autoComplete="username"
             required
-            className="w-full rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+            className="field w-full rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm outline-none focus:border-primary"
           />
           <input
             value={password}
@@ -128,14 +128,14 @@ export default function AdminGate() {
             placeholder="Пароль"
             autoComplete="current-password"
             required
-            className="w-full rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+            className="field w-full rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm outline-none focus:border-primary"
           />
         </div>
         {error && <p className="mt-3 text-sm font-semibold text-danger">{error}</p>}
         <button
           type="submit"
           disabled={submitting}
-          className="btn-press mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
+          className="btn-press press-slab mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
         >
           {submitting && <Loader2 size={15} className="animate-spin" />} Войти
         </button>

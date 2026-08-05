@@ -97,13 +97,13 @@ export default function Hero({ language, onBook }: HeroProps) {
           <m.div {...fadeUp(0.24)} className="mt-8 flex flex-wrap items-center gap-3">
             <button
               onClick={onBook}
-              className="btn-press rounded-lg bg-primary px-6 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark"
+              className="btn-press press-slab rounded-lg bg-primary px-6 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark"
             >
               {getLocalized(TR.cta, language)}
             </button>
             <a
               href="#services"
-              className="btn-press rounded-lg border border-hairline bg-canvas px-6 py-3.5 text-sm font-semibold text-ink hover:border-muted"
+              className="btn-press ink-rule rule-slab rounded-lg border border-hairline bg-canvas px-6 py-3.5 text-sm font-semibold text-ink hover:border-muted"
             >
               {getLocalized(TR.ctaPrices, language)}
             </a>
@@ -144,14 +144,13 @@ export default function Hero({ language, onBook }: HeroProps) {
               <span className="text-sm font-semibold text-ink">{getLocalized(TR.mockTotal, language)}</span>
               <span className="display text-3xl text-ink">{formatPrice(subtotal - discount, language)}</span>
             </div>
-            <button
-              onClick={onBook}
-              aria-hidden
-              tabIndex={-1}
-              className="mt-6 w-full rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-canvas transition-colors hover:bg-primary"
-            >
+            {/* Part of the decorative receipt mock — the whole card is
+                aria-hidden. It used to carry a live onClick while being
+                invisible to keyboard and AT, so it was operable by mouse only.
+                Now inert, and no longer a control at all. */}
+            <span className="mt-6 block w-full rounded-lg bg-ink px-5 py-3 text-center text-sm font-semibold text-canvas">
               {getLocalized(TR.mockCta, language)}
-            </button>
+            </span>
             <p className="mt-3 text-center text-xs text-faint">{getLocalized(TR.mockNote, language)}</p>
           </m.div>
         </m.div>

@@ -53,6 +53,38 @@
 }
 
 /* ---------------------------------------------------------------------------
+   THE LINE — interaction tokens. One gesture, a 1px rule: where it sits, how
+   far it has drawn, how heavy it is, what colour it carries. Plain :root, not
+   @theme — @theme entries generate Tailwind colour utilities, motion must not.
+   Every duration is a variable by design: the reduced-motion block at the end
+   of this file kills all movement by overriding these in one place, while
+   leaving every state change intact.
+--------------------------------------------------------------------------- */
+:root {
+  --ease-ink: cubic-bezier(0.22, 1, 0.36, 1);  /* draws, retracts, releases */
+  --ease-nib: cubic-bezier(0.4, 0, 0.8, 0.6);  /* press down — still accelerating at the stop */
+  --ease-tint: cubic-bezier(0.4, 0, 0.2, 1);   /* colour only */
+
+  /* Duration tracks the distance the nib actually travels: 200ms across a 90px
+     nav link is right, the same 200ms across a 900px service row is a bullet.
+     Exit is 0.6x entry so the pen leaves faster than it arrives. */
+  --draw-short: 200ms;   --retract-short: 120ms;  /* <=120px: nav, chips, slots, dates */
+  --draw-med: 260ms;     --retract-med: 160ms;    /* 120–320px: buttons, cards, admin rows */
+  --draw-long: 320ms;    --retract-long: 200ms;   /* >320px: service rows, FAQ, card edges */
+
+  /* Defaults; .rule-short / .rule-long override. */
+  --rule-draw: var(--draw-med);
+  --rule-retract: var(--retract-med);
+
+  --dur-press: 90ms;     /* down-stroke */
+  --dur-release: 180ms;  /* release */
+  --dur-thick: 90ms;     /* rule scaleY 1 -> 2, same beat as the press */
+  --dur-tint: 180ms;     /* any colour change */
+  --dur-field: 140ms;    /* form surfaces */
+  --dur-sig: 420ms;      /* page-level signature rules */
+}
+
+/* ---------------------------------------------------------------------------
    Night mode. The palette is the same warm system inverted: espresso paper,
    ivory ink, a slightly lifted terracotta so it keeps AA contrast on dark.
    Applied only when the visitor explicitly picks it (data-theme="dark").
@@ -107,6 +139,18 @@
 }
 :root[data-theme='dark'] .bg-primary.text-white:hover {
   background-color: var(--color-primary-dark);
+}
+
+/* Same treatment for the one green button (admin "Подтвердить"): white on the
+   success token is 3.9:1 light and 2.8:1 dark. The token itself is left alone —
+   elsewhere it is a foreground colour on a tint, where it already passes. */
+.bg-success.text-white,
+[class*='bg-success/'].text-white {
+  background-color: #3F6B45;
+}
+.bg-success.text-white:hover,
+[class*='bg-success/'].text-white:hover {
+  background-color: #2F5A36;
 }
 
 /* Espresso bands sit only a hair above the dark canvas, so give them a
@@ -190,37 +234,355 @@
   display: none;
 }
 
-/* Nav link underline that draws in from the left on hover. */
-.nav-underline {
-  position: relative;
+/* ---------------------------------------------------------------------------
+   THE LINE — interaction primitives.
+     hover     = the rule draws in
+     press     = the nib lands and doubles it
+     selected  = the rule is held at full weight
+     disabled  = no rule at all
+   Written unlayered on purpose. Layer order is `theme, base, components,
+   utilities`, and unlayered CSS outranks all of them — that is how these beat
+   Tailwind's own transition and colour utilities. Do not wrap any of it in
+   @layer. Tailwind v4 already gates every `hover:` utility behind
+   @media(hover:hover), so only the custom rules below carry their own guard.
+--------------------------------------------------------------------------- */
+
+/* Preflight styles `appearance` but sets no cursor, so buttons fall through to
+   the UA default and render an arrow. */
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']),
+summary {
+  cursor: pointer;
 }
-.nav-underline::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -4px;
-  height: 1px;
-  background: currentColor;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.nav-underline:hover::after,
-.nav-underline:focus-visible::after {
-  transform: scaleX(1);
+button:disabled,
+[aria-disabled='true'] {
+  cursor: not-allowed;
 }
 
-/* Button micro-press: colors + a 1.5% scale dip on :active. */
-.btn-press {
-  transition:
-    transform 150ms ease,
-    color 200ms ease,
-    background-color 200ms ease,
-    border-color 200ms ease;
+/* ── The rule engine ─────────────────────────────────────────────────────── */
+.ink-rule {
+  position: relative;
 }
-.btn-press:active {
-  transform: scale(0.98);
+.ink-rule::after {
+  content: '';
+  position: absolute;
+  /* The inset clears a rounded corner, so the rule lands on the straight part
+     of the border instead of overshooting the arc. */
+  left: var(--rule-inset, 0);
+  right: var(--rule-inset, 0);
+  bottom: var(--rule-bottom, -4px);
+  height: 1px;
+  background: var(--rule-color, currentColor);
+  opacity: var(--rule-alpha, 1);
+  /* Resting origin is RIGHT — that is the LEAVE origin. On hover it flips to
+     LEFT and the stroke draws left-to-right; on leave it flips back and
+     collapses off to the right, so the pen continues off the page instead of
+     rewinding. transform-origin is deliberately NOT transitioned: it flips on
+     the same frame the transition starts. */
+  transform-origin: right bottom;
+  transform: scaleX(var(--rule-x, 0)) scaleY(var(--rule-y, 1));
+  transition: transform var(--rule-retract) var(--ease-ink);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ink-rule:hover:not(:disabled):not([aria-disabled='true'])::after {
+    --rule-x: 1;
+    transform-origin: left bottom;
+    transition-duration: var(--rule-draw);
+  }
+}
+
+/* The nib lands: the rule doubles in weight, growing up from the baseline like
+   ink pooling. scaleY on a 1px line is compositor-safe and paints 2 device px. */
+.ink-rule:active:not(:disabled):not([aria-disabled='true'])::after {
+  --rule-x: 1;
+  --rule-y: 2;
+  transform-origin: left bottom;
+  transition-duration: var(--dur-thick);
+}
+
+/* Held: selected / expanded / current. Full weight, no motion. --rule-held lets
+   an archetype pick a different held colour without having to out-specify this
+   rule — terracotta on ink is ~2.9:1 and vanishes. */
+.ink-rule[aria-pressed='true']::after,
+.ink-rule[aria-expanded='true']::after,
+.ink-rule[aria-current]:not([aria-current='false'])::after {
+  --rule-x: 1;
+  --rule-y: 2;
+  --rule-color: var(--rule-held, var(--color-primary));
+  transform-origin: left bottom;
+}
+
+/* A dead key leaves no mark. */
+.ink-rule:disabled::after,
+.ink-rule[aria-disabled='true']::after {
+  --rule-x: 0;
+}
+
+/* ── Length tiers (medium is the default and needs no class) ─────────────── */
+.rule-short {
+  --rule-draw: var(--draw-short);
+  --rule-retract: var(--retract-short);
+}
+.rule-long {
+  --rule-draw: var(--draw-long);
+  --rule-retract: var(--retract-long);
+}
+
+/* ── Archetypes: where the rule sits ─────────────────────────────────────── */
+.rule-link {
+  --rule-bottom: -4px;                  /* currentColor, under the text baseline */
+}
+.rule-chip {
+  --rule-bottom: -1px;                  /* on the control's own border */
+  --rule-inset: 0.5rem;                 /* = rounded-lg */
+  --rule-color: var(--color-primary);
+  --rule-held: var(--color-canvas);     /* latched chips are bg-ink */
+}
+.rule-row {
+  --rule-bottom: -1px;                  /* directly over the row's hairline */
+  --rule-color: var(--color-primary);
+}
+.rule-slab {
+  --rule-bottom: 0;                     /* along a button's bottom border */
+  --rule-inset: 0.5rem;
+  --rule-color: var(--color-primary);
+}
+/* A link whose 44px touch target is taller than its text: anchoring the rule to
+   the bottom of the padding box would float it ~15px under the words and stop
+   it reading as an underline. 0.5em from the centre line lands on the glyph
+   bottom at any font size, so this needs no per-site tuning. */
+.rule-tight::after {
+  top: calc(50% + 0.5em + 3px);
+  bottom: auto;
+}
+/* The rule sits inside the box here, so the default ring already encloses it —
+   no outline-offset nudge, unlike .rule-link. */
+.rule-tight:focus-visible::after {
+  --rule-x: 1;
+  transform-origin: left bottom;
+}
+
+/* Card variant: the rule inks along the TOP edge instead of the card lifting.
+   A 4px lift is an elevation idiom and this system has no shadows. */
+.rule-top {
+  --rule-inset: 0.75rem;                /* = rounded-xl */
+  --rule-color: var(--color-primary);
+}
+.rule-top::after {
+  top: 0;
+  bottom: auto;
+  transform-origin: right top;
+}
+@media (hover: hover) and (pointer: fine) {
+  .rule-top:hover:not(:disabled):not([aria-disabled='true'])::after {
+    transform-origin: left top;
+  }
+}
+/* Cards are containers, not controls: pressing a button inside one must not
+   thicken the card's own rule. Matches the :active selector's specificity on
+   purpose — it can only win on source order. */
+.rule-top:active:not(:disabled):not([aria-disabled='true'])::after {
+  --rule-y: 1;
+}
+
+/* ── Surface tints ───────────────────────────────────────────────────────── */
+/* These override nothing but the rule's COLOUR, so they must stay after every
+   placement archetype above: all of them set --rule-color at the same
+   specificity, and only source order decides the winner. Moving either of these
+   up leaves the terracotta card with a terracotta rule — i.e. no rule at all. */
+
+/* Terracotta on --color-dark is 3.1:1; ivory is 12:1. */
+.rule-on-dark {
+  --rule-color: var(--color-ondark);
+  --rule-held: var(--color-ondark);
+}
+/* The one terracotta card: a terracotta rule on terracotta is invisible. */
+.rule-on-primary {
+  --rule-color: #FFFFFF;
+  --rule-alpha: 0.55;
+}
+
+/* ── Press ───────────────────────────────────────────────────────────────── */
+/* Redefined in place, so every existing call site upgrades with no component
+   edit. scale(0.98) is gone: 2% on a 320px sticky CTA moved each edge 3.2px and
+   read as rubber, and scaling a text-bearing control re-rasterises Cormorant at
+   a fractional size mid-transition. translateY(1px) is exactly one hairline —
+   the system's own unit — and is constant at every control width.
+   Deliberately no `user-select: none`: this now covers the Services price rows
+   and a price must stay selectable. */
+.btn-press {
+  touch-action: manipulation;           /* drops the 300ms double-tap-zoom delay */
+  transition:
+    transform var(--dur-release) var(--ease-ink),
+    color var(--dur-tint) var(--ease-tint),
+    background-color var(--dur-tint) var(--ease-tint),
+    border-color var(--dur-tint) var(--ease-tint);
+}
+.btn-press:active:not(:disabled):not([aria-disabled='true']) {
+  transform: translateY(1px);
+  transition-duration: var(--dur-press);
+  transition-timing-function: var(--ease-nib);
+}
+.btn-press:disabled,
+.btn-press[aria-disabled='true'] {
+  transform: none;
+}
+
+/* For controls whose 44px hit box is invisible padding around a small visual:
+   moving the hit box does nothing you can see, moving the child does.
+   `:first-child`, not `*` — the BodyMap dot button has three children and only
+   the dot should move. Mandatory there: that button is an m.button whose inline
+   transform carries the dot's anchoring, so a CSS transform on it is a live bug. */
+.press-inner {
+  touch-action: manipulation;
+  user-select: none;
+}
+.press-inner > :first-child {
+  transition: transform var(--dur-release) var(--ease-ink);
+}
+.press-inner:active:not(:disabled) > :first-child {
+  transform: translateY(1px);
+  transition-duration: var(--dur-press);
+  transition-timing-function: var(--ease-nib);
+}
+
+/* 1px is imperceptible under a fingertip on a filled CTA. The keyline is a
+   DISCRETE FLIP with no transition in — ink contact is instant, and a shadow
+   that fades in is exactly what "no glows" forbids. It hugs the bottom border,
+   >=10px clear of any descender. currentColor makes it self-adapting. */
+.press-slab {
+  user-select: none;
+}
+.press-slab:active:not(:disabled) {
+  box-shadow: inset 0 -2px 0 0 rgb(0 0 0 / 0.22);  /* Safari < 16.4 */
+}
+@supports (color: color-mix(in oklab, red, red)) {
+  .press-slab:active:not(:disabled) {
+    box-shadow: inset 0 -2px 0 0 color-mix(in oklab, currentColor 30%, transparent);
+  }
+}
+
+/* Form surfaces get a hover border and nothing else. A field that moves 1px
+   under the caret at the moment the keyboard opens is disorienting. */
+.field {
+  transition: border-color var(--dur-field) var(--ease-tint);
+}
+@media (hover: hover) and (pointer: fine) {
+  .field:not(:focus):hover {
+    border-color: var(--color-muted);
+  }
+}
+
+/* ── Focus-visible: geometry conflicts, resolved per archetype ───────────── */
+/* Links keep BOTH marks: push the ring out so it encloses the rule at -4px and
+   let the rule draw, so keyboard users get the identical signature to mouse
+   users. Never `outline: none` anywhere — the ring is present on frame 1. */
+.rule-link:focus-visible {
+  outline-offset: 6px;
+}
+.rule-link:focus-visible::after {
+  --rule-x: 1;
+  transform-origin: left bottom;
+}
+/* Everywhere else the ring IS the keyboard affordance and a second mark is
+   noise — but the HELD rule must survive. */
+.rule-chip:focus-visible:not([aria-pressed='true']):not([aria-current])::after,
+.rule-row:focus-visible:not([aria-pressed='true']):not([aria-expanded='true'])::after,
+.rule-slab:focus-visible::after {
+  --rule-x: 0;
+}
+/* The global ring's hardcoded 6px radius reads slightly off on rounded-lg. */
+.rule-chip:focus-visible,
+.rule-slab:focus-visible {
+  border-radius: 0.5rem;
+}
+
+/* ── Signature rules: the same gesture at page scale ─────────────────────── */
+/* The stroke lives on a pseudo-element so the host keeps its own transform —
+   the header retracts, the sticky bar slides. */
+.sig-rule::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--rule-color, var(--color-hairline));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-sig) var(--ease-ink);
+  pointer-events: none;
+}
+.sig-rule-center::after {
+  transform-origin: center;
+}
+.sig-rule-top::after {
+  top: 0;
+  bottom: auto;
+}
+.sig-rule.is-on::after {
+  transform: scaleX(1);
+}
+/* One-shot: the bar lands, then its rule inks across. */
+.sig-rule-once::after {
+  animation: rule-draw var(--dur-sig) var(--ease-ink) 120ms both;
+}
+@keyframes rule-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Quiz progress: three hairlines that ink in, not three colour swaps. The
+   scaleX value is state and is set inline. */
+.quiz-rule {
+  transform-origin: left;
+  transition: transform var(--dur-sig) var(--ease-ink);
+}
+
+/* The BodyMap connector draws toward its label — the map's own signature.
+   Never animate w-4 -> w-5: that is a width animation. */
+.map-connector {
+  transform-origin: var(--connector-origin, left);
+  transform: scaleX(0.85);
+  transition: transform var(--draw-short) var(--ease-ink);
+}
+.map-connector-flip {
+  --connector-origin: right;            /* the row is flex-row-reverse */
+}
+.map-connector-on {
+  transform: scaleX(1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .group:hover > .map-connector {
+    transform: scaleX(1);
+  }
+}
+
+/* A button's icon leans forward on hover — the compositor-safe stand-in for a
+   letter-spacing shift, which would reflow the text box every frame. */
+.nudge-icon {
+  transition: transform var(--dur-tint) var(--ease-ink);
+}
+@media (hover: hover) and (pointer: fine) {
+  .press-nudge:hover > .nudge-icon {
+    transform: translateX(2px);
+  }
+}
+
+/* Chevron on a disclosure, retimed onto the ladder. The open state is Tailwind's
+   `rotate-180`, and v4 emits that as the INDEPENDENT `rotate` property, not as
+   `transform` — transitioning `transform` alone lets the turn snap. Tailwind's
+   own `transition-transform` expands to `transform, translate, scale, rotate`
+   for exactly this reason; this mirrors the pair the chevron actually uses. */
+.chevron-turn {
+  transition:
+    transform var(--draw-med) var(--ease-ink),
+    rotate var(--draw-med) var(--ease-ink);
 }
 
 /* Theme toggle: sun and moon are stacked and rotate through each other, on the
@@ -245,17 +607,45 @@
   transform: none;
 }
 
+/* Less movement, not less information: every rule still APPEARS on hover and
+   still HOLDS when selected, it just arrives with no draw. Zeroing the duration
+   tokens neutralises every transition in this file from one place; the rules
+   below remove the resting transforms that a 0ms duration would still paint.
+   The .press-slab keyline is untransitioned feedback, not motion, so it stays.
+   Selectors here mirror the specificity of the ones they override — they can
+   only win on source order. */
 @media (prefers-reduced-motion: reduce) {
-  .nav-underline::after {
-    transition: none;
+  :root {
+    --draw-short: 0ms;   --retract-short: 0ms;
+    --draw-med: 0ms;     --retract-med: 0ms;
+    --draw-long: 0ms;    --retract-long: 0ms;
+    --rule-draw: 0ms;    --rule-retract: 0ms;
+    --dur-press: 0ms;    --dur-release: 0ms;
+    --dur-thick: 0ms;    --dur-tint: 0ms;
+    --dur-field: 0ms;    --dur-sig: 0ms;
   }
-  .btn-press,
-  .btn-press:active {
-    transition: none;
+  .btn-press:active:not(:disabled):not([aria-disabled='true']),
+  .press-inner:active:not(:disabled) > :first-child {
     transform: none;
   }
+  /* The only motion in the system that carries no state — it goes entirely. */
+  .press-nudge:hover > .nudge-icon {
+    transform: none;
+  }
+  .ink-rule::after,
+  .press-inner > :first-child,
+  .sig-rule::after,
+  .quiz-rule,
+  .map-connector,
+  .nudge-icon,
+  .chevron-turn,
   .theme-icon-face {
     transition: none;
+  }
+  /* A one-shot draw has nothing to express without motion. */
+  .sig-rule-once::after {
+    animation: none;
+    transform: scaleX(1);
   }
 }
 

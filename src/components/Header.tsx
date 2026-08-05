@@ -107,12 +107,16 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
       // still lands inside (browsers without inert support).
       inert={hidden && !menuOpen}
       onFocus={() => setHidden(false)}
-      className={`fixed inset-x-0 top-0 z-40 bg-canvas/95 backdrop-blur-sm transition-[transform,border-color] duration-300 ease-out motion-reduce:transition-none ${
-        scrolled ? 'border-b border-hairline' : 'border-b border-transparent'
+      // The page's own hairline draws out from the centre as the hero leaves,
+      // instead of switching on as a border colour.
+      className={`sig-rule sig-rule-center fixed inset-x-0 top-0 z-40 bg-canvas/95 backdrop-blur-sm transition-transform duration-300 ease-out motion-reduce:transition-none ${
+        scrolled ? 'is-on' : ''
       } ${hidden && !menuOpen ? '-translate-y-full' : 'translate-y-0'}`}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <a href="#top" aria-label="Shugar Mommy" className="flex min-h-11 items-center">
+        {/* Press only, no rule: a hairline under the wordmark would compete
+            with the terracotta full stop that is the mark's whole idea. */}
+        <a href="#top" aria-label="Shugar Mommy" className="btn-press flex min-h-11 items-center">
           <Wordmark />
         </a>
 
@@ -121,7 +125,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
             <a
               key={item.href}
               href={item.href}
-              className="nav-underline text-sm font-medium text-muted transition-colors hover:text-ink"
+              className="btn-press ink-rule rule-link rule-short text-sm font-medium text-muted hover:text-ink"
             >
               {getLocalized(item.label, language)}
             </a>
@@ -138,8 +142,10 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
                 <button
                   onClick={() => onChangeLanguage(lang)}
                   aria-pressed={language === lang}
-                  className={`flex min-h-11 min-w-11 items-center justify-center text-xs font-semibold transition-colors ${
-                    language === lang ? 'text-ink underline decoration-primary decoration-2 underline-offset-4' : 'text-faint hover:text-ink'
+                  // The rule inset pulls the mark in from the 44px hit box so it
+                  // sits under the two letters, not the whole target.
+                  className={`btn-press ink-rule rule-tight rule-short [--rule-inset:0.75rem] flex min-h-11 min-w-11 items-center justify-center text-xs font-semibold ${
+                    language === lang ? 'text-ink' : 'text-faint hover:text-ink'
                   }`}
                 >
                   {lang}
@@ -152,7 +158,9 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
             onClick={onToggleTheme}
             aria-label={getLocalized(THEME_LABEL, language)}
             title={getLocalized(THEME_LABEL, language)}
-            className="btn-press flex min-h-11 min-w-11 items-center justify-center rounded-lg text-muted transition-colors hover:text-ink"
+            // press-inner, not btn-press: it travels the icon, leaving the
+            // ::view-transition snapshot taken on click near-stable.
+            className="press-inner flex min-h-11 min-w-11 items-center justify-center rounded-lg text-muted transition-colors hover:text-ink"
           >
             <span aria-hidden className="theme-icon">
               <span className={`theme-icon-face${theme === 'dark' ? ' is-on' : ''}`}>
@@ -165,7 +173,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
           </button>
           <button
             onClick={onBook}
-            className="btn-press hidden rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark sm:block"
+            className="btn-press press-slab hidden rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark sm:block"
           >
             {getLocalized(BOOK_LABEL, language)}
           </button>
@@ -174,7 +182,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
             aria-label={getLocalized(MENU_LABEL, language)}
             aria-expanded={menuOpen}
             aria-haspopup="dialog"
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-ink lg:hidden"
+            className="press-inner flex min-h-11 min-w-11 items-center justify-center rounded-lg text-ink lg:hidden"
           >
             <Menu size={22} />
           </button>
@@ -198,7 +206,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
               <button
                 onClick={() => setMenuOpen(false)}
                 aria-label="Close"
-                className="flex min-h-11 min-w-11 items-center justify-center rounded-lg"
+                className="press-inner flex min-h-11 min-w-11 items-center justify-center rounded-lg"
               >
                 <X size={22} />
               </button>
@@ -210,7 +218,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
                   key={item.href}
                   href={item.href}
                   onClick={() => setMenuOpen(false)}
-                  className="border-b border-hairline py-3 font-serif text-xl font-medium text-ink sm:py-4 sm:text-2xl"
+                  className="btn-press ink-rule rule-row rule-long border-b border-hairline py-3 font-serif text-xl font-medium text-ink sm:py-4 sm:text-2xl"
                 >
                   {getLocalized(item.label, language)}
                 </a>
@@ -222,7 +230,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
                   key={lang}
                   onClick={() => onChangeLanguage(lang)}
                   aria-pressed={language === lang}
-                  className={`min-h-11 rounded-lg border px-4 py-2.5 text-sm font-semibold ${
+                  className={`btn-press ink-rule rule-chip rule-short min-h-11 rounded-lg border px-4 py-2.5 text-sm font-semibold ${
                     language === lang ? 'border-ink bg-ink text-canvas' : 'border-hairline text-muted'
                   }`}
                 >
@@ -236,7 +244,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
                   setMenuOpen(false);
                   onBook();
                 }}
-                className="w-full rounded-lg bg-primary px-5 py-3.5 font-semibold text-white transition-colors hover:bg-primary-dark"
+                className="btn-press press-slab w-full rounded-lg bg-primary px-5 py-3.5 font-semibold text-white hover:bg-primary-dark"
               >
                 {getLocalized(BOOK_LABEL, language)}
               </button>

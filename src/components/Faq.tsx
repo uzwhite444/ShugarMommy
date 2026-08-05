@@ -36,12 +36,12 @@ export default function Faq({ language }: FaqProps) {
                     onClick={() => setOpenIndex(open ? null : i)}
                     aria-expanded={open}
                     aria-controls={`faq-panel-${i}`}
-                    className="flex w-full items-center justify-between gap-4 py-5 text-left font-serif text-xl font-medium text-ink transition-colors hover:text-primary-dark"
+                    className="btn-press ink-rule rule-row rule-long flex w-full items-center justify-between gap-4 py-5 text-left font-serif text-xl font-medium text-ink hover:text-primary-dark"
                   >
                     {getLocalized(item.question, language)}
                     <ChevronDown
                       size={18}
-                      className={`shrink-0 text-muted transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+                      className={`chevron-turn shrink-0 text-muted ${open ? 'rotate-180' : ''}`}
                     />
                   </button>
                   {/* aria-hidden keeps collapsed answers out of the a11y tree —

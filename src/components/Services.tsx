@@ -136,7 +136,7 @@ export default function Services({ language, selectedZoneIds, onToggleZone, onBo
                           <button
                             onClick={() => onToggleZone(zone.id)}
                             aria-pressed={selected}
-                            className="group flex w-full items-center justify-between gap-4 py-3.5 text-left transition-colors"
+                            className="group btn-press ink-rule rule-row rule-long flex w-full items-center justify-between gap-4 py-3.5 text-left"
                           >
                             <span className="flex items-center gap-3.5">
                               <span
@@ -233,14 +233,14 @@ export default function Services({ language, selectedZoneIds, onToggleZone, onBo
 
                 <button
                   onClick={onBook}
-                  className="btn-press mt-6 w-full rounded-lg bg-primary px-5 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark"
+                  className="btn-press press-slab mt-6 w-full rounded-lg bg-primary px-5 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark"
                 >
                   {getLocalized(selectedZones.length > 0 ? TR.book : TR.bookEmpty, language)}
                 </button>
                 {selectedZones.length > 0 && (
                   <button
                     onClick={handleShare}
-                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-ondark/20 px-5 py-2.5 text-xs font-semibold text-ondark/80 transition-colors hover:border-ondark/50 hover:text-ondark"
+                    className="btn-press ink-rule rule-slab rule-on-dark mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-ondark/20 px-5 py-2.5 text-xs font-semibold text-ondark/80 hover:border-ondark/50 hover:text-ondark"
                   >
                     {shared ? <Check size={13} /> : <Share2 size={13} />}
                     {getLocalized(shared ? TR.shared : TR.share, language)}

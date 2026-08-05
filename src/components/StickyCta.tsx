@@ -80,7 +80,9 @@ export default function StickyCta({ language, total, zoneCount, onBook, hidden }
           animate={{ y: 0 }}
           exit={{ y: '120%' }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-canvas/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur-sm lg:hidden"
+          // The bar lands first, then its top hairline inks across — the border
+          // is the sig-rule now, so it must not also be a border utility.
+          className="sig-rule sig-rule-top sig-rule-once fixed inset-x-0 bottom-0 z-40 bg-canvas/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur-sm lg:hidden"
         >
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
@@ -97,7 +99,7 @@ export default function StickyCta({ language, total, zoneCount, onBook, hidden }
             </div>
             <button
               onClick={onBook}
-              className="btn-press shrink-0 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary-dark"
+              className="btn-press press-slab shrink-0 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary-dark"
             >
               {getLocalized(TR.book, language)}
             </button>

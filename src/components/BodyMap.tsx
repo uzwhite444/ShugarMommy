@@ -72,7 +72,10 @@ export default function BodyMap({ language, selectedZoneIds, onToggleZone }: Bod
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true, margin: '-40px' }}
               transition={{ duration: 0.4, delay: 0.15 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
-              className={`group absolute flex items-center ${
+              // press-inner, never btn-press: this element's transform belongs
+              // to motion's x/y channel below, so a CSS transform here would be
+              // overwritten every frame and knock the dot off its anchor.
+              className={`group press-inner absolute flex items-center ${
                 point.side === 'left' ? 'flex-row-reverse' : ''
               }`}
               style={{
@@ -91,7 +94,10 @@ export default function BodyMap({ language, selectedZoneIds, onToggleZone }: Bod
                   transparent, so the map stays clean but stays tappable. */}
               <span className="relative flex h-11 w-11 shrink-0 items-center justify-center">
                 <span
-                  className={`flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 transition-all ${
+                  // `scale`, not `transform`: the selected state below is
+                  // Tailwind's `scale-110`, which v4 emits as the independent
+                  // `scale` property — omitting it here makes the dot snap.
+                  className={`flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 transition-[background-color,border-color,transform,scale] duration-200 motion-reduce:transition-none ${
                     selected
                       ? 'scale-110 border-primary bg-primary text-white'
                       : 'border-primary bg-canvas group-hover:bg-primary-soft'
@@ -100,7 +106,14 @@ export default function BodyMap({ language, selectedZoneIds, onToggleZone }: Bod
                   {selected && <Check size={10} strokeWidth={3.5} />}
                 </span>
               </span>
-              <span aria-hidden className={`hidden h-px w-4 sm:block ${selected ? 'bg-primary/70' : 'bg-primary/40'}`} />
+              {/* The connector draws toward its label — the map's own version of
+                  the signature. scaleX, never w-4 -> w-5: that is a width. */}
+              <span
+                aria-hidden
+                className={`map-connector hidden h-px w-4 sm:block ${
+                  point.side === 'left' ? 'map-connector-flip' : ''
+                } ${selected ? 'map-connector-on bg-primary/70' : 'bg-primary/40'}`}
+              />
               <span
                 className={`hidden whitespace-nowrap text-[11px] font-semibold transition-colors sm:inline ${
                   selected ? 'text-ink' : 'text-muted group-hover:text-ink'

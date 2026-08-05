@@ -62,7 +62,7 @@ export default function Reports({ bookings }: ReportsProps) {
   ];
 
   const exportBtn =
-    'btn-press flex items-center gap-2 rounded-lg border border-hairline px-4 py-2.5 text-sm font-semibold text-ink hover:border-muted';
+    'btn-press ink-rule rule-slab flex items-center gap-2 rounded-lg border border-hairline px-4 py-2.5 text-sm font-semibold text-ink hover:border-muted';
 
   return (
     <div>
@@ -72,7 +72,8 @@ export default function Reports({ bookings }: ReportsProps) {
           <button
             key={p.value}
             onClick={() => setPreset(p.value)}
-            className={`btn-press rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors ${
+            aria-pressed={preset === p.value}
+            className={`btn-press ink-rule rule-chip rule-short rounded-lg px-3.5 py-2 text-sm font-semibold ${
               preset === p.value ? 'bg-ink text-canvas' : 'border border-hairline text-muted hover:text-ink'
             }`}
           >
@@ -85,7 +86,7 @@ export default function Reports({ bookings }: ReportsProps) {
               type="date"
               value={customFrom}
               onChange={(e) => setCustomFrom(e.target.value)}
-              className="rounded-lg border border-hairline bg-canvas px-3 py-1.5 text-sm outline-none focus:border-primary"
+              className="field rounded-lg border border-hairline bg-canvas px-3 py-1.5 text-sm outline-none focus:border-primary"
               aria-label="С даты"
             />
             —
@@ -93,7 +94,7 @@ export default function Reports({ bookings }: ReportsProps) {
               type="date"
               value={customTo}
               onChange={(e) => setCustomTo(e.target.value)}
-              className="rounded-lg border border-hairline bg-canvas px-3 py-1.5 text-sm outline-none focus:border-primary"
+              className="field rounded-lg border border-hairline bg-canvas px-3 py-1.5 text-sm outline-none focus:border-primary"
               aria-label="По дату"
             />
           </span>

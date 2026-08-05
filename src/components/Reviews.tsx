@@ -65,7 +65,7 @@ export default function Reviews({ language }: ReviewsProps) {
               href={`https://instagram.com/${INSTAGRAM}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center text-sm font-semibold text-primary-dark underline-offset-4 hover:underline"
+              className="btn-press ink-rule rule-tight rule-short inline-flex min-h-11 items-center text-sm font-semibold text-primary-dark"
             >
               {getLocalized(TR.more, language)} →
             </a>

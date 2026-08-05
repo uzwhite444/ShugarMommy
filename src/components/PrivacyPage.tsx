@@ -93,7 +93,7 @@ export default function PrivacyPage({ language }: PrivacyPageProps) {
       <div className="mx-auto max-w-2xl px-4 py-14 sm:px-6 sm:py-20">
         <a
           href="/"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted transition-colors hover:text-ink"
+          className="btn-press ink-rule rule-tight rule-short inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-muted hover:text-ink"
         >
           <ArrowLeft size={15} /> {getLocalized(TR.back, language)}
         </a>

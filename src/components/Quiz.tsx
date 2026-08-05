@@ -142,7 +142,7 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
   };
 
   const chipCls = (selected: boolean) =>
-    `btn-press rounded-lg border px-5 py-3 text-sm font-semibold transition-colors ${
+    `btn-press ink-rule rule-chip rule-short rounded-lg border px-5 py-3 text-sm font-semibold ${
       selected ? 'border-ink bg-ink text-canvas' : 'border-hairline bg-canvas text-body hover:border-muted'
     }`;
 
@@ -163,15 +163,16 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
 
         <Reveal delay={0.1}>
           <div className="mt-10 overflow-hidden rounded-2xl bg-canvas p-6 sm:p-9">
-            {/* Progress hairline */}
+            {/* Progress hairlines: each track inks in rather than swapping
+                colour — a rule, not a pill. */}
             <div className="mb-7 flex items-center gap-2" aria-hidden>
               {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className={`h-[3px] flex-1 rounded-full transition-colors duration-500 ${
-                    step > i ? 'bg-primary' : step === i ? 'bg-primary/50' : 'bg-hairline'
-                  }`}
-                />
+                <span key={i} className="h-px flex-1 bg-hairline">
+                  <span
+                    className="quiz-rule block h-px w-full bg-primary"
+                    style={{ transform: `scaleX(${step > i ? 1 : step === i ? 0.5 : 0})` }}
+                  />
+                </span>
               ))}
             </div>
 
@@ -189,8 +190,14 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
                   </div>
                   {error && <p className="mt-3 text-sm font-semibold text-danger">{error}</p>}
                   <div className="mt-7 flex justify-end">
-                    <button onClick={goNext} className="btn-press flex items-center gap-2 rounded-lg bg-ink px-6 py-3 text-sm font-semibold text-canvas hover:bg-primary">
-                      {t(TR.next)} <ArrowRight size={15} />
+                    {/* Hover must keep an inverting surface: `ink` and `body` both
+                        flip with the theme, so the canvas label stays readable in
+                        each. Terracotta here was 3.3:1 light / 2.3:1 dark. */}
+                    <button
+                      onClick={goNext}
+                      className="btn-press press-slab press-nudge flex items-center gap-2 rounded-lg bg-ink px-6 py-3 text-sm font-semibold text-canvas hover:bg-body"
+                    >
+                      {t(TR.next)} <ArrowRight size={15} className="nudge-icon" />
                     </button>
                   </div>
                 </m.div>
@@ -215,7 +222,7 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
                     ))}
                   </div>
                   <div className="mt-7 flex justify-start">
-                    <button onClick={() => setStep(0)} className="flex items-center gap-1.5 text-sm font-semibold text-muted hover:text-ink">
+                    <button onClick={() => setStep(0)} className="btn-press ink-rule rule-link rule-short flex items-center gap-1.5 text-sm font-semibold text-muted hover:text-ink">
                       <ArrowLeft size={15} /> {t(TR.back)}
                     </button>
                   </div>
@@ -241,7 +248,7 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
                     ))}
                   </div>
                   <div className="mt-7 flex justify-start">
-                    <button onClick={() => setStep(1)} className="flex items-center gap-1.5 text-sm font-semibold text-muted hover:text-ink">
+                    <button onClick={() => setStep(1)} className="btn-press ink-rule rule-link rule-short flex items-center gap-1.5 text-sm font-semibold text-muted hover:text-ink">
                       <ArrowLeft size={15} /> {t(TR.back)}
                     </button>
                   </div>
@@ -290,10 +297,10 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
                   </div>
 
                   <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
-                    <button onClick={restart} className="flex items-center gap-1.5 text-sm font-semibold text-muted hover:text-ink">
+                    <button onClick={restart} className="btn-press ink-rule rule-link rule-short flex items-center gap-1.5 text-sm font-semibold text-muted hover:text-ink">
                       <RotateCcw size={14} /> {t(TR.restart)}
                     </button>
-                    <button onClick={handleBook} className="btn-press rounded-lg bg-primary px-6 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark">
+                    <button onClick={handleBook} className="btn-press press-slab rounded-lg bg-primary px-6 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark">
                       {t(TR.ctaBook)}
                     </button>
                   </div>

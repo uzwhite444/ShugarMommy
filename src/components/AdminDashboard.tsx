@@ -84,7 +84,7 @@ export default function AdminDashboard() {
   const fresh = bookings.filter((b) => b.status === 'new').length;
 
   const navBtn = (active: boolean) =>
-    `flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-colors ${
+    `btn-press ink-rule rule-row rule-on-dark flex w-full items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-sm font-semibold ${
       active ? 'bg-ondark/10 text-ondark' : 'text-ondark-soft hover:text-ondark'
     }`;
 
@@ -102,7 +102,12 @@ export default function AdminDashboard() {
         </div>
         <nav className="flex-1 space-y-1 px-3 py-4">
           {NAV.map((item) => (
-            <button key={item.id} onClick={() => setSection(item.id)} className={navBtn(section === item.id)}>
+            <button
+              key={item.id}
+              onClick={() => setSection(item.id)}
+              aria-current={section === item.id ? 'page' : undefined}
+              className={navBtn(section === item.id)}
+            >
               <item.icon size={16} />
               {item.label}
               {item.id === 'bookings' && fresh > 0 && (
@@ -134,13 +139,13 @@ export default function AdminDashboard() {
             <span className="font-sans text-xs font-medium text-muted">· админ</span>
           </p>
           <div className="flex items-center gap-1">
-            <button onClick={() => load()} aria-label="Обновить" className="rounded-lg p-2 text-muted hover:text-ink">
+            <button onClick={() => load()} aria-label="Обновить" className="press-inner rounded-lg p-2 text-muted transition-colors hover:text-ink">
               <RefreshCw size={16} />
             </button>
             <button
               onClick={() => supabase?.auth.signOut()}
               aria-label="Выйти"
-              className="rounded-lg p-2 text-muted hover:text-danger"
+              className="press-inner rounded-lg p-2 text-muted transition-colors hover:text-danger"
             >
               <LogOut size={16} />
             </button>
@@ -151,7 +156,8 @@ export default function AdminDashboard() {
             <button
               key={item.id}
               onClick={() => setSection(item.id)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${
+              aria-current={section === item.id ? 'page' : undefined}
+              className={`btn-press ink-rule rule-chip rule-short flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${
                 section === item.id ? 'bg-ink text-canvas' : 'text-muted'
               }`}
             >

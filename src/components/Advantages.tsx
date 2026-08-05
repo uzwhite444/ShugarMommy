@@ -63,7 +63,10 @@ export default function Advantages({ language }: AdvantagesProps) {
         <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {TR.items.map((item, i) => (
             <Reveal key={item.title.EN} delay={i * 0.06}>
-              <div className="h-full rounded-xl bg-surface p-7 transition-transform duration-300 ease-out hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+              {/* The rule inks along the top edge instead of the card lifting:
+                  a 4px lift promises an elevation this system has no shadows
+                  for, and it made every control inside a moving target. */}
+              <div className="ink-rule rule-top rule-long h-full rounded-xl bg-surface p-7">
                 <item.icon size={22} className="text-primary" strokeWidth={1.75} />
                 <h3 className="mt-5 text-base font-semibold text-ink">{getLocalized(item.title, language)}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">{getLocalized(item.text, language)}</p>

@@ -104,7 +104,7 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
   };
 
   const inputCls =
-    'w-full rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm text-ink outline-none transition-colors focus:border-primary';
+    'field w-full rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm text-ink outline-none focus:border-primary';
 
   return createPortal(
     <div
@@ -137,7 +137,7 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
           <button
             onClick={onClose}
             aria-label={t(TR.close)}
-            className="-mr-2 flex min-h-11 min-w-11 items-center justify-center rounded-lg text-muted hover:text-ink"
+            className="press-inner -mr-2 flex min-h-11 min-w-11 items-center justify-center rounded-lg text-muted transition-colors hover:text-ink"
           >
             <X size={22} />
           </button>
@@ -156,7 +156,7 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
             </div>
             <button
               onClick={onClose}
-              className="btn-press mt-6 w-full rounded-lg bg-primary px-5 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark"
+              className="btn-press press-slab mt-6 w-full rounded-lg bg-primary px-5 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark"
             >
               {t(TR.close)}
             </button>
@@ -194,7 +194,7 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="btn-press mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
+              className="btn-press press-slab mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
             >
               {submitting && <Loader2 size={16} className="animate-spin" />}
               {t(TR.submit)}
@@ -205,7 +205,7 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
               <div className="mt-2.5 flex flex-wrap gap-2">
                 <a
                   href={`tel:${PHONE.replace(/[^+\d]/g, '')}`}
-                  className="btn-press inline-flex items-center gap-2 rounded-lg border border-hairline px-4 py-2.5 text-sm font-semibold text-ink hover:border-ink"
+                  className="btn-press ink-rule rule-slab inline-flex items-center gap-2 rounded-lg border border-hairline px-4 py-2.5 text-sm font-semibold text-ink hover:border-ink"
                 >
                   <Phone size={15} /> {PHONE}
                 </a>
@@ -213,7 +213,7 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
                   href={`https://t.me/${MANAGER_TELEGRAM}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-press inline-flex items-center gap-2 rounded-lg border border-hairline px-4 py-2.5 text-sm font-semibold text-ink hover:border-ink"
+                  className="btn-press ink-rule rule-slab inline-flex items-center gap-2 rounded-lg border border-hairline px-4 py-2.5 text-sm font-semibold text-ink hover:border-ink"
                 >
                   <Send size={15} /> Telegram
                 </a>

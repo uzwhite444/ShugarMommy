@@ -68,7 +68,9 @@ export default function Promos({ language, onBook }: PromosProps) {
         <div className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Terracotta callout — the one loud card on the page */}
           <Reveal>
-            <div className="flex h-full flex-col rounded-xl bg-primary p-8 text-white transition-transform duration-300 ease-out hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+            {/* rule-on-primary: a terracotta rule on a terracotta card is
+                invisible, so this one card inks in white. */}
+            <div className="ink-rule rule-top rule-on-primary rule-long flex h-full flex-col rounded-xl bg-primary p-8 text-white">
               <span className="self-start rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em]">
                 {getLocalized(TR.first.badge, language)}
               </span>
@@ -82,7 +84,7 @@ export default function Promos({ language, onBook }: PromosProps) {
                   always-white button needs tones pinned outside the theme swap. */}
               <button
                 onClick={onBook}
-                className="mt-6 flex min-h-11 items-center self-start rounded-lg bg-white px-5 text-sm font-semibold text-onwhite transition-colors hover:bg-white-soft"
+                className="btn-press press-slab mt-6 flex min-h-11 items-center self-start rounded-lg bg-white px-5 text-sm font-semibold text-onwhite hover:bg-white-soft"
               >
                 {getLocalized(TR.first.cta, language)}
               </button>
@@ -90,7 +92,7 @@ export default function Promos({ language, onBook }: PromosProps) {
           </Reveal>
 
           <Reveal delay={0.06}>
-            <div className="flex h-full flex-col rounded-xl bg-surface p-8 transition-transform duration-300 ease-out hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+            <div className="ink-rule rule-top rule-long flex h-full flex-col rounded-xl bg-surface p-8">
               {/* One step down on the narrowest phones: "up to −15%" is far
                   wider than the bare number it replaced. */}
               <p className="display text-5xl text-ink sm:text-6xl">{getLocalized(TR.combo.value, language)}</p>
@@ -100,7 +102,7 @@ export default function Promos({ language, onBook }: PromosProps) {
               </p>
               <a
                 href="#services"
-                className="mt-6 flex min-h-11 items-center self-start rounded-lg border border-ink/20 px-5 text-sm font-semibold text-ink transition-colors hover:border-ink"
+                className="btn-press ink-rule rule-slab mt-6 flex min-h-11 items-center self-start rounded-lg border border-ink/20 px-5 text-sm font-semibold text-ink hover:border-ink"
               >
                 {getLocalized(TR.combo.cta, language)}
               </a>
@@ -108,7 +110,7 @@ export default function Promos({ language, onBook }: PromosProps) {
           </Reveal>
 
           <Reveal delay={0.12}>
-            <div className="flex h-full flex-col rounded-xl bg-surface p-8 transition-transform duration-300 ease-out hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+            <div className="ink-rule rule-top rule-long flex h-full flex-col rounded-xl bg-surface p-8">
               <Gift size={36} className="text-primary" strokeWidth={1.5} />
               <h3 className="mt-6 text-lg font-semibold text-ink">{getLocalized(TR.gift.title, language)}</h3>
               <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
@@ -118,7 +120,7 @@ export default function Promos({ language, onBook }: PromosProps) {
                 href={`https://t.me/${MANAGER_TELEGRAM}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-6 flex min-h-11 items-center self-start rounded-lg border border-ink/20 px-5 text-sm font-semibold text-ink transition-colors hover:border-ink"
+                className="btn-press ink-rule rule-slab mt-6 flex min-h-11 items-center self-start rounded-lg border border-ink/20 px-5 text-sm font-semibold text-ink hover:border-ink"
               >
                 {getLocalized(TR.gift.cta, language)}
               </a>
