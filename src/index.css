@@ -115,8 +115,7 @@
 /* The product videos are shot on a cream backdrop that is lighter than the
    page. `darken` keeps the per-channel minimum, so that backdrop collapses
    exactly into the section while the amber stays — multiply would tint the
-   whole frame. On the dark canvas nothing can be blended away, so the clip
-   keeps a deliberate cream plate instead. */
+   whole frame. */
 .liquid-video {
   /* The clip's backdrop is rgb(250 244 238) — a couple of points below the
      canvas on green and blue, which `darken` would keep as a visible square.
@@ -124,10 +123,30 @@
   filter: brightness(1.02);
   mix-blend-mode: darken;
 }
+
+/* On the dark canvas no blend mode can key a light backdrop out while keeping
+   the subject bright — multiply crushes the amber, screen keeps the plate. So
+   the clip is dimmed and warmed into the palette, and a radial mask feathers
+   its edges away: what remains reads as a warm glow around the drop instead of
+   a cream card pasted onto the page. The ellipse is wide enough to clear the
+   splash crown at its widest frame. */
 :root[data-theme='dark'] .liquid-video {
   mix-blend-mode: normal;
-  background: #FAF7F2;
-  border-radius: 1rem;
+  background: transparent;
+  border-radius: 0;
+  filter: brightness(0.55) sepia(0.28) saturate(1.75);
+  -webkit-mask-image: radial-gradient(
+    ellipse 62% 66% at 50% 46%,
+    #000 55%,
+    rgb(0 0 0 / 0.38) 74%,
+    transparent 92%
+  );
+  mask-image: radial-gradient(
+    ellipse 62% 66% at 50% 46%,
+    #000 55%,
+    rgb(0 0 0 / 0.38) 74%,
+    transparent 92%
+  );
 }
 
 /* The body-map figure is terracotta line art baked onto an opaque cream plate
