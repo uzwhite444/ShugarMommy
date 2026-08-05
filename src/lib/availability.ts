@@ -1,8 +1,43 @@
 /**
  * Slot availability: which times are already taken for a given date.
  * Combines confirmed/new bookings (via a privacy-safe RPC that returns only
- * time + master) with manual blocks the admin creates in the panel.
+ * time + master + duration) with manual blocks the admin creates in the panel.
  */
+
+/** The booking grid is built from 30-minute cells. */
+const SLOT_MINUTES = 30;
+
+/** Rows created before 09_visit_duration.sql carry no duration. */
+const DEFAULT_DURATION_MIN = 30;
+
+/** A single visit can never occupy more than one working day. */
+const MAX_DURATION_MIN = 12 * 60;
+
+export function timeToMinutes(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : NaN;
+}
+
+function minutesToTime(minutes: number): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
+}
+
+/**
+ * Every 30-minute cell a visit of `durationMin` starting at `start` occupies.
+ * A visit that starts mid-cell still blocks that whole cell, so the first cell
+ * is floored to the grid.
+ */
+export function coveredSlots(start: string, durationMin: number): string[] {
+  const from = timeToMinutes(start);
+  if (!Number.isFinite(from)) return [];
+  const span = Math.min(Math.max(durationMin || DEFAULT_DURATION_MIN, SLOT_MINUTES), MAX_DURATION_MIN);
+  const slots: string[] = [];
+  for (let t = Math.floor(from / SLOT_MINUTES) * SLOT_MINUTES; t < from + span; t += SLOT_MINUTES) {
+    slots.push(minutesToTime(t));
+  }
+  return slots;
+}
 
 async function getClient() {
   const { supabase } = await import('./supabase');
@@ -55,11 +90,19 @@ export async function fetchDayAvailability(date: string): Promise<DayAvailabilit
     ]);
 
     if (!bookings.error && Array.isArray(bookings.data)) {
-      for (const row of bookings.data as Array<{ visit_time: string; master: string | null }>) {
-        // A booking with no master picked occupies the slot for everyone —
-        // the admin still has to assign somebody to it.
-        if (row.master) addToMaster(result.takenByMaster, row.master, row.visit_time);
-        else result.takenForAll.add(row.visit_time);
+      const rows = bookings.data as Array<{
+        visit_time: string;
+        master: string | null;
+        duration_min?: number | null;
+      }>;
+      for (const row of rows) {
+        // A 50-minute visit covers two cells, a 90-minute one covers three.
+        for (const slot of coveredSlots(row.visit_time, row.duration_min ?? DEFAULT_DURATION_MIN)) {
+          // A booking with no master picked occupies the slot for everyone —
+          // the admin still has to assign somebody to it.
+          if (row.master) addToMaster(result.takenByMaster, row.master, slot);
+          else result.takenForAll.add(slot);
+        }
       }
     }
 
@@ -87,6 +130,19 @@ export function isSlotTaken(availability: DayAvailability, time: string, masterN
   // "Any master" is only blocked when every master is busy at that time.
   const masters = [...availability.takenByMaster.values()];
   return masters.length > 0 && masters.every((set) => set.has(time));
+}
+
+/**
+ * True when a visit of `durationMin` starting at `time` collides with anything.
+ * A 90-minute combo starting at 10:00 needs 10:00, 10:30 and 11:00 free.
+ */
+export function isRangeTaken(
+  availability: DayAvailability,
+  time: string,
+  masterName: string | null,
+  durationMin: number,
+): boolean {
+  return coveredSlots(time, durationMin).some((slot) => isSlotTaken(availability, slot, masterName));
 }
 
 // --- Admin-side management -------------------------------------------------

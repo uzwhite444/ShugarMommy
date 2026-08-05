@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from 'motion/react';
+import { m, useReducedMotion } from 'motion/react';
 import { Check } from 'lucide-react';
 import { LanguageCode } from '../types';
 import { SERVICE_ZONES } from '../data';
@@ -63,7 +63,7 @@ export default function BodyMap({ language, selectedZoneIds, onToggleZone }: Bod
           const selected = selectedZoneIds.includes(zone.id);
           const name = getLocalized(zone.name, language);
           return (
-            <motion.button
+            <m.button
               key={zone.id}
               onClick={() => onToggleZone(zone.id)}
               aria-pressed={selected}
@@ -80,7 +80,11 @@ export default function BodyMap({ language, selectedZoneIds, onToggleZone }: Bod
                 top: `${point.y}%`,
                 // The 44px hit area is centred on the dot, so pull the row back
                 // by half of it to keep the visual dot exactly on the anchor.
-                transform: `translate(${point.side === 'left' ? 'calc(-100% + 22px)' : '-22px'}, -50%)`,
+                // This must ride motion's own x/y channel: a raw style.transform
+                // is overwritten as soon as scale animates, which would knock
+                // every dot off its anchor.
+                x: point.side === 'left' ? 'calc(-100% + 22px)' : '-22px',
+                y: '-50%',
               }}
             >
               {/* 44px touch target around an 18px visual dot: the padding is
@@ -104,7 +108,7 @@ export default function BodyMap({ language, selectedZoneIds, onToggleZone }: Bod
               >
                 {name}
               </span>
-            </motion.button>
+            </m.button>
           );
         })}
       </div>

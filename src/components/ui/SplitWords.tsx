@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from 'motion/react';
+import { m, useReducedMotion } from 'motion/react';
 
 interface SplitWordsProps {
   text: string;
@@ -35,7 +35,7 @@ export default function SplitWords({ text, className, delay = 0, inView = false 
           aria-hidden
           className="-mb-[0.14em] inline-block overflow-hidden pb-[0.14em] align-top"
         >
-          <motion.span
+          <m.span
             className="inline-block"
             initial={{ y: '115%' }}
             {...viewProps}
@@ -43,7 +43,7 @@ export default function SplitWords({ text, className, delay = 0, inView = false 
           >
             {word}
             {i < words.length - 1 ? ' ' : ''}
-          </motion.span>
+          </m.span>
         </span>
       ))}
     </span>

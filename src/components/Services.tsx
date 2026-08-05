@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { animate, motion, useReducedMotion } from 'motion/react';
+import { animate, m, useReducedMotion } from 'motion/react';
 import { Check, Share2, Timer } from 'lucide-react';
 import Reveal from './ui/Reveal';
 import BodyMap from './BodyMap';
@@ -46,7 +46,7 @@ const TR = {
     UZ: `Chegirmalar: ${DISCOUNT_TIERS[1].minZones} zonadan — ${DISCOUNT_TIERS[1].pct}%, ${DISCOUNT_TIERS[0].minZones} zonadan — ${DISCOUNT_TIERS[0].pct}%`,
     EN: `Discounts: ${DISCOUNT_TIERS[1].minZones}+ zones — ${DISCOUNT_TIERS[1].pct}%, ${DISCOUNT_TIERS[0].minZones}+ zones — ${DISCOUNT_TIERS[0].pct}%`,
   },
-  share: { RU: 'Поделиться комплексом', UZ: "Kompleks bilan bo'lishish", EN: 'Share this combo' },
+  share: { RU: 'Поделиться комплексом', UZ: 'Kompleks bilan bo‘lishish', EN: 'Share this combo' },
   shared: { RU: 'Ссылка скопирована!', UZ: 'Havola nusxalandi!', EN: 'Link copied!' },
 };
 
@@ -123,7 +123,9 @@ export default function Services({ language, selectedZoneIds, onToggleZone, onBo
               if (zones.length === 0) return null;
               return (
                 <Reveal key={category} className="mb-9 last:mb-0">
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-dark">
+                  {/* text-ink, not the terracotta accent: primary-dark on bg-soft
+                      is 4.31:1, below the 4.5:1 AA bar for this 12px label. */}
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-ink">
                     {getLocalized(CATEGORY_LABELS[category], language)}
                   </h3>
                   <ul className="mt-2">
@@ -186,7 +188,7 @@ export default function Services({ language, selectedZoneIds, onToggleZone, onBo
                   <>
                     <ul className="mt-5 border-b border-ondark/15 pb-5">
                       {selectedZones.map((zone) => (
-                        <motion.li
+                        <m.li
                           key={zone.id}
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
@@ -197,7 +199,7 @@ export default function Services({ language, selectedZoneIds, onToggleZone, onBo
                             <span className="text-ondark/85">{getLocalized(zone.name, language)}</span>
                             <span className="font-medium">{formatPrice(zone.price, language)}</span>
                           </div>
-                        </motion.li>
+                        </m.li>
                       ))}
                     </ul>
                     <dl className="mt-5 space-y-2.5 text-sm">

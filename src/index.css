@@ -18,9 +18,9 @@
   --color-ink: #1D1712;          /* headlines & primary text */
   --color-body: #433B33;         /* running text */
   --color-muted: #6F6558;        /* secondary text, captions */
-  --color-faint: #978C7E;        /* fine print */
+  --color-faint: #71665A;        /* fine print — dark enough for AA on canvas, soft and surface */
   --color-primary: #C17456;      /* terracotta — the single accent */
-  --color-primary-dark: #A45C42; /* hover/active */
+  --color-primary-dark: #96503A; /* hover/active — also AA as small text on primary-soft chips */
   --color-primary-soft: #F0E0D6; /* tint fill behind accents */
   --color-dark: #1B1512;         /* dark CTA band, footer, receipt card */
   --color-dark-2: #2A221B;       /* elevated cards on dark */
@@ -28,6 +28,12 @@
   --color-ondark-soft: #A79C8E;  /* secondary text on dark */
   --color-success: #5D8B62;
   --color-danger: #C05548;
+
+  /* Pinned pair for buttons that stay white in both themes (the terracotta
+     callout keeps its light-on-warm treatment at night): primary-dark and
+     canvas both flip in night mode and would fail AA on white. */
+  --color-onwhite: #945234;      /* label on white — 6.0:1 in both themes */
+  --color-white-soft: #F3EDE3;   /* its hover fill — the label stays 5.1:1 */
 
   /* Legacy aliases — admin panel & booking modal keep working unchanged. */
   --color-cream: #FAF7F2;
@@ -60,9 +66,9 @@
   --color-ink: #F6EFE5;
   --color-body: #DDD1C3;
   --color-muted: #A99B8B;
-  --color-faint: #8A7C6E;
+  --color-faint: #9A8C7C;  /* lifted: the old tone was 4.1:1 on surface, 3.7:1 on strong */
   --color-primary: #D9946F;
-  --color-primary-dark: #C57C55;
+  --color-primary-dark: #D08A61; /* lifted: the old tone was 4.2:1 on primary-soft chips */
   --color-primary-soft: #3A2A20;
   /* Dark bands must lift off the dark canvas, not sink into it. */
   --color-dark: #241C16;
@@ -205,9 +211,11 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Mobile input auto-zoom guard (iOS Safari zooms on <16px inputs).
+   Mobile input auto-zoom guard (iOS Safari zooms on <16px inputs). Touch
+   devices are matched by pointer, not width — an iPad is wider than any
+   phone breakpoint but zooms just the same.
 --------------------------------------------------------------------------- */
-@media (max-width: 640px) {
+@media (max-width: 640px), (pointer: coarse) {
   input:not([type='checkbox']):not([type='radio']),
   select,
   textarea {

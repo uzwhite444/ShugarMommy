@@ -126,9 +126,18 @@ function bookingRow(b: Booking): string[] {
   ];
 }
 
+/**
+ * Excel/LibreOffice выполняют содержимое ячейки, начинающееся с = + - @, таба
+ * или перевода строки. Все поля заявки приходят от посетителя, поэтому такой
+ * текст обезвреживается ведущим апострофом (CSV formula injection).
+ */
+function neutralizeFormula(v: string): string {
+  return /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
+}
+
 /** CSV с BOM и разделителем «;» — открывается в русском Excel без настройки. */
 export function exportCSV(bookings: Booking[], filename: string): void {
-  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  const esc = (v: string) => `"${neutralizeFormula(v).replace(/"/g, '""')}"`;
   const lines = [DETAIL_HEADERS, ...bookings.map(bookingRow)].map((row) => row.map(esc).join(';'));
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
   download(blob, `${filename}.csv`);
@@ -149,7 +158,8 @@ function escapeHtml(v: string): string {
 function reportHtml(bookings: Booking[], metrics: ReportMetrics, periodLabel: string): string {
   const fmt = (n: number) => new Intl.NumberFormat('ru-RU').format(n);
   const th = (t: string) => `<th style="background:#EFE8DB;border:1px solid #d9cfbc;padding:6px 10px;text-align:left;font-size:12px">${t}</th>`;
-  const td = (t: string) => `<td style="border:1px solid #e4dbcc;padding:5px 10px;font-size:12px">${escapeHtml(t)}</td>`;
+  // Excel открывает этот HTML как таблицу, поэтому ячейки обезвреживаются так же, как в CSV.
+  const td = (t: string) => `<td style="border:1px solid #e4dbcc;padding:5px 10px;font-size:12px">${escapeHtml(neutralizeFormula(t))}</td>`;
 
   const summaryRows = [
     ['Всего заявок', String(metrics.total)],
@@ -206,8 +216,11 @@ export function exportExcel(bookings: Booking[], metrics: ReportMetrics, periodL
 
 /** PDF через системный диалог печати (в нём выбирается «Сохранить как PDF»). */
 export function exportPDF(bookings: Booking[], metrics: ReportMetrics, periodLabel: string): boolean {
-  const w = window.open('', '_blank', 'noopener,width=900,height=700');
+  // Без токена noopener: с ним window.open по спецификации возвращает null,
+  // и печать никогда не открывалась. Ссылку на opener снимаем вручную.
+  const w = window.open('', '_blank', 'width=900,height=700');
   if (!w) return false;
+  w.opener = null;
   w.document.write(reportHtml(bookings, metrics, periodLabel));
   w.document.close();
   w.focus();

@@ -26,7 +26,7 @@ export default function Footer({ language }: FooterProps) {
           <p className="mt-2 max-w-xs text-sm text-ondark-soft">{getLocalized(TR.tagline, language)}</p>
         </div>
         <div className="text-xs text-ondark-soft sm:text-right">
-          <a href="#/privacy" className="font-semibold underline-offset-4 transition-colors hover:text-ondark hover:underline">
+          <a href="#/privacy" className="inline-flex min-h-11 items-center font-semibold underline-offset-4 transition-colors hover:text-ondark hover:underline">
             {getLocalized(TR.privacy, language)}
           </a>
           <p className="mt-2">

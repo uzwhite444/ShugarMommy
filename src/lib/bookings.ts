@@ -22,45 +22,87 @@ export interface NewBooking {
   total_price: number;
   comment: string | null;
   source?: string | null;
+  /** Visit length in minutes — blocks every cell it covers (09_visit_duration.sql). */
+  duration_min?: number | null;
 }
 
 /**
- * Persists a booking. Returns true on success, false when Supabase is not
- * configured or the insert failed — the Telegram handoff still happens either
- * way, so a backend hiccup never blocks the client.
+ * Outcome of an insert. The caller must not show a success screen for
+ * 'slot-taken' / 'rate-limited': the database rejected those bookings.
  */
+export type BookingResult =
+  | { status: 'ok'; id: string | null }
+  /** bookings_slot_uniq fired — somebody took the slot first. */
+  | { status: 'slot-taken' }
+  /** The antiflood trigger refused: too many bookings for this phone. */
+  | { status: 'rate-limited' }
+  /** Supabase unreachable or misconfigured — nothing was rejected. */
+  | { status: 'unavailable' };
+
+interface InsertError {
+  code?: string;
+  message: string;
+}
+
+/** Columns added by later migrations; absent on a database that lags behind. */
+const OPTIONAL_COLUMNS = ['source', 'duration_min'] as const;
+
+/**
+ * Which optional columns the backend does not know about. PostgREST reports an
+ * unknown column as PGRST204 and names it in the message; when it does not,
+ * every optional column is dropped so the booking still lands.
+ */
+function missingOptionalColumns(error: InsertError): string[] {
+  if (error.code !== 'PGRST204' && !/schema cache/i.test(error.message)) return [];
+  const named = OPTIONAL_COLUMNS.filter((column) => error.message.includes(column));
+  return named.length > 0 ? named : [...OPTIONAL_COLUMNS];
+}
+
+function classifyInsertError(error: InsertError): BookingResult {
+  // 23505 = unique_violation: the bookings_slot_uniq index rejected a second
+  // active booking for the same date + time + master.
+  if (error.code === '23505') return { status: 'slot-taken' };
+  // P0001 = raise_exception from the antiflood trigger (08_hardening_v3.sql).
+  if (error.code === 'P0001' && /booking limit/i.test(error.message)) {
+    return { status: 'rate-limited' };
+  }
+  console.error('createBooking failed:', error.message);
+  return { status: 'unavailable' };
+}
+
 /**
  * Saves the booking and returns its id, which the confirmation screen uses to
  * offer a Telegram reminder. The id is generated client-side because RLS lets
- * anonymous visitors insert but not read back. Returns null when the backend
- * is unavailable — the Telegram handoff still happens, so nothing is lost.
+ * anonymous visitors insert but not read back. A rejected booking is reported
+ * as such; 'unavailable' keeps the forgiving path (the Telegram handoff still
+ * happens), so a backend hiccup never costs the studio a client.
  */
-export async function createBooking(booking: NewBooking): Promise<string | null> {
+export async function createBooking(booking: NewBooking): Promise<BookingResult> {
   const id =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : undefined;
   try {
     const supabase = await getClient();
-    if (!supabase) return null;
-    const row = id ? { ...booking, id } : booking;
+    if (!supabase) return { status: 'unavailable' };
+    const row: Record<string, unknown> = id ? { ...booking, id } : { ...booking };
     const { error } = await supabase.from('bookings').insert(row);
-    if (!error) return id ?? null;
+    if (!error) return { status: 'ok', id: id ?? null };
 
-    // `source` is optional (added by 05_source.sql). If that migration has
-    // not been applied yet, retry without it rather than losing the booking.
-    const missingColumn = error.code === 'PGRST204' || /source/i.test(error.message);
-    if (missingColumn && booking.source !== undefined) {
-      const { source: _omitted, ...rest } = row;
-      const retry = await supabase.from('bookings').insert(rest);
-      if (!retry.error) return id ?? null;
-      console.error('createBooking retry failed:', retry.error.message);
-      return null;
+    // `source` (05_source.sql) and `duration_min` (09_visit_duration.sql) are
+    // optional. If a migration has not been applied yet, retry without those
+    // columns rather than losing the booking.
+    const missing = missingOptionalColumns(error);
+    if (missing.length > 0) {
+      const retryRow = { ...row };
+      for (const column of missing) delete retryRow[column];
+      const retry = await supabase.from('bookings').insert(retryRow);
+      if (!retry.error) return { status: 'ok', id: id ?? null };
+      return classifyInsertError(retry.error);
     }
 
-    console.error('createBooking failed:', error.message);
-    return null;
+    return classifyInsertError(error);
   } catch (err) {
     console.error('createBooking failed:', err);
-    return null;
+    return { status: 'unavailable' };
   }
 }
 

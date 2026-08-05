@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { LanguageCode } from '../types';
 import { formatPrice, getLocalized } from '../utils';
 
@@ -43,7 +43,10 @@ export default function StickyCta({ language, total, zoneCount, onBook, hidden }
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => {
+    let frame = 0;
+
+    const measure = () => {
+      frame = 0;
       const hero = document.getElementById('top');
       const heroBottom = hero ? hero.getBoundingClientRect().bottom : 0;
       // Show after the hero leaves, hide again at the very bottom where the
@@ -51,19 +54,28 @@ export default function StickyCta({ language, total, zoneCount, onBook, hidden }
       const nearBottom = window.innerHeight + window.scrollY > document.body.scrollHeight - 420;
       setVisible(heroBottom < 0 && !nearBottom);
     };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+
+    // One passive handler for both events, and layout is read at most once
+    // per frame instead of on every scroll tick.
+    const schedule = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(measure);
+    };
+
+    measure();
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule, { passive: true });
     return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
     };
   }, []);
 
   return (
     <AnimatePresence>
       {visible && !hidden && (
-        <motion.div
+        <m.div
           initial={{ y: '120%' }}
           animate={{ y: 0 }}
           exit={{ y: '120%' }}
@@ -90,7 +102,7 @@ export default function StickyCta({ language, total, zoneCount, onBook, hidden }
               {getLocalized(TR.book, language)}
             </button>
           </div>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

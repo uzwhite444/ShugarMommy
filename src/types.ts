@@ -19,7 +19,15 @@ export interface ServiceZone {
 
 export interface Master {
   id: string;
-  name: string;
+  /**
+   * Display name per language (RU Cyrillic, UZ/EN Latin transliteration).
+   * INVARIANT: `name.RU` is the canonical key — it is what gets written to
+   * bookings.master / blocked_slots.master, matched against takenByMaster in
+   * lib/availability.ts and shown in the admin panel. It must be identical in
+   * every language, otherwise availability matching and existing rows break.
+   * Use masterKey() from data.ts for storage, getLocalized() for display.
+   */
+  name: Localized;
   role: Localized;
   experienceYears: number;
   description: Localized;
@@ -62,4 +70,9 @@ export interface Booking {
   status: BookingStatus;
   /** Traffic channel the booking came from (requires 05_source.sql). */
   source?: string | null;
+  /**
+   * Visit length in minutes (requires 09_visit_duration.sql). Absent on rows
+   * created before that migration — treat as 30.
+   */
+  duration_min?: number | null;
 }

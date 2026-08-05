@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CalendarClock, CalendarOff, FileBarChart, Home, LayoutDashboard, Loader2, LogOut, RefreshCw } from 'lucide-react';
 import { Booking, BookingStatus } from '../types';
 import { deleteBooking, fetchBookings, updateBookingStatus } from '../lib/bookings';
@@ -24,9 +24,28 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [section, setSection] = useState<Section>('overview');
 
+  // Порядковый номер загрузки: применяется только ответ самого свежего запроса.
+  const loadSeq = useRef(0);
+  // Статусы, изменённые админом; держим их, пока сервер не подтвердит значение,
+  // чтобы уже летящее автообновление не откатило свежее действие.
+  const pendingStatus = useRef(new Map<string, BookingStatus>());
+
   const load = useCallback(async (silent = false) => {
+    const seq = ++loadSeq.current;
     if (!silent) setLoading(true);
-    setBookings(await fetchBookings());
+    const data = await fetchBookings();
+    if (seq !== loadSeq.current) return; // устаревший ответ — состоянием владеет более новый запрос
+    setBookings(
+      data.map((b) => {
+        const pending = pendingStatus.current.get(b.id);
+        if (!pending) return b;
+        if (pending === b.status) {
+          pendingStatus.current.delete(b.id);
+          return b;
+        }
+        return { ...b, status: pending };
+      }),
+    );
     setLoading(false);
   }, []);
 
@@ -39,9 +58,13 @@ export default function AdminDashboard() {
 
   const handleStatus = async (id: string, status: BookingStatus) => {
     // Optimistic update; reload on failure to stay truthful.
+    pendingStatus.current.set(id, status);
     setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)));
     const ok = await updateBookingStatus(id, status);
-    if (!ok) load();
+    if (!ok) {
+      pendingStatus.current.delete(id);
+      load();
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -49,6 +72,7 @@ export default function AdminDashboard() {
     if (!window.confirm(`Удалить заявку «${b?.customer_name ?? ''}» безвозвратно?`)) return;
     const ok = await deleteBooking(id);
     if (ok) {
+      pendingStatus.current.delete(id);
       setBookings((prev) => prev.filter((x) => x.id !== id));
     } else {
       window.alert(

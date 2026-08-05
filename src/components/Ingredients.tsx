@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
+import { m, useInView, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import Reveal from './ui/Reveal';
 import LiquidVideo from './ui/LiquidVideo';
 import { LanguageCode, Localized } from '../types';
@@ -83,10 +83,16 @@ function IngredientLabel({ item, language, align }: { item: Ingredient; language
 export default function Ingredients({ language }: IngredientsProps) {
   const reduced = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
+  const shadowRef = useRef<HTMLDivElement>(null);
 
   // Slow scroll parallax so the object feels detached from the page plane.
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'end start'] });
   const objectY = useTransform(scrollYProgress, [0, 1], [28, -28]);
+
+  // The breathing shadow is the only endless loop on the page — it must not
+  // keep the compositor busy while the section sits offscreen.
+  const shadowInView = useInView(shadowRef, { margin: '-10% 0px' });
+  const shadowBreathing = !reduced && shadowInView;
 
   return (
     <section ref={sectionRef} id="ingredients" className="overflow-hidden px-4 py-20 sm:px-6 sm:py-24">
@@ -113,7 +119,7 @@ export default function Ingredients({ language }: IngredientsProps) {
 
           {/* The object */}
           <div id="paste-anchor" className="order-1 justify-self-center lg:order-2">
-            <motion.div
+            <m.div
               initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.92, filter: 'blur(8px)' }}
               whileInView={
                 reduced ? { opacity: 1 } : { opacity: 1, scale: 1, filter: 'blur(0px)' }
@@ -142,13 +148,20 @@ export default function Ingredients({ language }: IngredientsProps) {
                 }
               />
               {/* Soft contact shadow that breathes with the float */}
-              <motion.div
+              <m.div
+                ref={shadowRef}
                 aria-hidden
-                animate={reduced ? undefined : { scaleX: [1, 0.9, 1], opacity: [0.35, 0.25, 0.35] }}
-                transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+                animate={
+                  shadowBreathing
+                    ? { scaleX: [1, 0.9, 1], opacity: [0.35, 0.25, 0.35] }
+                    : { scaleX: 1, opacity: 0.35 }
+                }
+                transition={
+                  shadowBreathing ? { duration: 6, repeat: Infinity, ease: 'easeInOut' } : { duration: 0 }
+                }
                 className="mx-auto mt-5 h-4 w-40 rounded-full bg-[radial-gradient(ellipse,rgba(29,23,18,0.5)_0%,transparent_70%)] sm:w-52"
               />
-            </motion.div>
+            </m.div>
           </div>
 
           {/* Right callouts */}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CalendarOff, Loader2, Plus, Trash2 } from 'lucide-react';
 import { BlockedSlot, createBlock, deleteBlock, fetchBlockedSlots } from '../../lib/availability';
-import { MASTERS } from '../../data';
+import { MASTERS, masterKey } from '../../data';
 import { WORK_HOURS } from '../../utils';
 import { Booking } from '../../types';
 import { todayIso } from './status';
@@ -108,9 +108,11 @@ export default function Schedule({ bookings }: ScheduleProps) {
           </select>
           <select value={master} onChange={(e) => setMaster(e.target.value)} className={`w-full ${fieldCls}`} aria-label="Мастер">
             <option value="">Все мастера</option>
+            {/* The value is the canonical RU spelling stored in the database —
+                never a localized one, or the block stops matching bookings. */}
             {MASTERS.map((m) => (
-              <option key={m.id} value={m.name}>
-                {m.name}
+              <option key={m.id} value={masterKey(m)}>
+                {m.name.RU}
               </option>
             ))}
           </select>

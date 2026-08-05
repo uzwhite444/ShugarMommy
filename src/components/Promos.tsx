@@ -1,7 +1,7 @@
 import { Gift } from 'lucide-react';
 import Reveal from './ui/Reveal';
 import { LanguageCode } from '../types';
-import { getLocalized, MANAGER_TELEGRAM } from '../utils';
+import { DISCOUNT_TIERS, getLocalized, MANAGER_TELEGRAM } from '../utils';
 
 interface PromosProps {
   language: LanguageCode;
@@ -23,12 +23,18 @@ const TR = {
     cta: { RU: 'Записаться', UZ: 'Yozilish', EN: 'Book now' },
   },
   combo: {
-    value: '−15%',
+    // Wording is derived from DISCOUNT_TIERS so the promo can never promise a
+    // discount the calculator does not apply.
+    value: {
+      RU: `до −${DISCOUNT_TIERS[0].pct}%`,
+      UZ: `−${DISCOUNT_TIERS[0].pct}% gacha`,
+      EN: `up to −${DISCOUNT_TIERS[0].pct}%`,
+    },
     title: { RU: 'Комплекс зон', UZ: 'Zonalar kompleksi', EN: 'Zone combo' },
     text: {
-      RU: 'Выберите 3+ зоны в калькуляторе — скидка применится автоматически.',
-      UZ: 'Kalkulyatorda 3+ zonani tanlang — chegirma avtomatik qo‘llanadi.',
-      EN: 'Pick 3+ zones in the calculator — the discount applies automatically.',
+      RU: `Выберите ${DISCOUNT_TIERS[1].minZones}+ зоны в калькуляторе — скидка ${DISCOUNT_TIERS[1].pct}%, от ${DISCOUNT_TIERS[0].minZones} зон — ${DISCOUNT_TIERS[0].pct}%. Применяется автоматически.`,
+      UZ: `Kalkulyatorda ${DISCOUNT_TIERS[1].minZones}+ zonani tanlang — ${DISCOUNT_TIERS[1].pct}% chegirma, ${DISCOUNT_TIERS[0].minZones} zonadan — ${DISCOUNT_TIERS[0].pct}%. Avtomatik qo‘llanadi.`,
+      EN: `Pick ${DISCOUNT_TIERS[1].minZones}+ zones in the calculator for ${DISCOUNT_TIERS[1].pct}% off, ${DISCOUNT_TIERS[0].minZones}+ zones for ${DISCOUNT_TIERS[0].pct}% — applied automatically.`,
     },
     cta: { RU: 'Собрать комплекс', UZ: "Kompleks yig'ish", EN: 'Build a combo' },
   },
@@ -68,12 +74,15 @@ export default function Promos({ language, onBook }: PromosProps) {
               </span>
               <p className="display mt-6 text-6xl">{TR.first.value}</p>
               <h3 className="mt-3 text-lg font-semibold">{getLocalized(TR.first.title, language)}</h3>
-              <p className="mt-2 flex-1 text-sm leading-relaxed text-white/85">
-                {getLocalized(TR.first.text, language)}
-              </p>
+              {/* No colour utility here on purpose: the paragraph inherits the
+                  card's ink, which night mode corrects to dark. An explicit
+                  text-white/85 bypasses that correction and drops to 2.2:1. */}
+              <p className="mt-2 flex-1 text-sm leading-relaxed">{getLocalized(TR.first.text, language)}</p>
+              {/* The card stays light-on-terracotta in both themes, so this
+                  always-white button needs tones pinned outside the theme swap. */}
               <button
                 onClick={onBook}
-                className="mt-6 self-start rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-primary-dark transition-colors hover:bg-canvas"
+                className="mt-6 flex min-h-11 items-center self-start rounded-lg bg-white px-5 text-sm font-semibold text-onwhite transition-colors hover:bg-white-soft"
               >
                 {getLocalized(TR.first.cta, language)}
               </button>
@@ -82,14 +91,16 @@ export default function Promos({ language, onBook }: PromosProps) {
 
           <Reveal delay={0.06}>
             <div className="flex h-full flex-col rounded-xl bg-surface p-8 transition-transform duration-300 ease-out hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
-              <p className="display text-6xl text-ink">{TR.combo.value}</p>
+              {/* One step down on the narrowest phones: "up to −15%" is far
+                  wider than the bare number it replaced. */}
+              <p className="display text-5xl text-ink sm:text-6xl">{getLocalized(TR.combo.value, language)}</p>
               <h3 className="mt-3 text-lg font-semibold text-ink">{getLocalized(TR.combo.title, language)}</h3>
               <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
                 {getLocalized(TR.combo.text, language)}
               </p>
               <a
                 href="#services"
-                className="mt-6 self-start rounded-lg border border-ink/20 px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-ink"
+                className="mt-6 flex min-h-11 items-center self-start rounded-lg border border-ink/20 px-5 text-sm font-semibold text-ink transition-colors hover:border-ink"
               >
                 {getLocalized(TR.combo.cta, language)}
               </a>
@@ -107,7 +118,7 @@ export default function Promos({ language, onBook }: PromosProps) {
                 href={`https://t.me/${MANAGER_TELEGRAM}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-6 self-start rounded-lg border border-ink/20 px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-ink"
+                className="mt-6 flex min-h-11 items-center self-start rounded-lg border border-ink/20 px-5 text-sm font-semibold text-ink transition-colors hover:border-ink"
               >
                 {getLocalized(TR.gift.cta, language)}
               </a>

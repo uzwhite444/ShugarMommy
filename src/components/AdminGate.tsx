@@ -8,6 +8,21 @@ import AdminDashboard from './AdminDashboard';
  * rendered only for an authenticated session. UI is Russian-only — the panel
  * is internal.
  */
+/**
+ * Confirms the signed-in user is the studio admin. The database is the real
+ * authority (RLS), so this only decides what to render. When `is_admin` is not
+ * installed yet the check passes — an older database still has RLS scoped to
+ * the `authenticated` role, so behaviour is unchanged.
+ */
+async function sessionIsAdmin(): Promise<boolean> {
+  if (!supabase) return false;
+  const { data, error } = await supabase.rpc('is_admin');
+  // PGRST202 = the function does not exist. Anything else (notably 42501,
+  // "permission denied") means the caller is not the admin.
+  if (error) return error.code === 'PGRST202';
+  return data !== false;
+}
+
 export default function AdminGate() {
   const [checking, setChecking] = useState(true);
   const [authed, setAuthed] = useState(false);
@@ -21,14 +36,28 @@ export default function AdminGate() {
       setChecking(false);
       return;
     }
-    supabase.auth.getSession().then(({ data }) => {
-      setAuthed(Boolean(data.session));
+    let cancelled = false;
+
+    const admit = async (hasSession: boolean) => {
+      const ok = hasSession && (await sessionIsAdmin());
+      if (cancelled) return;
+      if (hasSession && !ok) {
+        setError('У этой учётной записи нет доступа к панели.');
+        await supabase?.auth.signOut();
+      }
+      setAuthed(ok);
       setChecking(false);
-    });
+    };
+
+    supabase.auth.getSession().then(({ data }) => admit(Boolean(data.session)));
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthed(Boolean(session));
+      if (session) void admit(true);
+      else if (!cancelled) setAuthed(false);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -41,6 +70,8 @@ export default function AdminGate() {
     if (authError) {
       setError('Неверный email или пароль.');
     }
+    // A successful sign-in still has to pass the admin check in the auth-state
+    // listener above, which signs non-admins back out.
   };
 
   if (!isSupabaseConfigured) {

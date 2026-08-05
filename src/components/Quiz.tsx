@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { m, AnimatePresence, useReducedMotion } from 'motion/react';
 import { ArrowLeft, ArrowRight, Sparkles, Check, RotateCcw } from 'lucide-react';
 import Reveal from './ui/Reveal';
 import { LanguageCode, Localized } from '../types';
@@ -22,8 +22,8 @@ interface AreaOption {
 const AREAS: AreaOption[] = [
   { id: 'bikini', zoneId: 'bikini-deep', label: { RU: 'Бикини', UZ: 'Bikini', EN: 'Bikini' } },
   { id: 'legs', zoneId: 'legs-full', label: { RU: 'Ноги', UZ: 'Oyoqlar', EN: 'Legs' } },
-  { id: 'underarms', zoneId: 'underarms', label: { RU: 'Подмышки', UZ: "Qo'ltiq osti", EN: 'Underarms' } },
-  { id: 'arms', zoneId: 'arms-full', label: { RU: 'Руки', UZ: "Qo'llar", EN: 'Arms' } },
+  { id: 'underarms', zoneId: 'underarms', label: { RU: 'Подмышки', UZ: 'Qo‘ltiq osti', EN: 'Underarms' } },
+  { id: 'arms', zoneId: 'arms-full', label: { RU: 'Руки', UZ: 'Qo‘llar', EN: 'Arms' } },
   { id: 'face', zoneId: 'face-full', label: { RU: 'Лицо', UZ: 'Yuz', EN: 'Face' } },
   { id: 'belly', zoneId: 'belly', label: { RU: 'Живот', UZ: 'Qorin', EN: 'Belly' } },
 ];
@@ -36,7 +36,7 @@ const TR = {
   title: { RU: 'Персональный план гладкости', UZ: 'Shaxsiy silliqlik rejasi', EN: 'Your personal smoothness plan' },
   subtitle: {
     RU: 'Три вопроса — и мы соберём комплекс под вас, с ценой и советами перед визитом.',
-    UZ: "Uch savol — sizga mos kompleksni narx va maslahatlar bilan yig'amiz.",
+    UZ: 'Uch savol — sizga mos kompleksni narx va maslahatlar bilan yig‘amiz.',
     EN: 'Three questions — we build your combo with a price and pre-visit tips.',
   },
   q1: { RU: 'Какие зоны вас интересуют?', UZ: 'Qaysi zonalar qiziqtiradi?', EN: 'Which areas interest you?' },
@@ -46,7 +46,7 @@ const TR = {
     razor: { RU: 'Бритва', UZ: 'Ustara', EN: 'Razor' },
     wax: { RU: 'Воск', UZ: 'Mum', EN: 'Wax' },
     sugaring: { RU: 'Шугаринг', UZ: 'Shugaring', EN: 'Sugaring' },
-    none: { RU: 'Никак', UZ: 'Hech qanday', EN: "I don't" },
+    none: { RU: 'Никак', UZ: 'Olmayman', EN: "I don't" },
   } as Record<Method, Localized>,
   q3: { RU: 'Какая у вас кожа?', UZ: 'Teringiz qanday?', EN: 'How is your skin?' },
   q3opts: {
@@ -58,12 +58,12 @@ const TR = {
   resultTitle: { RU: 'Ваш план готов', UZ: 'Rejangiz tayyor', EN: 'Your plan is ready' },
   yourCombo: { RU: 'Рекомендуемый комплекс', UZ: 'Tavsiya etilgan kompleks', EN: 'Recommended combo' },
   discount: { RU: 'скидка за комплекс', UZ: 'kompleks chegirmasi', EN: 'combo discount' },
-  perVisit: { RU: 'за визит', UZ: 'har tashrif', EN: 'per visit' },
+  perVisit: { RU: 'за визит', UZ: 'har tashrif uchun', EN: 'per visit' },
   tips: { RU: 'Советы перед визитом', UZ: 'Tashrifdan oldin maslahatlar', EN: 'Tips before your visit' },
   tipMethod: {
     razor: {
       RU: 'После бритвы отрастите волоски 2–3 недели — оптимальная длина от 8 мм до 1 см.',
-      UZ: "Ustaradan keyin tuklarni 2–3 hafta o'stiring — eng maqbul uzunlik 8 mm dan 1 sm gacha.",
+      UZ: 'Ustaradan keyin tuklarni 2–3 hafta o‘stiring — eng maqbul uzunlik 8 mm dan 1 sm gacha.',
       EN: 'After a razor, let hair grow 2–3 weeks — the ideal length is 8 mm to 1 cm.',
     },
     wax: {
@@ -73,12 +73,12 @@ const TR = {
     },
     sugaring: {
       RU: 'Вы уже с нами! Поддерживающие визиты раз в 2–3 недели сохранят идеальный результат.',
-      UZ: 'Siz allaqachon bizdasiz! Har 2–3 haftada tashriflar natijani saqlaydi.',
+      UZ: 'Siz allaqachon bizdasiz! Har 2–3 haftada tashrif buyursangiz, natija mukammal saqlanadi.',
       EN: 'Already sugaring! Maintenance visits every 2–3 weeks keep the result perfect.',
     },
     none: {
       RU: 'Отлично — длина волосков наверняка уже подходит, можно записываться сразу.',
-      UZ: "Ajoyib — tuk uzunligi allaqachon mos, darhol yozilish mumkin.",
+      UZ: 'Ajoyib — tuk uzunligi allaqachon mos, darhol yozilish mumkin.',
       EN: 'Great — the hair length is likely already perfect, you can book right away.',
     },
   } as Record<Method, Localized>,
@@ -177,7 +177,7 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
 
             <AnimatePresence mode="wait" initial={false}>
               {step === 0 && (
-                <motion.div key="q1" {...stepVariants} transition={{ duration: 0.35, ease: EASE }}>
+                <m.div key="q1" {...stepVariants} transition={{ duration: 0.35, ease: EASE }}>
                   <h3 className="font-serif text-2xl font-semibold text-ink">{t(TR.q1)}</h3>
                   <p className="mt-1 text-xs text-faint">{t(TR.q1hint)}</p>
                   <div className="mt-5 flex flex-wrap gap-2">
@@ -193,11 +193,11 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
                       {t(TR.next)} <ArrowRight size={15} />
                     </button>
                   </div>
-                </motion.div>
+                </m.div>
               )}
 
               {step === 1 && (
-                <motion.div key="q2" {...stepVariants} transition={{ duration: 0.35, ease: EASE }}>
+                <m.div key="q2" {...stepVariants} transition={{ duration: 0.35, ease: EASE }}>
                   <h3 className="font-serif text-2xl font-semibold text-ink">{t(TR.q2)}</h3>
                   <div className="mt-5 grid grid-cols-2 gap-2">
                     {(Object.keys(TR.q2opts) as Method[]).map((m) => (
@@ -219,11 +219,11 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
                       <ArrowLeft size={15} /> {t(TR.back)}
                     </button>
                   </div>
-                </motion.div>
+                </m.div>
               )}
 
               {step === 2 && (
-                <motion.div key="q3" {...stepVariants} transition={{ duration: 0.35, ease: EASE }}>
+                <m.div key="q3" {...stepVariants} transition={{ duration: 0.35, ease: EASE }}>
                   <h3 className="font-serif text-2xl font-semibold text-ink">{t(TR.q3)}</h3>
                   <div className="mt-5 grid grid-cols-2 gap-2">
                     {(Object.keys(TR.q3opts) as Skin[]).map((s) => (
@@ -245,11 +245,11 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
                       <ArrowLeft size={15} /> {t(TR.back)}
                     </button>
                   </div>
-                </motion.div>
+                </m.div>
               )}
 
               {step === 3 && (
-                <motion.div key="result" {...stepVariants} transition={{ duration: 0.4, ease: EASE }}>
+                <m.div key="result" {...stepVariants} transition={{ duration: 0.4, ease: EASE }}>
                   <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary-dark">
                     <Sparkles size={14} /> {t(TR.resultTitle)}
                   </p>
@@ -297,7 +297,7 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
                       {t(TR.ctaBook)}
                     </button>
                   </div>
-                </motion.div>
+                </m.div>
               )}
             </AnimatePresence>
           </div>

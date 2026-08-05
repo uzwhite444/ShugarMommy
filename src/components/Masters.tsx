@@ -55,7 +55,9 @@ export default function Masters({ language }: MastersProps) {
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-soft font-serif text-2xl font-semibold text-primary-dark">
                   {master.initials}
                 </div>
-                <h3 className="display mt-5 text-2xl text-ink">{master.name}</h3>
+                <h3 className="display mt-5 text-2xl text-ink">
+                  {getLocalized(master.name, language)}
+                </h3>
                 <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-primary-dark">
                   {getLocalized(master.role, language)} · {experienceLabel(master.experienceYears, language)}
                 </p>

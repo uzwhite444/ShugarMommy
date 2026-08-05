@@ -1,7 +1,6 @@
 import { useRef } from 'react';
-import { motion, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react';
+import { m, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react';
 import { Check } from 'lucide-react';
-import SplitWords from './ui/SplitWords';
 import { LanguageCode } from '../types';
 import { formatPrice, getLocalized } from '../utils';
 
@@ -61,6 +60,15 @@ export default function Hero({ language, onBook }: HeroProps) {
     transition: { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] as const },
   });
 
+  // The <h1> is the LCP element: it paints fully opaque on the very first
+  // frame and only settles a few pixels via transform, so the largest text
+  // never waits on an opacity or blur animation.
+  const headingLine = (delay: number) => ({
+    initial: reduced ? false : { y: '0.16em' },
+    animate: reduced ? undefined : { y: 0 },
+    transition: { duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] as const },
+  });
+
   return (
     <section
       ref={sectionRef}
@@ -70,19 +78,23 @@ export default function Hero({ language, onBook }: HeroProps) {
       <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-2 lg:gap-20">
         {/* Left — editorial copy */}
         <div>
-          <motion.p {...fadeUp(0)} className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+          <m.p {...fadeUp(0)} className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
             {getLocalized(TR.eyebrow, language)}
-          </motion.p>
+          </m.p>
           <h1 className="display mt-5 text-5xl text-ink sm:text-6xl lg:text-7xl">
-            <SplitWords text={getLocalized(TR.title1, language)} delay={0.1} />
+            <m.span {...headingLine(0)} className="inline-block">
+              {getLocalized(TR.title1, language)}
+            </m.span>
             <br />
-            <SplitWords text={getLocalized(TR.title2, language)} delay={0.28} className="text-primary" />
+            <m.span {...headingLine(0.08)} className="inline-block text-primary">
+              {getLocalized(TR.title2, language)}
+            </m.span>
           </h1>
-          <motion.p {...fadeUp(0.16)} className="mt-6 max-w-md text-base leading-relaxed text-body sm:text-lg">
+          <m.p {...fadeUp(0.16)} className="mt-6 max-w-md text-base leading-relaxed text-body sm:text-lg">
             {getLocalized(TR.subtitle, language)}
-          </motion.p>
+          </m.p>
 
-          <motion.div {...fadeUp(0.24)} className="mt-8 flex flex-wrap items-center gap-3">
+          <m.div {...fadeUp(0.24)} className="mt-8 flex flex-wrap items-center gap-3">
             <button
               onClick={onBook}
               className="btn-press rounded-lg bg-primary px-6 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark"
@@ -95,21 +107,21 @@ export default function Hero({ language, onBook }: HeroProps) {
             >
               {getLocalized(TR.ctaPrices, language)}
             </a>
-          </motion.div>
+          </m.div>
 
-          <motion.ul {...fadeUp(0.32)} className="mt-10 space-y-3 border-t border-hairline pt-8">
+          <m.ul {...fadeUp(0.32)} className="mt-10 space-y-3 border-t border-hairline pt-8">
             {TR.points.map((point) => (
               <li key={point.EN} className="flex items-start gap-3 text-sm text-body">
                 <Check size={16} className="mt-0.5 shrink-0 text-primary" />
                 {getLocalized(point, language)}
               </li>
             ))}
-          </motion.ul>
+          </m.ul>
         </div>
 
         {/* Right — the product itself: a quiet booking-receipt preview */}
-        <motion.div {...fadeUp(0.25)} aria-hidden className="lg:justify-self-end">
-          <motion.div
+        <m.div {...fadeUp(0.25)} aria-hidden className="lg:justify-self-end">
+          <m.div
             style={reduced ? undefined : { y: cardY }}
             className="w-full max-w-sm rounded-2xl bg-surface p-7 sm:p-8"
           >
@@ -141,8 +153,8 @@ export default function Hero({ language, onBook }: HeroProps) {
               {getLocalized(TR.mockCta, language)}
             </button>
             <p className="mt-3 text-center text-xs text-faint">{getLocalized(TR.mockNote, language)}</p>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </div>
     </section>
   );

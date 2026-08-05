@@ -10,6 +10,24 @@
     />
     <link rel="canonical" href="https://shugarmommy.vercel.app/" />
 
+    <!-- Above-the-fold text only: the Cyrillic subsets of the display serif
+         (hero heading) and the body sans. Vite rewrites these to the hashed
+         build assets. Other weights/subsets stay lazy on purpose. -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/src/assets/fonts/cormorant-garamond-500-cyrillic.woff2"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/src/assets/fonts/manrope-400-cyrillic.woff2"
+    />
+
     <!-- Link previews (Telegram, Instagram, WhatsApp, Facebook) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Shugar Mommy" />

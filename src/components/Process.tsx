@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from 'motion/react';
+import { m, useReducedMotion } from 'motion/react';
 import Reveal from './ui/Reveal';
 import { LanguageCode, Localized } from '../types';
 import { getLocalized } from '../utils';
@@ -87,7 +87,7 @@ export default function Process({ language }: ProcessProps) {
               <Reveal delay={i * 0.06}>
                 <div className="relative pt-5">
                   {/* Top rule draws in from the left as the step enters view. */}
-                  <motion.span
+                  <m.span
                     aria-hidden
                     className="absolute left-0 top-0 h-[2px] w-full origin-left bg-ink"
                     initial={reduced ? { scaleX: 1 } : { scaleX: 0 }}

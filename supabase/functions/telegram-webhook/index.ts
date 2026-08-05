@@ -11,6 +11,9 @@
 //   3. Вставьте этот файл целиком → Deploy
 //   4. Снимите галочку «Verify JWT» в настройках функции
 //      (Telegram не умеет присылать JWT).
+//   5. Задайте секрет TELEGRAM_WEBHOOK_SECRET (Edge Functions → Secrets)
+//      и передайте его Telegram в setWebhook как secret_token.
+//      БЕЗ секрета функция отвечает 500 и ничего не делает.
 // ============================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -22,6 +25,21 @@ const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const WEBHOOK_SECRET = Deno.env.get('TELEGRAM_WEBHOOK_SECRET') ?? '';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Сравнение за постоянное время: обычное `!==` выходит на первом различии,
+ * что позволяет подобрать секрет по времени ответа. Длина не скрывается —
+ * она и так не секрет.
+ */
+function secretMatches(received: string, expected: string): boolean {
+  const enc = new TextEncoder();
+  const a = enc.encode(received);
+  const b = enc.encode(expected);
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
 
 async function reply(chatId: number | string, text: string): Promise<void> {
   await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -37,7 +55,14 @@ async function reply(chatId: number | string, text: string): Promise<void> {
 }
 
 Deno.serve(async (req) => {
-  if (WEBHOOK_SECRET && req.headers.get('x-telegram-bot-api-secret-token') !== WEBHOOK_SECRET) {
+  // Fail closed: функция держит service role key, поэтому без заданного
+  // секрета она не должна отвечать НИКОМУ. Раньше пустой секрет означал
+  // «пускать всех» — при потере переменной эндпоинт открывался наружу.
+  if (!WEBHOOK_SECRET) {
+    console.error('TELEGRAM_WEBHOOK_SECRET is not set — refusing every request.');
+    return new Response('misconfigured', { status: 500 });
+  }
+  if (!secretMatches(req.headers.get('x-telegram-bot-api-secret-token') ?? '', WEBHOOK_SECRET)) {
     return new Response('forbidden', { status: 403 });
   }
 
@@ -67,6 +92,8 @@ Deno.serve(async (req) => {
     return new Response('ok');
   }
 
+  // Сервисный ключ обязателен: link_telegram выдана только роли service_role
+  // (у anon и authenticated права отозваны — см. 08_hardening_v3.sql).
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
   const { data, error } = await supabase.rpc('link_telegram', {
     booking_id: payload,

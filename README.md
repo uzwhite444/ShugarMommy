@@ -22,7 +22,7 @@ npm run build      # прод-сборка в dist/
 
 1. **Контакты** — в `src/utils.ts` замените `MANAGER_TELEGRAM`, `INSTAGRAM`, `PHONE`, `ADDRESS` на реальные.
 2. **Цены и услуги** — `src/data.ts` (`SERVICE_ZONES`, `MASTERS`, `REVIEWS`, `FAQ_ITEMS`).
-3. **Supabase** — создайте проект, выполните `supabase/schema.sql` в SQL Editor, создайте пользователя-админа (Authentication → Users → Add user), затем скопируйте `.env.example` в `.env` и заполните ключи. Отключите публичную регистрацию (Authentication → Sign In / Up → Disable sign ups).
+3. **Supabase** — создайте проект и выполните скрипты по инструкции в [supabase/README.md](supabase/README.md). Там же — как назначить админа и подключить бота. Затем скопируйте `.env.example` в `.env` и заполните ключи. Публичная регистрация должна быть выключена (Authentication → Providers → Email).
 4. **Деплой** — Vercel: импортируйте репозиторий, добавьте те же env-переменные, `vercel.json` уже настроен (SPA-rewrites + security headers).
 
 Без ключей Supabase сайт работает в облегчённом режиме: запись уходит только в Telegram, админка отключена.

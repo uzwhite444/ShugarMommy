@@ -45,6 +45,11 @@ end;
 $function$;
 
 revoke all on function public.link_telegram(uuid, text) from public;
+-- В Supabase роли anon и authenticated получают EXECUTE явно, поэтому
+-- «revoke from public» их НЕ отзывает — нужен отдельный revoke. Иначе
+-- любой, кто знает id записи, перенаправил бы напоминание (имя, услуги,
+-- мастер, время) в свой Telegram публичным anon-ключом.
+revoke execute on function public.link_telegram(uuid, text) from anon, authenticated;
 -- Вызывается только сервисным ключом из Edge Function.
 grant execute on function public.link_telegram(uuid, text) to service_role;
 
@@ -75,39 +80,54 @@ begin
     where status in ('new', 'confirmed')
       and telegram_chat_id is not null
       and reminder_sent_at is null
+      and visit_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'
       and visit_date between (now() at time zone 'Asia/Tashkent')::date
                          and ((now() at time zone 'Asia/Tashkent') + interval '1 day')::date
   loop
-    -- Момент визита в реальном времени (местное время студии).
-    visit_at := (b.visit_date::text || ' ' || b.visit_time || ':00')::timestamp
-                at time zone 'Asia/Tashkent';
+    -- Момент визита в реальном времени (местное время студии). Старые записи
+    -- могли сохранить невозможное время, поэтому приведение типа обёрнуто:
+    -- испорченная строка пропускается, а не роняет весь проход крона.
+    begin
+      visit_at := (b.visit_date::text || ' ' || b.visit_time || ':00')::timestamp
+                  at time zone 'Asia/Tashkent';
+    exception when others then
+      raise warning 'send_visit_reminders: запись % — некорректное время (%)', b.id, sqlerrm;
+      visit_at := null;
+    end;
+
+    continue when visit_at is null;
 
     -- Окно 45–75 минут до визита: планировщик ходит каждые 5 минут,
     -- поэтому каждая запись попадает в него ровно один раз.
     continue when visit_at - now() > interval '75 minutes'
               or visit_at - now() < interval '45 minutes';
 
-    msg := format(
-      E'⏰ <b>Напоминание о визите</b>\n\n%s, ждём вас через час!\n\n✨ %s\n👩‍🔬 %s\n🕐 Сегодня в %s\n\nЕсли планы изменились — отмените запись на сайте: https://shugarmommy.vercel.app/#/cancel',
-      replace(replace(replace(coalesce(b.customer_name, ''), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'),
-      replace(replace(replace(coalesce(b.services, '—'), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'),
-      replace(replace(replace(coalesce(b.master, 'мастер студии'), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'),
-      b.visit_time
-    );
+    begin
+      msg := format(
+        E'⏰ <b>Напоминание о визите</b>\n\n%s, ждём вас через час!\n\n✨ %s\n👩‍🔬 %s\n🕐 Сегодня в %s\n\nЕсли планы изменились — отмените запись на сайте: https://shugarmommy.vercel.app/#/cancel',
+        replace(replace(replace(coalesce(b.customer_name, ''), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'),
+        replace(replace(replace(coalesce(b.services, '—'), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'),
+        replace(replace(replace(coalesce(b.master, 'мастер студии'), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'),
+        b.visit_time
+      );
 
-    perform net.http_post(
-      url := 'https://api.telegram.org/bot' || cfg.bot_token || '/sendMessage',
-      body := jsonb_build_object(
-        'chat_id', b.telegram_chat_id,
-        'text', msg,
-        'parse_mode', 'HTML',
-        'disable_web_page_preview', true
-      ),
-      headers := '{"Content-Type": "application/json"}'::jsonb
-    );
+      perform net.http_post(
+        url := 'https://api.telegram.org/bot' || cfg.bot_token || '/sendMessage',
+        body := jsonb_build_object(
+          'chat_id', b.telegram_chat_id,
+          'text', msg,
+          'parse_mode', 'HTML',
+          'disable_web_page_preview', true
+        ),
+        headers := '{"Content-Type": "application/json"}'::jsonb
+      );
 
-    update public.bookings set reminder_sent_at = now() where id = b.id;
-    sent := sent + 1;
+      update public.bookings set reminder_sent_at = now() where id = b.id;
+      sent := sent + 1;
+    exception when others then
+      -- Одна проблемная запись не должна отменять рассылку остальным.
+      raise warning 'send_visit_reminders: запись % пропущена (%)', b.id, sqlerrm;
+    end;
   end loop;
 
   return sent;
@@ -115,6 +135,9 @@ end;
 $function$;
 
 revoke all on function public.send_visit_reminders() from public;
+-- Вызывается только планировщиком pg_cron: «revoke from public» не отзывает
+-- явные гранты Supabase для anon и authenticated, поэтому убираем их отдельно.
+revoke execute on function public.send_visit_reminders() from anon, authenticated;
 
 -- ------------------------------------------------------------
 -- Планировщик: каждые 5 минут

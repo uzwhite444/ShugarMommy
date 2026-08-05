@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion } from 'motion/react';
+import { m, useReducedMotion } from 'motion/react';
 import { CheckCircle2, Loader2, Phone, Send, X } from 'lucide-react';
 import { LanguageCode } from '../types';
 import { getLocalized, MANAGER_TELEGRAM, PHONE } from '../utils';
@@ -51,6 +51,15 @@ const TR = {
 export default function CancelModal({ language, onClose }: CancelModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, true, onClose);
+  const reduced = useReducedMotion();
+
+  const doneHeadingRef = useRef<HTMLHeadingElement>(null);
+  // Blocks a second tap from firing a parallel cancel before React re-renders
+  // the button as disabled.
+  const submitLockRef = useRef(false);
+  // The backdrop closes the dialog only when the press *started* on it —
+  // otherwise releasing a text selection over the backdrop wipes the form.
+  const overlayPressRef = useRef(false);
 
   const [phone, setPhone] = useState('');
   const [date, setDate] = useState('');
@@ -66,21 +75,32 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
     };
   }, []);
 
+  // The form unmounts on success, so the focused control disappears and focus
+  // would fall outside the dialog — move it onto the confirmation heading.
+  useEffect(() => {
+    if (done) doneHeadingRef.current?.focus();
+  }, [done]);
+
   const t = (loc: (typeof TR)[keyof typeof TR]) => getLocalized(loc, language);
 
   const handleSubmit = async () => {
+    if (submitLockRef.current) return;
     if (!phone.trim() || !date) {
       setError(t(TR.errFill));
       return;
     }
     setError('');
+    submitLockRef.current = true;
     setSubmitting(true);
-    const cancelled = await cancelBookingByPhone(phone.trim(), date);
-    setSubmitting(false);
-
-    if (cancelled === null) setError(t(TR.failed));
-    else if (cancelled === 0) setError(t(TR.notFound));
-    else setDone(true);
+    try {
+      const cancelled = await cancelBookingByPhone(phone.trim(), date);
+      if (cancelled === null) setError(t(TR.failed));
+      else if (cancelled === 0) setError(t(TR.notFound));
+      else setDone(true);
+    } finally {
+      submitLockRef.current = false;
+      setSubmitting(false);
+    }
   };
 
   const inputCls =
@@ -89,31 +109,51 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 sm:items-center sm:p-4"
-      onClick={onClose}
+      onPointerDown={(e) => {
+        overlayPressRef.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (overlayPressRef.current && e.target === e.currentTarget) onClose();
+        overlayPressRef.current = false;
+      }}
     >
-      <motion.div
+      {/* iOS Safari resolves vh against the LARGE viewport while the fixed
+          overlay matches the small one, pushing the sheet off-screen. The
+          inline dvh wins where supported and is ignored where it is not,
+          leaving max-h-[92vh] as the fallback. */}
+      <m.div
         ref={panelRef}
-        onClick={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, y: 32 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+        initial={reduced ? { opacity: 0 } : { opacity: 0, y: 32 }}
+        animate={reduced ? { opacity: 1 } : { opacity: 1, y: 0 }}
+        transition={{ duration: reduced ? 0.15 : 0.35, ease: [0.25, 0.1, 0.25, 1] }}
         role="dialog"
         aria-modal="true"
         aria-label={t(TR.title)}
+        style={{ maxHeight: '92dvh' }}
         className="max-h-[92vh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-2xl bg-canvas p-6 shadow-2xl sm:rounded-2xl sm:p-8"
       >
         <div className="mb-5 flex items-center justify-between">
           <h2 className="display text-2xl text-ink sm:text-3xl">{t(TR.title)}</h2>
-          <button onClick={onClose} aria-label={t(TR.close)} className="rounded-lg p-2 text-muted hover:text-ink">
+          <button
+            onClick={onClose}
+            aria-label={t(TR.close)}
+            className="-mr-2 flex min-h-11 min-w-11 items-center justify-center rounded-lg text-muted hover:text-ink"
+          >
             <X size={22} />
           </button>
         </div>
 
         {done ? (
           <div className="text-center">
-            <CheckCircle2 size={52} className="mx-auto text-success" />
-            <h3 className="display mt-4 text-2xl text-ink">{t(TR.doneTitle)}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted">{t(TR.doneText)}</p>
+            {/* Scoped to the confirmation copy — a live region around the whole
+                screen would read out the button below it too. */}
+            <div role="status">
+              <CheckCircle2 size={52} className="mx-auto text-success" />
+              <h3 ref={doneHeadingRef} tabIndex={-1} className="display mt-4 text-2xl text-ink outline-none">
+                {t(TR.doneTitle)}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{t(TR.doneText)}</p>
+            </div>
             <button
               onClick={onClose}
               className="btn-press mt-6 w-full rounded-lg bg-primary px-5 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark"
@@ -145,7 +185,11 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
               />
             </div>
 
-            {error && <p className="mt-3 text-sm font-semibold text-danger">{error}</p>}
+            {error && (
+              <p role="alert" className="mt-3 text-sm font-semibold text-danger">
+                {error}
+              </p>
+            )}
 
             <button
               onClick={handleSubmit}
@@ -177,7 +221,7 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
             </div>
           </>
         )}
-      </motion.div>
+      </m.div>
     </div>,
     document.body,
   );

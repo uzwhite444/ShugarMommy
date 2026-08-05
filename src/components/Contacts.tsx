@@ -78,7 +78,12 @@ export default function Contacts({ language, onCancelBooking }: ContactsProps) {
                 <card.icon size={20} className="text-primary" strokeWidth={1.75} />
                 <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-muted">{card.label}</p>
                 {card.href ? (
-                  <a href={card.href} className="mt-1.5 block font-medium text-ink hover:text-primary-dark">
+                  // Full-width 44px row: tapping the phone number on a small
+                  // screen must not require hitting a 24px line of text.
+                  <a
+                    href={card.href}
+                    className="-mx-2 mt-0.5 flex min-h-11 items-center rounded-lg px-2 font-medium text-ink hover:text-primary-dark"
+                  >
                     {card.value}
                   </a>
                 ) : (
@@ -100,13 +105,13 @@ export default function Contacts({ language, onCancelBooking }: ContactsProps) {
             <div className="flex shrink-0 flex-wrap gap-2">
               <button
                 onClick={onCancelBooking}
-                className="btn-press rounded-lg border border-ink/20 px-5 py-2.5 text-sm font-semibold text-ink hover:border-ink"
+                className="btn-press flex min-h-11 items-center rounded-lg border border-ink/20 px-5 text-sm font-semibold text-ink hover:border-ink"
               >
                 {getLocalized(TR.cancelBtn, language)}
               </button>
               <a
                 href={phoneHref}
-                className="btn-press inline-flex items-center gap-2 rounded-lg border border-hairline px-5 py-2.5 text-sm font-semibold text-muted hover:border-muted hover:text-ink"
+                className="btn-press inline-flex min-h-11 items-center gap-2 rounded-lg border border-hairline px-5 text-sm font-semibold text-muted hover:border-muted hover:text-ink"
               >
                 <Phone size={15} /> {getLocalized(TR.callBtn, language)}
               </a>

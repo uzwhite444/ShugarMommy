@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Menu, Moon, Sun, X } from 'lucide-react';
 import { LanguageCode } from '../types';
@@ -47,6 +47,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const { theme, toggleTheme } = useTheme();
 
   // Dialog semantics for the mobile menu: focus trap + Escape to close.
@@ -59,7 +60,10 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
     const onScroll = () => {
       const y = window.scrollY;
       setScrolled(y > 8);
-      setHidden(y > 140 && y > lastY);
+      // Never retract the bar while it holds keyboard focus: going inert would
+      // blur the focused control and drop the user back to the document root.
+      const holdsFocus = headerRef.current?.contains(document.activeElement) ?? false;
+      setHidden(!holdsFocus && y > 140 && y > lastY);
       lastY = y;
     };
     onScroll();
@@ -89,12 +93,18 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
 
   return (
     <header
+      ref={headerRef}
+      // A retracted bar is only translated off-screen, so its links stay in the
+      // tab order: make it inert while hidden, and reveal it again if focus
+      // still lands inside (browsers without inert support).
+      inert={hidden && !menuOpen}
+      onFocus={() => setHidden(false)}
       className={`fixed inset-x-0 top-0 z-40 bg-canvas/95 backdrop-blur-sm transition-[transform,border-color] duration-300 ease-out motion-reduce:transition-none ${
         scrolled ? 'border-b border-hairline' : 'border-b border-transparent'
       } ${hidden && !menuOpen ? '-translate-y-full' : 'translate-y-0'}`}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <a href="#top" aria-label="Shugar Mommy">
+        <a href="#top" aria-label="Shugar Mommy" className="flex min-h-11 items-center">
           <Wordmark />
         </a>
 
@@ -113,23 +123,27 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
         <div className="flex items-center gap-3">
           <div className="hidden items-center sm:flex" role="group" aria-label="Language">
             {LANGS.map((lang, i) => (
-              <button
-                key={lang}
-                onClick={() => onChangeLanguage(lang)}
-                aria-pressed={language === lang}
-                className={`px-2 py-1 text-xs font-semibold transition-colors ${
-                  language === lang ? 'text-ink underline decoration-primary decoration-2 underline-offset-4' : 'text-faint hover:text-ink'
-                } ${i > 0 ? 'border-l border-hairline' : ''}`}
-              >
-                {lang}
-              </button>
+              <Fragment key={lang}>
+                {/* Standalone rule: the 44px hit area would stretch a border on
+                    the button into a full-height divider. */}
+                {i > 0 && <span aria-hidden className="h-4 w-px shrink-0 bg-hairline" />}
+                <button
+                  onClick={() => onChangeLanguage(lang)}
+                  aria-pressed={language === lang}
+                  className={`flex min-h-11 min-w-11 items-center justify-center text-xs font-semibold transition-colors ${
+                    language === lang ? 'text-ink underline decoration-primary decoration-2 underline-offset-4' : 'text-faint hover:text-ink'
+                  }`}
+                >
+                  {lang}
+                </button>
+              </Fragment>
             ))}
           </div>
           <button
             onClick={toggleTheme}
             aria-label={getLocalized(THEME_LABEL, language)}
             title={getLocalized(THEME_LABEL, language)}
-            className="btn-press rounded-lg p-2.5 text-muted transition-colors hover:text-ink"
+            className="btn-press flex min-h-11 min-w-11 items-center justify-center rounded-lg text-muted transition-colors hover:text-ink"
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
@@ -144,7 +158,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
             aria-label={getLocalized(MENU_LABEL, language)}
             aria-expanded={menuOpen}
             aria-haspopup="dialog"
-            className="rounded-lg p-2 text-ink lg:hidden"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-ink lg:hidden"
           >
             <Menu size={22} />
           </button>
@@ -165,7 +179,11 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
           >
             <div className="flex h-16 items-center justify-between border-b border-hairline px-4">
               <Wordmark />
-              <button onClick={() => setMenuOpen(false)} aria-label="Close" className="rounded-lg p-2.5">
+              <button
+                onClick={() => setMenuOpen(false)}
+                aria-label="Close"
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-lg"
+              >
                 <X size={22} />
               </button>
             </div>
@@ -188,7 +206,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
                   key={lang}
                   onClick={() => onChangeLanguage(lang)}
                   aria-pressed={language === lang}
-                  className={`rounded-lg border px-4 py-2.5 text-sm font-semibold ${
+                  className={`min-h-11 rounded-lg border px-4 py-2.5 text-sm font-semibold ${
                     language === lang ? 'border-ink bg-ink text-canvas' : 'border-hairline text-muted'
                   }`}
                 >

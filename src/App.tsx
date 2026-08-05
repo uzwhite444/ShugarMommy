@@ -14,8 +14,6 @@ import Reviews from './components/Reviews';
 import Faq from './components/Faq';
 import Contacts from './components/Contacts';
 import Footer from './components/Footer';
-import BookingModal from './components/BookingModal';
-import CancelModal from './components/CancelModal';
 import StickyCta from './components/StickyCta';
 import { captureSource } from './lib/attribution';
 import { calcTotal } from './utils';
@@ -24,6 +22,14 @@ import { calcTotal } from './utils';
 // them unless they navigate there.
 const AdminGate = lazy(() => import('./components/AdminGate'));
 const PrivacyPage = lazy(() => import('./components/PrivacyPage'));
+
+// Both modals only mount after a click, so they stay out of the landing
+// chunk. The same import is reused to warm the chunk while the browser is
+// idle, which keeps the first tap instant.
+const importBookingModal = () => import('./components/BookingModal');
+const importCancelModal = () => import('./components/CancelModal');
+const BookingModal = lazy(importBookingModal);
+const CancelModal = lazy(importCancelModal);
 import { SERVICE_ZONES } from './data';
 import { LanguageCode } from './types';
 import { loadFromStorage } from './utils';
@@ -70,6 +76,21 @@ export default function App() {
   // Remember the traffic channel once per session for booking attribution.
   useEffect(() => {
     captureSource();
+  }, []);
+
+  // Prefetch the modal chunk after the landing page is interactive, so the
+  // code split costs nothing at click time.
+  useEffect(() => {
+    const warm = () => {
+      void importBookingModal();
+      void importCancelModal();
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(warm, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = window.setTimeout(warm, 1500);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const changeLanguage = (lang: LanguageCode) => {
@@ -151,19 +172,22 @@ export default function App() {
         onBook={() => setBookingOpen(true)}
         hidden={bookingOpen}
       />
-      {bookingOpen && (
-        <BookingModal
-          language={language}
-          selectedZones={selectedZones}
-          onClose={() => setBookingOpen(false)}
-          onRemoveZone={toggleZone}
-          onCancelBooking={() => {
-            setBookingOpen(false);
-            setCancelOpen(true);
-          }}
-        />
-      )}
-      {cancelOpen && <CancelModal language={language} onClose={() => setCancelOpen(false)} />}
+      {/* No fallback: the chunk is already warm and the modal animates itself in. */}
+      <Suspense fallback={null}>
+        {bookingOpen && (
+          <BookingModal
+            language={language}
+            selectedZones={selectedZones}
+            onClose={() => setBookingOpen(false)}
+            onRemoveZone={toggleZone}
+            onCancelBooking={() => {
+              setBookingOpen(false);
+              setCancelOpen(true);
+            }}
+          />
+        )}
+        {cancelOpen && <CancelModal language={language} onClose={() => setCancelOpen(false)} />}
+      </Suspense>
     </div>
   );
 }

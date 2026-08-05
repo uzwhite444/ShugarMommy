@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from 'motion/react';
+import { m, useReducedMotion } from 'motion/react';
 import type { ReactNode } from 'react';
 
 interface RevealProps {
@@ -27,7 +27,7 @@ export default function Reveal({
   const prefersReducedMotion = useReducedMotion();
 
   return (
-    <motion.div
+    <m.div
       className={className}
       initial={
         prefersReducedMotion
@@ -43,6 +43,6 @@ export default function Reveal({
       transition={{ duration, ease: [0.22, 1, 0.36, 1], delay }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }

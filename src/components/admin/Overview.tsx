@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { CalendarDays, CalendarClock, Phone, Wallet, Receipt } from 'lucide-react';
 import { Booking } from '../../types';
 import { formatPrice } from '../../utils';
-import { STATUS_META, shiftIso, todayIso } from './status';
+import { STATUS_META, shiftIso, toIsoDay, todayIso } from './status';
 
 interface OverviewProps {
   bookings: Booking[];
@@ -22,7 +22,8 @@ function ActivityChart({ bookings }: { bookings: Booking[] }) {
     }
     const index = new Map(out.map((d, i) => [d.iso, i]));
     for (const b of bookings) {
-      const iso = b.created_at.slice(0, 10);
+      // created_at is a UTC timestamp — bucket it by the local day.
+      const iso = toIsoDay(new Date(b.created_at));
       const i = index.get(iso);
       if (i !== undefined) out[i].count += 1;
     }

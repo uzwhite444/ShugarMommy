@@ -61,9 +61,21 @@ export function useFocusTrap(
       }
     };
 
+    // Tab is only intercepted at the edges, so focus that escaped the trap by
+    // other means (an element unmounting, a programmatic focus) would let the
+    // next Tab walk into the page hidden behind the overlay. Pull it back.
+    const onFocusIn = (e: FocusEvent) => {
+      const target = e.target as Node | null;
+      if (!container.isConnected || !target || container.contains(target)) return;
+      const items = focusables();
+      if (items.length > 0) items[0].focus();
+    };
+
     document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('focusin', onFocusIn);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('focusin', onFocusIn);
       if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
         previouslyFocused.focus();
       }
