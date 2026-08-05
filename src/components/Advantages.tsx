@@ -1,5 +1,6 @@
 import { Leaf, HeartHandshake, BadgePercent, CalendarCheck } from 'lucide-react';
-import Reveal from './ui/Reveal';
+import SectionHead from './ui/SectionHead';
+import { Stagger, StaggerItem } from './ui/Stagger';
 import { LanguageCode } from '../types';
 import { getLocalized } from '../utils';
 
@@ -54,15 +55,12 @@ export default function Advantages({ language }: AdvantagesProps) {
   return (
     <section className="px-4 py-20 sm:px-6 sm:py-24">
       <div className="mx-auto max-w-6xl">
-        <Reveal>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            {getLocalized(TR.eyebrow, language)}
-          </p>
-          <h2 className="display mt-4 text-4xl text-ink sm:text-5xl">{getLocalized(TR.title, language)}</h2>
-        </Reveal>
-        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {TR.items.map((item, i) => (
-            <Reveal key={item.title.EN} delay={i * 0.06}>
+        <SectionHead eyebrow={getLocalized(TR.eyebrow, language)} title={getLocalized(TR.title, language)} />
+        {/* Four surfaces arriving in DOM order — `plate`, not `rise`: a card
+            carries more mass than a line of type and should land like it. */}
+        <Stagger className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" delay={0.12}>
+          {TR.items.map((item) => (
+            <StaggerItem key={item.title.EN} variant="plate">
               {/* The rule inks along the top edge instead of the card lifting:
                   a 4px lift promises an elevation this system has no shadows
                   for, and it made every control inside a moving target. */}
@@ -71,9 +69,9 @@ export default function Advantages({ language }: AdvantagesProps) {
                 <h3 className="mt-5 text-base font-semibold text-ink">{getLocalized(item.title, language)}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">{getLocalized(item.text, language)}</p>
               </div>
-            </Reveal>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       </div>
     </section>
   );

@@ -1,4 +1,5 @@
-import Reveal from './ui/Reveal';
+import SectionHead from './ui/SectionHead';
+import { Stagger, StaggerItem } from './ui/Stagger';
 import { LanguageCode } from '../types';
 import { getLocalized } from '../utils';
 
@@ -43,41 +44,40 @@ export default function Gallery({ language }: GalleryProps) {
   return (
     <section id="gallery" className="bg-soft px-4 py-20 sm:px-6 sm:py-24">
       <div className="mx-auto max-w-6xl">
-        <Reveal>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            {getLocalized(TR.eyebrow, language)}
-          </p>
-          <h2 className="display mt-4 text-4xl text-ink sm:text-5xl">{getLocalized(TR.title, language)}</h2>
-          <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted sm:text-base">
-            {getLocalized(TR.subtitle, language)}
-          </p>
-        </Reveal>
+        <SectionHead
+          eyebrow={getLocalized(TR.eyebrow, language)}
+          title={getLocalized(TR.title, language)}
+          subtitle={getLocalized(TR.subtitle, language)}
+        />
 
-        <div className="mt-12 grid grid-cols-2 gap-3 lg:grid-cols-3">
+        {/* Imagery is the one thing on the page that may scale: `frame` settles
+            each photo out of a 4% overscale, which is an editorial idiom and
+            costs nothing in text re-rasterisation because there is no text.
+            The delays used to be `(i % 3) * 0.06` against a grid that is
+            2-across until `lg`, so two thirds of the page saw a random pattern. */}
+        <Stagger className="mt-12 grid grid-cols-2 gap-3 lg:grid-cols-3" delay={0.12}>
           {galleryImages.length > 0
-            ? galleryImages.map(({ path, url }, i) => (
-                <Reveal key={path} delay={(i % 3) * 0.06}>
-                  <div className="group overflow-hidden rounded-xl">
-                    <img
-                      src={url}
-                      alt=""
-                      loading="lazy"
-                      width={600}
-                      height={450}
-                      className="aspect-[4/3] w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-                    />
-                  </div>
-                </Reveal>
+            ? galleryImages.map(({ path, url }) => (
+                <StaggerItem key={path} variant="frame" className="group overflow-hidden rounded-xl">
+                  <img
+                    src={url}
+                    alt=""
+                    loading="lazy"
+                    width={600}
+                    height={450}
+                    className="aspect-[4/3] w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                  />
+                </StaggerItem>
               ))
-            : TR.placeholders.map((label, i) => (
-                <Reveal key={label.EN} delay={(i % 3) * 0.06}>
+            : TR.placeholders.map((label) => (
+                <StaggerItem key={label.EN} variant="frame">
                   <div className="flex aspect-[4/3] flex-col items-center justify-center gap-1.5 rounded-xl border border-hairline bg-canvas">
                     <p className="font-serif text-lg font-medium text-body">{getLocalized(label, language)}</p>
                     <p className="text-xs uppercase tracking-[0.14em] text-faint">{getLocalized(TR.soon, language)}</p>
                   </div>
-                </Reveal>
+                </StaggerItem>
               ))}
-        </div>
+        </Stagger>
       </div>
     </section>
   );

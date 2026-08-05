@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import Reveal from './ui/Reveal';
+import SectionHead from './ui/SectionHead';
+import { Stagger, StaggerItem } from './ui/Stagger';
+import { STAGGER } from '../lib/motion';
 import { FAQ_ITEMS } from '../data';
 import { LanguageCode } from '../types';
 import { getLocalized } from '../utils';
@@ -20,17 +22,15 @@ export default function Faq({ language }: FaqProps) {
   return (
     <section id="faq" className="bg-soft px-4 py-20 sm:px-6 sm:py-24">
       <div className="mx-auto max-w-3xl">
-        <Reveal>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            {getLocalized(TR.eyebrow, language)}
-          </p>
-          <h2 className="display mt-4 text-4xl text-ink sm:text-5xl">{getLocalized(TR.title, language)}</h2>
-        </Reveal>
-        <div className="mt-12 border-t border-hairline">
+        <SectionHead eyebrow={getLocalized(TR.eyebrow, language)} title={getLocalized(TR.title, language)} />
+        {/* A list assembling itself, top-down: the tightest stagger there is
+            (40ms), because eleven questions arriving at card pace would be an
+            eleven-beat wait for the first answer. */}
+        <Stagger className="mt-12 border-t border-hairline" step={STAGGER.tight} delay={0.1}>
           {FAQ_ITEMS.map((item, i) => {
             const open = openIndex === i;
             return (
-              <Reveal key={item.question.EN} delay={i * 0.04}>
+              <StaggerItem key={item.question.EN}>
                 <div className="border-b border-hairline">
                   <button
                     onClick={() => setOpenIndex(open ? null : i)}
@@ -49,7 +49,12 @@ export default function Faq({ language }: FaqProps) {
                   <div
                     id={`faq-panel-${i}`}
                     aria-hidden={!open}
-                    className={`grid transition-all duration-300 ease-out ${
+                    // Explicit properties, never `transition-all`: that caught
+                    // every animatable property on the element. Tailwind
+                    // utilities are not covered by the reduced-motion block in
+                    // index.css, which only names custom selectors, so the guard
+                    // has to be written here.
+                    className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
                       open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
                     }`}
                   >
@@ -60,10 +65,10 @@ export default function Faq({ language }: FaqProps) {
                     </div>
                   </div>
                 </div>
-              </Reveal>
+              </StaggerItem>
             );
           })}
-        </div>
+        </Stagger>
       </div>
     </section>
   );

@@ -1,56 +1,71 @@
-import { m, useReducedMotion } from 'motion/react';
-import { useRef, type ReactNode } from 'react';
+import { m, useReducedMotion, type TargetAndTransition } from 'motion/react';
+import type { ReactNode } from 'react';
+import { DUR, EASE_INK, RISE, VIEW } from '../../lib/motion';
+
+export type RevealVariant = 'rise' | 'plate' | 'veil';
 
 interface RevealProps {
   children: ReactNode;
   className?: string;
-  /** Seconds to wait before the reveal starts — use to stagger siblings. */
+  /**
+   * What is entering, not how far it moves:
+   *   rise  — type and small blocks; a short lift.
+   *   plate — a surface arriving; further and slower, so a card reads heavier
+   *           than a line of text.
+   *   veil  — opacity only. NEVER writes a transform, so it is the only variant
+   *           safe above `mix-blend-mode` content (a transform on an ancestor
+   *           creates a stacking context and isolates the blend).
+   */
+  variant?: RevealVariant;
+  /** Seconds before this element starts. For groups use `<Stagger>` instead. */
   delay?: number;
-  /** Vertical travel distance in px (ignored under reduced-motion). */
-  y?: number;
-  /** Animation duration in seconds. */
-  duration?: number;
+  /** Viewport trigger tier — see VIEW in src/lib/motion.ts. */
+  trigger?: keyof typeof VIEW;
 }
 
+const VARIANTS: Record<
+  RevealVariant,
+  { from: TargetAndTransition; to: TargetAndTransition; duration: number }
+> = {
+  rise: { from: { opacity: 0, y: RISE.text }, to: { opacity: 1, y: 0 }, duration: DUR.base },
+  plate: { from: { opacity: 0, y: RISE.plate }, to: { opacity: 1, y: 0 }, duration: DUR.slow },
+  veil: { from: { opacity: 0 }, to: { opacity: 1 }, duration: DUR.slow },
+};
+
 /**
- * Scroll-triggered entrance: fade + rise + a soft blur that resolves to
- * sharp (the Linear-style "focus in" effect). Reveals once per element and
- * honours prefers-reduced-motion with a plain fade.
+ * Single-element scroll entrance.
+ *
+ * The blur channel this used to carry is gone for good. `filter: blur(0px)` is
+ * not a no-op — any filter creates a stacking context, which isolates
+ * `mix-blend-mode` in the subtree, and the hand-rolled `style.filter = ''`
+ * cleanup that tried to undo it lost the race often enough that 19-70 elements
+ * sat in permanent stacking contexts after a full-page scroll. `clip-path`
+ * would have swapped one stacking-context creator for another. Opacity and
+ * transform are the only two channels whose resting values (`1` and `none`)
+ * create nothing at all, so they are the only two used here.
+ *
+ * Under prefers-reduced-motion this renders a plain div: the content is present
+ * and opaque on the first frame and never waits on an observer.
  */
 export default function Reveal({
   children,
   className,
+  variant = 'rise',
   delay = 0,
-  y = 20,
-  duration = 0.65,
+  trigger = 'near',
 }: RevealProps) {
-  const prefersReducedMotion = useReducedMotion();
-  const ref = useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotion();
+  const spec = VARIANTS[variant];
+
+  if (reduced) return <div className={className}>{children}</div>;
 
   return (
     <m.div
-      ref={ref}
       className={className}
-      initial={
-        prefersReducedMotion
-          ? { opacity: 0 }
-          : { opacity: 0, y, filter: 'blur(6px)' }
-      }
-      whileInView={
-        prefersReducedMotion
-          ? { opacity: 1 }
-          : { opacity: 1, y: 0, filter: 'blur(0px)' }
-      }
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration, ease: [0.22, 1, 0.36, 1], delay }}
-      // A settled `filter: blur(0px)` is not a no-op: any filter creates a
-      // stacking context, which isolates mix-blend-mode in the subtree. That
-      // made the body-map figure render its own cream plate instead of
-      // blending into the page. Clearing it also drops a permanent
-      // compositing layer per revealed block.
-      onAnimationComplete={() => {
-        if (ref.current) ref.current.style.filter = '';
-      }}
+      initial={spec.from}
+      whileInView={spec.to}
+      viewport={VIEW[trigger]}
+      transition={{ duration: spec.duration, ease: EASE_INK, delay }}
     >
       {children}
     </m.div>

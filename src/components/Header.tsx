@@ -5,12 +5,18 @@ import { LanguageCode } from '../types';
 import { getLocalized } from '../utils';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useTheme } from '../hooks/useTheme';
+import { subscribeScroll } from '../lib/scrollState';
 
 interface HeaderProps {
   language: LanguageCode;
   onChangeLanguage: (lang: LanguageCode) => void;
   onBook: () => void;
 }
+
+/** Scroll past this before the bar is allowed to retract at all. */
+const RETRACT_AFTER = 160;
+/** Deliberate travel required to change the bar's state, in px. */
+const HYSTERESIS = 24;
 
 const NAV_ITEMS = [
   { href: '#services', label: { RU: 'Услуги и цены', UZ: 'Xizmatlar', EN: 'Services' } },
@@ -63,20 +69,24 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
 
   // Hide the bar while scrolling down, bring it back on any scroll up —
   // content gets the full viewport, the CTA is one flick away.
+  //
+  // Rides the page's shared rAF-coalesced scroll frame rather than its own
+  // unthrottled listener, and moves on ACCUMULATED direction: a bare
+  // `y > lastY` flipped a 64px bar on a 1px jitter at the boundary. The
+  // accumulator resets whenever direction changes, so it takes a deliberate
+  // 24px of travel to move the bar either way.
   useEffect(() => {
-    let lastY = window.scrollY;
-    const onScroll = () => {
-      const y = window.scrollY;
+    let travel = 0;
+    return subscribeScroll(({ y, dy }) => {
       setScrolled(y > 8);
+      if (dy === 0) return;
+      travel = Math.sign(travel) === Math.sign(dy) ? travel + dy : dy;
+      if (Math.abs(travel) < HYSTERESIS) return;
       // Never retract the bar while it holds keyboard focus: going inert would
       // blur the focused control and drop the user back to the document root.
       const holdsFocus = headerRef.current?.contains(document.activeElement) ?? false;
-      setHidden(!holdsFocus && y > 140 && y > lastY);
-      lastY = y;
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+      setHidden(!holdsFocus && travel > 0 && y > RETRACT_AFTER);
+    });
   }, []);
 
   // Lock body scroll while the mobile menu is open.

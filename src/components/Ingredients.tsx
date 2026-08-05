@@ -1,9 +1,12 @@
 import { useRef } from 'react';
-import { m, useInView, useReducedMotion, useScroll, useTransform } from 'motion/react';
+import { m, useInView, useReducedMotion } from 'motion/react';
 import Reveal from './ui/Reveal';
+import SectionHead from './ui/SectionHead';
+import { Stagger, StaggerItem } from './ui/Stagger';
 import LiquidVideo from './ui/LiquidVideo';
 import { LanguageCode, Localized } from '../types';
 import { getLocalized } from '../utils';
+import { EASE_INK, STAGGER } from '../lib/motion';
 import pasteDrop from '../assets/paste-drop.webp';
 
 interface IngredientsProps {
@@ -62,15 +65,36 @@ const TR = {
   alt: { RU: 'Капля сахарной пасты', UZ: 'Shakar pastasi tomchisi', EN: 'A drop of sugaring paste' },
 };
 
-function IngredientLabel({ item, language, align }: { item: Ingredient; language: LanguageCode; align: 'left' | 'right' }) {
+/* The callout's own hairline inks toward the object it describes: on the left
+   column it draws from the right edge inward, on the right column from the
+   left. Same gesture as every hover rule on the page, one beat behind its
+   label. */
+const RULE_VARIANTS = {
+  hidden: { scaleX: 0 },
+  shown: { scaleX: 1, transition: { duration: 0.42, ease: EASE_INK } },
+};
+
+function IngredientLabel({
+  item,
+  language,
+  align,
+  animated,
+}: {
+  item: Ingredient;
+  language: LanguageCode;
+  align: 'left' | 'right';
+  animated: boolean;
+}) {
+  const ruleCls = `mt-3 block h-px w-10 bg-primary ${align === 'right' ? 'lg:ml-auto lg:origin-right' : 'origin-left'}`;
   return (
     <div className={align === 'right' ? 'lg:text-right' : ''}>
       <p className="text-sm font-semibold uppercase tracking-[0.14em] text-ink">{getLocalized(item.name, language)}</p>
       <p className="mt-1 text-sm leading-relaxed text-muted">{getLocalized(item.note, language)}</p>
-      <span
-        aria-hidden
-        className={`mt-3 block h-px w-10 bg-primary ${align === 'right' ? 'lg:ml-auto' : ''}`}
-      />
+      {animated ? (
+        <m.span aria-hidden className={ruleCls} variants={RULE_VARIANTS} />
+      ) : (
+        <span aria-hidden className={ruleCls} />
+      )}
     </div>
   );
 }
@@ -82,12 +106,7 @@ function IngredientLabel({ item, language, align }: { item: Ingredient; language
  */
 export default function Ingredients({ language }: IngredientsProps) {
   const reduced = useReducedMotion();
-  const sectionRef = useRef<HTMLElement>(null);
   const shadowRef = useRef<HTMLDivElement>(null);
-
-  // Slow scroll parallax so the object feels detached from the page plane.
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'end start'] });
-  const objectY = useTransform(scrollYProgress, [0, 1], [28, -28]);
 
   // The breathing shadow is the only endless loop on the page — it must not
   // keep the compositor busy while the section sits offscreen.
@@ -95,39 +114,44 @@ export default function Ingredients({ language }: IngredientsProps) {
   const shadowBreathing = !reduced && shadowInView;
 
   return (
-    <section ref={sectionRef} id="ingredients" className="overflow-hidden px-4 py-20 sm:px-6 sm:py-24">
+    <section id="ingredients" className="overflow-hidden px-4 py-20 sm:px-6 sm:py-24">
       <div className="mx-auto max-w-6xl">
-        <Reveal className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            {getLocalized(TR.eyebrow, language)}
-          </p>
-          <h2 className="display mt-4 text-4xl text-ink sm:text-5xl">{getLocalized(TR.title, language)}</h2>
-          <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-muted sm:text-base">
-            {getLocalized(TR.subtitle, language)}
-          </p>
-        </Reveal>
+        <SectionHead
+          align="center"
+          split
+          eyebrow={getLocalized(TR.eyebrow, language)}
+          title={getLocalized(TR.title, language)}
+          subtitle={getLocalized(TR.subtitle, language)}
+        />
 
         <div className="mt-14 grid grid-cols-1 items-center gap-10 lg:grid-cols-[1fr_auto_1fr] lg:gap-14">
-          {/* Left callouts */}
-          <div className="order-2 grid grid-cols-2 gap-8 lg:order-1 lg:grid-cols-1 lg:gap-14 lg:justify-items-end">
-            {TR.left.map((item, i) => (
-              <Reveal key={item.name.EN} delay={0.1 + i * 0.08}>
-                <IngredientLabel item={item} language={language} align="right" />
-              </Reveal>
+          {/* Left callouts — one Stagger per column, so the order is the column's
+              own DOM order at every breakpoint. The old index delays were
+              computed against the lg 3-column layout while the left column is
+              `order-2` on mobile, so below lg they ran against the visual order. */}
+          <Stagger
+            className="order-2 grid grid-cols-2 gap-8 lg:order-1 lg:grid-cols-1 lg:gap-14 lg:justify-items-end"
+            step={STAGGER.loose}
+          >
+            {TR.left.map((item) => (
+              <StaggerItem key={item.name.EN}>
+                <IngredientLabel item={item} language={language} align="right" animated={!reduced} />
+              </StaggerItem>
             ))}
-          </div>
+          </Stagger>
 
-          {/* The object */}
+          {/* The object.
+              `veil` and nothing else: this wrapper is an ancestor of
+              `.liquid-video`, whose `mix-blend-mode: darken` is isolated by ANY
+              stacking context above it. It used to carry a blur AND a live
+              parallax transform at the same time, which is why the clip rendered
+              as a lighter cream plate instead of melting into the canvas — and
+              why clearing the filter alone could never have fixed it. The
+              parallax is gone (28px of travel nobody could consciously perceive,
+              structurally incompatible with the blend) and the entrance is
+              opacity-only, so no transform is ever written here. */}
           <div id="paste-anchor" className="order-1 justify-self-center lg:order-2">
-            <m.div
-              initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.92, filter: 'blur(8px)' }}
-              whileInView={
-                reduced ? { opacity: 1 } : { opacity: 1, scale: 1, filter: 'blur(0px)' }
-              }
-              viewport={{ once: true, margin: '-80px' }}
-              transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-              style={reduced ? undefined : { y: objectY }}
-            >
+            <Reveal variant="veil" trigger="far">
               {/* Higgsfield film: a droplet falls into the standing drop with
                   a crown splash, ripples and settles — loops while in view. */}
               <LiquidVideo
@@ -163,17 +187,21 @@ export default function Ingredients({ language }: IngredientsProps) {
                 }
                 className="mx-auto mt-5 h-4 w-40 rounded-full bg-[radial-gradient(ellipse,rgba(29,23,18,0.5)_0%,transparent_70%)] sm:w-52"
               />
-            </m.div>
+            </Reveal>
           </div>
 
           {/* Right callouts */}
-          <div className="order-3 grid grid-cols-2 gap-8 lg:grid-cols-1 lg:gap-14">
-            {TR.right.map((item, i) => (
-              <Reveal key={item.name.EN} delay={0.15 + i * 0.08}>
-                <IngredientLabel item={item} language={language} align="left" />
-              </Reveal>
+          <Stagger
+            className="order-3 grid grid-cols-2 gap-8 lg:grid-cols-1 lg:gap-14"
+            step={STAGGER.loose}
+            delay={0.08}
+          >
+            {TR.right.map((item) => (
+              <StaggerItem key={item.name.EN}>
+                <IngredientLabel item={item} language={language} align="left" animated={!reduced} />
+              </StaggerItem>
             ))}
-          </div>
+          </Stagger>
         </div>
       </div>
     </section>

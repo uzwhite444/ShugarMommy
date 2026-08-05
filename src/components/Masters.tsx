@@ -1,4 +1,6 @@
-import Reveal from './ui/Reveal';
+import SectionHead from './ui/SectionHead';
+import { Stagger, StaggerItem } from './ui/Stagger';
+import { STAGGER } from '../lib/motion';
 import { MASTERS } from '../data';
 import { LanguageCode } from '../types';
 import { getLocalized } from '../utils';
@@ -38,18 +40,21 @@ export default function Masters({ language }: MastersProps) {
   return (
     <section id="masters" className="bg-soft px-4 py-20 sm:px-6 sm:py-24">
       <div className="mx-auto max-w-6xl">
-        <Reveal>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            {getLocalized(TR.eyebrow, language)}
-          </p>
-          <h2 className="display mt-4 text-4xl text-ink sm:text-5xl">{getLocalized(TR.title, language)}</h2>
-          <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted sm:text-base">
-            {getLocalized(TR.subtitle, language)}
-          </p>
-        </Reveal>
-        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {MASTERS.map((master, i) => (
-            <Reveal key={master.id} delay={i * 0.06}>
+        <SectionHead
+          eyebrow={getLocalized(TR.eyebrow, language)}
+          title={getLocalized(TR.title, language)}
+          subtitle={getLocalized(TR.subtitle, language)}
+        />
+        {/* Three people, introduced one at a time — the loosest stagger on the
+            page (100ms) so each name gets its own beat instead of the grid
+            arriving as a block. */}
+        <Stagger
+          className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          step={STAGGER.loose}
+          delay={0.12}
+        >
+          {MASTERS.map((master) => (
+            <StaggerItem key={master.id} variant="plate">
               <article className="h-full rounded-xl bg-canvas p-7">
                 {/* Avatar placeholder — заменяется на фото мастера. */}
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-soft font-serif text-2xl font-semibold text-primary-dark">
@@ -70,9 +75,9 @@ export default function Masters({ language }: MastersProps) {
                   {getLocalized(master.description, language)}
                 </p>
               </article>
-            </Reveal>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       </div>
     </section>
   );

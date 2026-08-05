@@ -3,6 +3,7 @@ import { m, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/
 import { Check } from 'lucide-react';
 import { LanguageCode } from '../types';
 import { formatPrice, getLocalized } from '../utils';
+import { DUR, EASE_INK, VIEW } from '../lib/motion';
 
 interface HeroProps {
   language: LanguageCode;
@@ -49,25 +50,36 @@ export default function Hero({ language, onBook }: HeroProps) {
   const subtotal = MOCK_ROWS.reduce((s, r) => s + r.price, 0);
   const discount = Math.round(subtotal * 0.1);
 
-  // Gentle parallax: the receipt card trails the scroll by a few px.
+  // Gentle parallax: the receipt card trails the scroll by a few px. 40px, not
+  // 56: at 375px the card's resting bottom clears the hero's own bottom
+  // hairline by 65px, and the card is the only thing in the section that can
+  // cross it — a longer localisation string had nine pixels of margin left.
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] });
-  const rawCardY = useTransform(scrollYProgress, [0, 1], [0, 56]);
+  const rawCardY = useTransform(scrollYProgress, [0, 1], [0, 40]);
   const cardY = useSpring(rawCardY, { stiffness: 120, damping: 24 });
 
-  const fadeUp = (delay: number) => ({
-    initial: reduced ? { opacity: 0 } : { opacity: 0, y: 16, filter: 'blur(6px)' },
-    animate: reduced ? { opacity: 1 } : { opacity: 1, y: 0, filter: 'blur(0px)' },
-    transition: { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] as const },
+  // Above the fold NOTHING fades in. The whole left column paints opaque on the
+  // first frame and only settles a few px via transform — the treatment the
+  // <h1> already had, extended to the copy and, decisively, to the booking
+  // button, which used to be invisible for ~240-840ms after the headline was
+  // already legible. That costs nothing on LCP and everything on conversion.
+  const settle = (delay: number, distance: string | number = '0.16em') => ({
+    initial: reduced ? false : { y: distance },
+    animate: reduced ? undefined : { y: 0 },
+    transition: { duration: DUR.slow, delay, ease: EASE_INK },
   });
 
-  // The <h1> is the LCP element: it paints fully opaque on the very first
-  // frame and only settles a few pixels via transform, so the largest text
-  // never waits on an opacity or blur animation.
-  const headingLine = (delay: number) => ({
-    initial: reduced ? false : { y: '0.16em' },
-    animate: reduced ? undefined : { y: 0 },
-    transition: { duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] as const },
-  });
+  // The receipt card is decorative and, at 375px, starts ~779px down a 1244px
+  // hero — a mount-triggered entrance played out below the fold and could never
+  // self-correct. Viewport-triggered, it arrives when it is actually looked at.
+  const card = reduced
+    ? {}
+    : {
+        initial: { opacity: 0, y: 24 },
+        whileInView: { opacity: 1, y: 0 },
+        viewport: VIEW.near,
+        transition: { duration: DUR.slow, ease: EASE_INK },
+      };
 
   return (
     <section
@@ -78,23 +90,27 @@ export default function Hero({ language, onBook }: HeroProps) {
       <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 lg:grid-cols-2 lg:gap-20">
         {/* Left — editorial copy */}
         <div>
-          <m.p {...fadeUp(0)} className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+          <m.p {...settle(0)} className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
             {getLocalized(TR.eyebrow, language)}
           </m.p>
           <h1 className="display mt-5 text-5xl text-ink sm:text-6xl lg:text-7xl">
-            <m.span {...headingLine(0)} className="inline-block">
+            <m.span {...settle(0.06)} className="inline-block">
               {getLocalized(TR.title1, language)}
             </m.span>
+            {/* A real text node between the halves: the accessible name is built
+                by concatenating them, and two bare inline-blocks around a <br>
+                yield "которойхочется" as one word to a screen reader. */}
+            {' '}
             <br />
-            <m.span {...headingLine(0.08)} className="inline-block text-primary">
+            <m.span {...settle(0.14)} className="inline-block text-primary">
               {getLocalized(TR.title2, language)}
             </m.span>
           </h1>
-          <m.p {...fadeUp(0.16)} className="mt-6 max-w-md text-base leading-relaxed text-body sm:text-lg">
+          <m.p {...settle(0.22)} className="mt-6 max-w-md text-base leading-relaxed text-body sm:text-lg">
             {getLocalized(TR.subtitle, language)}
           </m.p>
 
-          <m.div {...fadeUp(0.24)} className="mt-8 flex flex-wrap items-center gap-3">
+          <m.div {...settle(0.3, 8)} className="mt-8 flex flex-wrap items-center gap-3">
             <button
               onClick={onBook}
               className="btn-press press-slab rounded-lg bg-primary px-6 py-3.5 text-sm font-semibold text-white hover:bg-primary-dark"
@@ -109,7 +125,7 @@ export default function Hero({ language, onBook }: HeroProps) {
             </a>
           </m.div>
 
-          <m.ul {...fadeUp(0.32)} className="mt-10 space-y-3 border-t border-hairline pt-8">
+          <m.ul {...settle(0.38, 8)} className="mt-10 space-y-3 border-t border-hairline pt-8">
             {TR.points.map((point) => (
               <li key={point.EN} className="flex items-start gap-3 text-sm text-body">
                 <Check size={16} className="mt-0.5 shrink-0 text-primary" />
@@ -120,7 +136,7 @@ export default function Hero({ language, onBook }: HeroProps) {
         </div>
 
         {/* Right — the product itself: a quiet booking-receipt preview */}
-        <m.div {...fadeUp(0.25)} aria-hidden className="lg:justify-self-end">
+        <m.div {...card} aria-hidden className="lg:justify-self-end">
           <m.div
             style={reduced ? undefined : { y: cardY }}
             className="w-full max-w-sm rounded-2xl bg-surface p-7 sm:p-8"

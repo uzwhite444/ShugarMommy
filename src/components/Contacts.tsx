@@ -1,6 +1,11 @@
+import { useRef } from 'react';
+import { m, useInView, useReducedMotion } from 'motion/react';
 import { MapPin, Phone, Clock, Send, Instagram } from 'lucide-react';
 import Reveal from './ui/Reveal';
+import SectionHead from './ui/SectionHead';
 import SplitWords from './ui/SplitWords';
+import { Stagger, StaggerItem } from './ui/Stagger';
+import { DUR, EASE_INK, VIEW } from '../lib/motion';
 import { LanguageCode } from '../types';
 import { ADDRESS, getLocalized, INSTAGRAM, MANAGER_TELEGRAM, PHONE, WORK_HOURS } from '../utils';
 
@@ -43,6 +48,10 @@ const TR = {
 
 export default function Contacts({ language, onCancelBooking }: ContactsProps) {
   const phoneHref = `tel:${PHONE.replace(/[^+\d]/g, '')}`;
+  const reduced = useReducedMotion();
+  const bandRef = useRef<HTMLDivElement>(null);
+  const bandIn = useInView(bandRef, VIEW.far);
+  const bandOn = reduced ? true : bandIn;
 
   const cards: Array<{
     icon: typeof MapPin;
@@ -64,16 +73,11 @@ export default function Contacts({ language, onCancelBooking }: ContactsProps) {
   return (
     <section id="contacts" className="px-4 py-20 sm:px-6 sm:py-24">
       <div className="mx-auto max-w-6xl">
-        <Reveal>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            {getLocalized(TR.eyebrow, language)}
-          </p>
-          <h2 className="display mt-4 text-4xl text-ink sm:text-5xl">{getLocalized(TR.title, language)}</h2>
-        </Reveal>
+        <SectionHead eyebrow={getLocalized(TR.eyebrow, language)} title={getLocalized(TR.title, language)} />
 
-        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {cards.map((card, i) => (
-            <Reveal key={card.label} delay={i * 0.06}>
+        <Stagger className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3" delay={0.12}>
+          {cards.map((card) => (
+            <StaggerItem key={card.label} variant="plate">
               <div className="ink-rule rule-top rule-long h-full rounded-xl bg-surface p-7">
                 <card.icon size={20} className="text-primary" strokeWidth={1.75} />
                 <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-muted">{card.label}</p>
@@ -94,12 +98,12 @@ export default function Contacts({ language, onCancelBooking }: ContactsProps) {
                 )}
                 {card.note && <p className="mt-2 text-xs leading-relaxed text-muted">{card.note}</p>}
               </div>
-            </Reveal>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
 
         {/* Self-service cancellation */}
-        <Reveal delay={0.08}>
+        <Reveal variant="plate">
           <div className="mt-4 flex flex-col items-start justify-between gap-4 rounded-xl border border-hairline p-6 sm:flex-row sm:items-center sm:p-7">
             <div>
               <p className="font-semibold text-ink">{getLocalized(TR.cancelTitle, language)}</p>
@@ -122,11 +126,22 @@ export default function Contacts({ language, onCancelBooking }: ContactsProps) {
           </div>
         </Reveal>
 
-        {/* Dark pre-footer CTA band — the page's single dark moment before the footer */}
-        <Reveal delay={0.1}>
+        {/* Dark pre-footer CTA band — the page's single dark moment before the
+            footer, and the page's third and last masked word-rise. ONE observer
+            drives the band and the words: this used to be a Reveal with a -60px
+            margin wrapping a SplitWords with an -80px margin of its own, so the
+            container and its own headline could disagree about when the moment
+            had started. `veil` keeps the wrapper transform-free, which matters
+            here because each word rises inside its own overflow mask. */}
+        <m.div
+          ref={bandRef}
+          initial={reduced ? false : { opacity: 0 }}
+          animate={reduced ? undefined : { opacity: bandOn ? 1 : 0 }}
+          transition={{ duration: DUR.slow, ease: EASE_INK }}
+        >
           <div className="mt-14 rounded-2xl bg-dark px-7 py-12 text-center sm:px-10 sm:py-16">
             <h3 className="display text-3xl text-ondark sm:text-5xl">
-              <SplitWords text={getLocalized(TR.ctaTitle, language)} inView />
+              <SplitWords text={getLocalized(TR.ctaTitle, language)} start={bandOn} delay={0.12} />
             </h3>
             <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-ondark-soft sm:text-base">
               {getLocalized(TR.ctaText, language)}
@@ -150,7 +165,7 @@ export default function Contacts({ language, onCancelBooking }: ContactsProps) {
               </a>
             </div>
           </div>
-        </Reveal>
+        </m.div>
       </div>
     </section>
   );

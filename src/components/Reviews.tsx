@@ -1,5 +1,8 @@
 import { Star } from 'lucide-react';
 import Reveal from './ui/Reveal';
+import SectionHead from './ui/SectionHead';
+import { Stagger, StaggerItem } from './ui/Stagger';
+import { STAGGER } from '../lib/motion';
 import { REVIEWS } from '../data';
 import { LanguageCode, Localized } from '../types';
 import { getLocalized, INSTAGRAM } from '../utils';
@@ -25,16 +28,16 @@ export default function Reviews({ language }: ReviewsProps) {
   return (
     <section id="reviews" className="px-4 py-20 sm:px-6 sm:py-24">
       <div className="mx-auto max-w-6xl">
-        <Reveal>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            {getLocalized(TR.eyebrow, language)}
-          </p>
-          <h2 className="display mt-4 text-4xl text-ink sm:text-5xl">{getLocalized(TR.title, language)}</h2>
-        </Reveal>
+        <SectionHead eyebrow={getLocalized(TR.eyebrow, language)} title={getLocalized(TR.title, language)} />
 
-        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {REVIEWS.map((review, i) => (
-            <Reveal key={review.id} delay={(i % 2) * 0.06}>
+        {/* A testimonial is a voice, not an object: `veil` is opacity only, so
+            the quotes surface on the page rather than sliding onto it — the
+            same content given the same lift as a pricing card would read as the
+            same content. The old `(i % 2) * 0.06` alternated 0/60ms down a
+            single column on phones, which is noise, not rhythm. */}
+        <Stagger className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2" step={STAGGER.loose} delay={0.12}>
+          {REVIEWS.map((review) => (
+            <StaggerItem key={review.id} variant="veil">
               <blockquote className="flex h-full flex-col rounded-xl border border-hairline bg-canvas p-7">
                 {/* role="img" is what makes the aria-label announce — on a bare
                     div screen readers drop it and the rating is lost. */}
@@ -55,11 +58,11 @@ export default function Reviews({ language }: ReviewsProps) {
                   <p className="mt-0.5 text-xs text-muted">{getLocalized(review.service, language)}</p>
                 </footer>
               </blockquote>
-            </Reveal>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
 
-        <Reveal>
+        <Reveal delay={0.1}>
           <p className="mt-8">
             <a
               href={`https://instagram.com/${INSTAGRAM}`}

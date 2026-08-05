@@ -1,5 +1,6 @@
 import { animate, useInView, useReducedMotion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
+import { VIEW } from '../../lib/motion';
 
 interface CounterProps {
   to: number;
@@ -12,7 +13,7 @@ interface CounterProps {
 /** Animated number that counts up once when scrolled into view. */
 export default function Counter({ to, decimals = 0, suffix = '', duration = 1.8, className }: CounterProps) {
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-40px' });
+  const inView = useInView(ref, VIEW.tight);
   const reduced = useReducedMotion();
   const [value, setValue] = useState(0);
 

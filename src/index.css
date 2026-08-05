@@ -202,6 +202,16 @@
   border: 1px solid var(--color-hairline);
 }
 
+/* Every in-page anchor target must clear the 64px fixed header. Without this
+   the computed scroll-padding is `auto` and every section's scroll-margin is
+   0, so any UPWARD jump — and the bar does not retract when scrolling up —
+   parked the section eyebrow behind the bar. Unconditional on purpose: it has
+   to hold for instant jumps too, not only smooth ones. 5rem = the bar plus
+   16px of air, the same figure the sticky calculator pins to. */
+html {
+  scroll-padding-top: 5rem;
+}
+
 /* Smooth anchor scrolling — but not for users who asked for reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
   html {
@@ -689,6 +699,15 @@ button:disabled,
   .sig-rule-once::after {
     animation: none;
     transform: scaleX(1);
+  }
+  /* Backstop for the scroll layer. Every scroll primitive in src/components/ui
+     already renders its content at rest under `useReducedMotion` — a reduced-
+     motion visitor must never be shown `opacity: 0` while waiting on an
+     IntersectionObserver, which is precisely the failure mode least tolerable
+     for the people who asked for less motion. This catches anything that ships
+     a bare Tailwind transition without its `motion-reduce:` guard. */
+  [class*='transition-'] {
+    transition-duration: 0.01ms !important;
   }
 }
 

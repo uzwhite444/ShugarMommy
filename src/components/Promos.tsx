@@ -1,5 +1,7 @@
 import { Gift } from 'lucide-react';
-import Reveal from './ui/Reveal';
+import SectionHead from './ui/SectionHead';
+import { Stagger, StaggerItem } from './ui/Stagger';
+import { STAGGER } from '../lib/motion';
 import { LanguageCode } from '../types';
 import { DISCOUNT_TIERS, getLocalized, MANAGER_TELEGRAM } from '../utils';
 
@@ -58,16 +60,14 @@ export default function Promos({ language, onBook }: PromosProps) {
   return (
     <section id="promos" className="px-4 py-20 sm:px-6 sm:py-24">
       <div className="mx-auto max-w-6xl">
-        <Reveal>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            {getLocalized(TR.eyebrow, language)}
-          </p>
-          <h2 className="display mt-4 text-4xl text-ink sm:text-5xl">{getLocalized(TR.title, language)}</h2>
-        </Reveal>
+        <SectionHead eyebrow={getLocalized(TR.eyebrow, language)} title={getLocalized(TR.title, language)} />
 
-        <div className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* The loud card lands first and the two quiet ones follow it — order
+            comes from the DOM, so the lg 3-across row and the stacked phone
+            layout read the same way round. */}
+        <Stagger className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-3" step={STAGGER.loose} delay={0.12}>
           {/* Terracotta callout — the one loud card on the page */}
-          <Reveal>
+          <StaggerItem variant="plate">
             {/* rule-on-primary: a terracotta rule on a terracotta card is
                 invisible, so this one card inks in white. */}
             <div className="ink-rule rule-top rule-on-primary rule-long flex h-full flex-col rounded-xl bg-primary p-8 text-white">
@@ -89,9 +89,9 @@ export default function Promos({ language, onBook }: PromosProps) {
                 {getLocalized(TR.first.cta, language)}
               </button>
             </div>
-          </Reveal>
+          </StaggerItem>
 
-          <Reveal delay={0.06}>
+          <StaggerItem variant="plate">
             <div className="ink-rule rule-top rule-long flex h-full flex-col rounded-xl bg-surface p-8">
               {/* One step down on the narrowest phones: "up to −15%" is far
                   wider than the bare number it replaced. */}
@@ -107,9 +107,9 @@ export default function Promos({ language, onBook }: PromosProps) {
                 {getLocalized(TR.combo.cta, language)}
               </a>
             </div>
-          </Reveal>
+          </StaggerItem>
 
-          <Reveal delay={0.12}>
+          <StaggerItem variant="plate">
             <div className="ink-rule rule-top rule-long flex h-full flex-col rounded-xl bg-surface p-8">
               <Gift size={36} className="text-primary" strokeWidth={1.5} />
               <h3 className="mt-6 text-lg font-semibold text-ink">{getLocalized(TR.gift.title, language)}</h3>
@@ -125,8 +125,8 @@ export default function Promos({ language, onBook }: PromosProps) {
                 {getLocalized(TR.gift.cta, language)}
               </a>
             </div>
-          </Reveal>
-        </div>
+          </StaggerItem>
+        </Stagger>
 
         <p className="mt-6 text-xs text-faint">{getLocalized(TR.note, language)}</p>
       </div>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { m, AnimatePresence, useReducedMotion } from 'motion/react';
 import { ArrowLeft, ArrowRight, Sparkles, Check, RotateCcw } from 'lucide-react';
 import Reveal from './ui/Reveal';
+import SectionHead from './ui/SectionHead';
 import { LanguageCode, Localized } from '../types';
 import { SERVICE_ZONES } from '../data';
 import { calcTotal, formatPrice, getLocalized } from '../utils';
@@ -155,13 +156,11 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
   return (
     <section id="quiz" className="bg-soft px-4 py-20 sm:px-6 sm:py-24">
       <div className="mx-auto max-w-3xl">
-        <Reveal className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">{t(TR.eyebrow)}</p>
-          <h2 className="display mt-4 text-4xl text-ink sm:text-5xl">{t(TR.title)}</h2>
-          <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-muted sm:text-base">{t(TR.subtitle)}</p>
-        </Reveal>
+        <SectionHead align="center" eyebrow={t(TR.eyebrow)} title={t(TR.title)} subtitle={t(TR.subtitle)} />
 
-        <Reveal delay={0.1}>
+        {/* One card, one surface: `plate` and a `far` trigger, so the quiz does
+            not start arriving while it is a sliver at the bottom of the fold. */}
+        <Reveal variant="plate" trigger="far" delay={0.12}>
           <div className="mt-10 overflow-hidden rounded-2xl bg-canvas p-6 sm:p-9">
             {/* Progress hairlines: each track inks in rather than swapping
                 colour — a rule, not a pill. */}

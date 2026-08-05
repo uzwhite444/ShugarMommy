@@ -1,5 +1,8 @@
-import { m, useReducedMotion } from 'motion/react';
-import Reveal from './ui/Reveal';
+import { useRef } from 'react';
+import { m, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react';
+import SectionHead from './ui/SectionHead';
+import { Stagger, StaggerItem } from './ui/Stagger';
+import { STAGGER } from '../lib/motion';
 import { LanguageCode, Localized } from '../types';
 import { getLocalized } from '../utils';
 
@@ -69,40 +72,62 @@ const TR = {
   ] as Step[],
 };
 
+/* h-px, not h-[2px]: in this system 1px is the rule and 2px is what a PRESS
+   makes of it. A step marker drawn at press weight by default was the one place
+   the signature contradicted itself. */
+const RULE_CLS = 'absolute left-0 top-0 h-px w-full origin-left bg-ink';
+
+/* Each rule owns a window of the list's scroll progress. The windows overlap
+   (0.17 apart, 0.30 wide) so the ink never stops moving between steps — one
+   continuous line advancing through the five stages, which is the journey the
+   section is describing. */
+const STEP_PITCH = 0.17;
+const STEP_SPAN = 0.3;
+
+function StepRule({ progress, index, reduced }: { progress: MotionValue<number>; index: number; reduced: boolean }) {
+  const start = index * STEP_PITCH;
+  const scaleX = useTransform(progress, [start, start + STEP_SPAN], [0, 1]);
+  if (reduced) return <span aria-hidden className={RULE_CLS} />;
+  return <m.span aria-hidden className={RULE_CLS} style={{ scaleX }} />;
+}
+
 export default function Process({ language }: ProcessProps) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotion() === true;
+  const listRef = useRef<HTMLOListElement>(null);
+
+  // The page's one scroll-DRIVEN moment. Everything else here is scroll-
+  // TRIGGERED: it fires once and then runs on its own clock, which is exactly
+  // what makes a page read as a template. Mapping position to progress — and
+  // only here, on the section that is literally about a sequence — is the
+  // difference between a page that reacts and a page that was authored.
+  const { scrollYProgress } = useScroll({ target: listRef, offset: ['start 0.85', 'end 0.55'] });
+
   return (
     <section id="process" className="px-4 py-20 sm:px-6 sm:py-24">
       <div className="mx-auto max-w-6xl">
-        <Reveal>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            {getLocalized(TR.eyebrow, language)}
-          </p>
-          <h2 className="display mt-4 text-4xl text-ink sm:text-5xl">{getLocalized(TR.title, language)}</h2>
-        </Reveal>
+        <SectionHead eyebrow={getLocalized(TR.eyebrow, language)} title={getLocalized(TR.title, language)} />
 
-        <ol className="mt-12 grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-5">
+        <Stagger
+          as="ol"
+          ref={listRef}
+          className="mt-12 grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-5"
+          step={STAGGER.base}
+          delay={0.1}
+        >
           {TR.steps.map((step, i) => (
-            <li key={step.number}>
-              <Reveal delay={i * 0.06}>
-                <div className="relative pt-5">
-                  {/* Top rule draws in from the left as the step enters view. */}
-                  <m.span
-                    aria-hidden
-                    className="absolute left-0 top-0 h-[2px] w-full origin-left bg-ink"
-                    initial={reduced ? { scaleX: 1 } : { scaleX: 0 }}
-                    whileInView={{ scaleX: 1 }}
-                    viewport={{ once: true, margin: '-60px' }}
-                    transition={{ duration: 0.8, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                  />
-                  <span className="text-xs font-semibold tracking-[0.18em] text-primary-dark">{step.number}</span>
-                  <h3 className="mt-3 text-base font-semibold text-ink">{getLocalized(step.title, language)}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted">{getLocalized(step.text, language)}</p>
-                </div>
-              </Reveal>
+            // The rule sits OUTSIDE the fading wrapper on purpose: it used to be
+            // a child of the container that faded in over it, so an 800ms brand
+            // gesture spent its first 600ms being watched through a blur.
+            <li key={step.number} className="relative pt-5">
+              <StepRule progress={scrollYProgress} index={i} reduced={reduced} />
+              <StaggerItem>
+                <span className="text-xs font-semibold tracking-[0.18em] text-primary-dark">{step.number}</span>
+                <h3 className="mt-3 text-base font-semibold text-ink">{getLocalized(step.title, language)}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{getLocalized(step.text, language)}</p>
+              </StaggerItem>
             </li>
           ))}
-        </ol>
+        </Stagger>
       </div>
     </section>
   );

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { AnimatePresence, m } from 'motion/react';
+import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { LanguageCode } from '../types';
+import { EASE_INK } from '../lib/motion';
+import { subscribeScroll } from '../lib/scrollState';
 import { formatPrice, getLocalized } from '../utils';
 
 interface StickyCtaProps {
@@ -12,6 +14,9 @@ interface StickyCtaProps {
   /** Hidden while any modal is open. */
   hidden: boolean;
 }
+
+/** Distance from the document bottom at which the contact block takes over. */
+const NEAR_BOTTOM = 420;
 
 const TR = {
   book: { RU: 'Записаться', UZ: 'Yozilish', EN: 'Book now' },
@@ -41,34 +46,38 @@ function zonesLabel(count: number, language: LanguageCode): string {
  */
 export default function StickyCta({ language, total, zoneCount, onBook, hidden }: StickyCtaProps) {
   const [visible, setVisible] = useState(false);
+  const reduced = useReducedMotion();
 
+  // The bar is `lg:hidden`, so above 1024px it can never appear — and the old
+  // effect still ran its whole measure loop there, two forced reflows per frame
+  // (a getBoundingClientRect plus a body.scrollHeight read), 100% wasted on
+  // every desktop session. Nothing is measured unless the bar could be shown.
   useEffect(() => {
-    let frame = 0;
+    const desktop = window.matchMedia('(min-width: 1024px)');
 
-    const measure = () => {
-      frame = 0;
-      const hero = document.getElementById('top');
-      const heroBottom = hero ? hero.getBoundingClientRect().bottom : 0;
-      // Show after the hero leaves, hide again at the very bottom where the
-      // contact block already carries its own call to action.
-      const nearBottom = window.innerHeight + window.scrollY > document.body.scrollHeight - 420;
-      setVisible(heroBottom < 0 && !nearBottom);
+    let stop: (() => void) | undefined;
+    const sync = () => {
+      stop?.();
+      stop = undefined;
+      if (desktop.matches) {
+        setVisible(false);
+        return;
+      }
+      stop = subscribeScroll(({ y, vh }) => {
+        const hero = document.getElementById('top');
+        const heroBottom = hero ? hero.getBoundingClientRect().bottom : 0;
+        // Show after the hero leaves, hide again at the very bottom where the
+        // contact block already carries its own call to action.
+        const nearBottom = vh + y > document.body.scrollHeight - NEAR_BOTTOM;
+        setVisible(heroBottom < 0 && !nearBottom);
+      });
     };
 
-    // One passive handler for both events, and layout is read at most once
-    // per frame instead of on every scroll tick.
-    const schedule = () => {
-      if (frame) return;
-      frame = requestAnimationFrame(measure);
-    };
-
-    measure();
-    window.addEventListener('scroll', schedule, { passive: true });
-    window.addEventListener('resize', schedule, { passive: true });
+    sync();
+    desktop.addEventListener('change', sync);
     return () => {
-      if (frame) cancelAnimationFrame(frame);
-      window.removeEventListener('scroll', schedule);
-      window.removeEventListener('resize', schedule);
+      stop?.();
+      desktop.removeEventListener('change', sync);
     };
   }, []);
 
@@ -76,10 +85,13 @@ export default function StickyCta({ language, total, zoneCount, onBook, hidden }
     <AnimatePresence>
       {visible && !hidden && (
         <m.div
-          initial={{ y: '120%' }}
-          animate={{ y: 0 }}
-          exit={{ y: '120%' }}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          // A full bar-height slide fired for every reduced-motion visitor,
+          // while the bar's own hairline was correctly frozen by the CSS block
+          // — the rule held still and the thing it belongs to slid.
+          initial={reduced ? false : { y: '120%' }}
+          animate={reduced ? undefined : { y: 0 }}
+          exit={reduced ? undefined : { y: '120%' }}
+          transition={{ duration: 0.35, ease: EASE_INK }}
           // The bar lands first, then its top hairline inks across — the border
           // is the sig-rule now, so it must not also be a border utility.
           className="sig-rule sig-rule-top sig-rule-once fixed inset-x-0 bottom-0 z-40 bg-canvas/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur-sm lg:hidden"

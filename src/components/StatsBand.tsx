@@ -1,5 +1,6 @@
-import Reveal from './ui/Reveal';
+import { Stagger, StaggerItem } from './ui/Stagger';
 import Counter from './ui/Counter';
+import { STAGGER } from '../lib/motion';
 import { LanguageCode, Localized } from '../types';
 import { getLocalized } from '../utils';
 
@@ -26,25 +27,32 @@ const STATS: Stat[] = [
 export default function StatsBand({ language }: StatsBandProps) {
   return (
     <section id="stats-band" className="border-y border-hairline px-4 sm:px-6">
-      <div className="mx-auto grid max-w-6xl grid-cols-2 lg:grid-cols-4">
+      {/* Numbers do not slide. `veil` is opacity only and the tightest stagger
+          on the page: the cells simply appear, and the motion the eye follows is
+          the count-up itself. A stats row that rises like a card reads like every
+          other card. */}
+      <Stagger
+        className="mx-auto grid max-w-6xl grid-cols-2 lg:grid-cols-4"
+        step={STAGGER.tight}
+        trigger="tight"
+      >
         {STATS.map((stat, i) => (
-          <div
+          <StaggerItem
             key={stat.label.EN}
+            variant="veil"
             className={`py-10 pr-4 ${i % 2 === 1 ? 'border-l border-hairline pl-6' : ''} ${
               i >= 2 ? 'border-t border-hairline lg:border-t-0' : ''
             } ${i >= 1 ? 'lg:border-l lg:border-hairline lg:pl-8' : ''}`}
           >
-            <Reveal delay={i * 0.06}>
-              <p className="display text-4xl text-ink sm:text-5xl">
-                <Counter to={stat.to} decimals={stat.decimals} suffix={stat.suffix} />
-              </p>
-              <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-muted">
-                {getLocalized(stat.label, language)}
-              </p>
-            </Reveal>
-          </div>
+            <p className="display text-4xl text-ink sm:text-5xl">
+              <Counter to={stat.to} decimals={stat.decimals} suffix={stat.suffix} />
+            </p>
+            <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-muted">
+              {getLocalized(stat.label, language)}
+            </p>
+          </StaggerItem>
         ))}
-      </div>
+      </Stagger>
     </section>
   );
 }

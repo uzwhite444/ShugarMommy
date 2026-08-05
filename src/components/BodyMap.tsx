@@ -2,6 +2,7 @@ import { m, useReducedMotion } from 'motion/react';
 import { Check } from 'lucide-react';
 import { LanguageCode } from '../types';
 import { SERVICE_ZONES } from '../data';
+import { DUR, EASE_INK, VIEW } from '../lib/motion';
 import { formatPrice, getLocalized } from '../utils';
 import figure from '../assets/body-figure.webp';
 
@@ -68,10 +69,16 @@ export default function BodyMap({ language, selectedZoneIds, onToggleZone }: Bod
               onClick={() => onToggleZone(zone.id)}
               aria-pressed={selected}
               title={`${name} · ${formatPrice(zone.price, language)}`}
-              initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.5 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true, margin: '-40px' }}
-              transition={{ duration: 0.4, delay: 0.15 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+              // The dots ARE this figure's entrance: nothing may animate above
+              // them, because a stacking context on any ancestor of
+              // `.body-figure` isolates its mix-blend-mode and the artwork
+              // renders its own cream plate. Head to toe, one at a time.
+              // Reduced motion gets them present and full-size on frame 1 —
+              // never invisible waiting on an observer.
+              initial={reduced ? false : { opacity: 0, scale: 0.5 }}
+              whileInView={reduced ? undefined : { opacity: 1, scale: 1 }}
+              viewport={VIEW.tight}
+              transition={{ duration: DUR.quick, delay: 0.1 + i * 0.07, ease: EASE_INK }}
               // press-inner, never btn-press: this element's transform belongs
               // to motion's x/y channel below, so a CSS transform here would be
               // overwritten every frame and knock the dot off its anchor.
