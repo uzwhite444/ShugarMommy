@@ -112,12 +112,36 @@
   color-scheme: dark;
 }
 
-/* The product videos are shot on a cream backdrop: multiply melts them into
-   a light page, but would turn into a black box on the dark canvas. */
+/* The product videos are shot on a cream backdrop that is lighter than the
+   page. `darken` keeps the per-channel minimum, so that backdrop collapses
+   exactly into the section while the amber stays — multiply would tint the
+   whole frame. On the dark canvas nothing can be blended away, so the clip
+   keeps a deliberate cream plate instead. */
+.liquid-video {
+  /* The clip's backdrop is rgb(250 244 238) — a couple of points below the
+     canvas on green and blue, which `darken` would keep as a visible square.
+     +2% lifts every channel to or past the page before the blend runs. */
+  filter: brightness(1.02);
+  mix-blend-mode: darken;
+}
 :root[data-theme='dark'] .liquid-video {
   mix-blend-mode: normal;
   background: #FAF7F2;
   border-radius: 1rem;
+}
+
+/* The body-map figure is terracotta line art baked onto an opaque cream plate
+   that is slightly lighter than the section it sits on. `darken` keeps the
+   per-channel minimum, so the plate collapses exactly into the background
+   while the darker line work survives — multiply would tint the whole square.
+   At night the artwork is inverted first (multiply would crush the lines to
+   black), which makes the plate near-black, so `lighten` does the same job. */
+.body-figure {
+  mix-blend-mode: darken;
+}
+:root[data-theme='dark'] .body-figure {
+  filter: invert(1) hue-rotate(180deg);
+  mix-blend-mode: lighten;
 }
 
 /* Buttons that carry white labels need a deeper terracotta: the brand tone

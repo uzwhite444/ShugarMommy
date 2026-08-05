@@ -1,5 +1,5 @@
 import { m, useReducedMotion } from 'motion/react';
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 
 interface RevealProps {
   children: ReactNode;
@@ -25,9 +25,11 @@ export default function Reveal({
   duration = 0.65,
 }: RevealProps) {
   const prefersReducedMotion = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
 
   return (
     <m.div
+      ref={ref}
       className={className}
       initial={
         prefersReducedMotion
@@ -41,6 +43,14 @@ export default function Reveal({
       }
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration, ease: [0.22, 1, 0.36, 1], delay }}
+      // A settled `filter: blur(0px)` is not a no-op: any filter creates a
+      // stacking context, which isolates mix-blend-mode in the subtree. That
+      // made the body-map figure render its own cream plate instead of
+      // blending into the page. Clearing it also drops a permanent
+      // compositing layer per revealed block.
+      onAnimationComplete={() => {
+        if (ref.current) ref.current.style.filter = '';
+      }}
     >
       {children}
     </m.div>

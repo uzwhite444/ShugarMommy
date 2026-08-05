@@ -55,7 +55,7 @@ export default function BodyMap({ language, selectedZoneIds, onToggleZone }: Bod
           height={1024}
           loading="lazy"
           draggable={false}
-          className="mx-auto h-auto w-[240px] select-none mix-blend-multiply sm:w-[270px]"
+          className="body-figure mx-auto h-auto w-[240px] select-none sm:w-[270px]"
         />
         {POINTS.map((point, i) => {
           const zone = SERVICE_ZONES.find((z) => z.id === point.zoneId);

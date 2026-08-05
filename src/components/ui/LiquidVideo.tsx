@@ -69,7 +69,7 @@ export default function LiquidVideo({ src, poster, className, loop = false, labe
       preload="metadata"
       aria-label={label}
       onError={() => setFailed(true)}
-      className={`liquid-video mix-blend-multiply ${className ?? ''}`}
+      className={`liquid-video ${className ?? ''}`}
     />
   );
 }
