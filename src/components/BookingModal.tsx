@@ -531,6 +531,15 @@ export default function BookingModal({
   // normally gets there first — this is the belt-and-braces message).
   const noHours = Boolean(date) && !loadingSlots && slots.length === 0;
 
+  /** Enter in a text field submits — the behaviour a <form> would give. */
+  const onFieldKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    const target = e.target as HTMLElement;
+    if (target.tagName !== 'INPUT') return;
+    e.preventDefault();
+    void handleSubmit();
+  };
+
   const handleSubmit = async () => {
     if (submitLockRef.current) return;
     // Last line of defence for the same rule the picker enforces: a request the
@@ -908,7 +917,11 @@ export default function BookingModal({
               {/* 01 — contacts */}
               <div>
                 <StepLabel number="01">{t(TR.stepContacts)}</StepLabel>
-                <div className="mt-3 space-y-2.5">
+                {/* Enter submits, as it would inside a <form>. A real <form> is
+                    not usable here: the nine buttons below (masters, dates,
+                    slots, zone chips) carry no type="button", so wrapping them
+                    would turn picking a date into a submit. */}
+                <div className="mt-3 space-y-2.5" onKeyDown={onFieldKeyDown}>
                   <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}

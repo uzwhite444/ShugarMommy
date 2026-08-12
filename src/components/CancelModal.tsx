@@ -83,6 +83,14 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
 
   const t = (loc: (typeof TR)[keyof typeof TR]) => getLocalized(loc, language);
 
+  /** Enter in a field submits — the behaviour a <form> would give. */
+  const onFieldKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    if ((e.target as HTMLElement).tagName !== 'INPUT') return;
+    e.preventDefault();
+    void handleSubmit();
+  };
+
   const handleSubmit = async () => {
     if (submitLockRef.current) return;
     if (!phone.trim() || !date) {
@@ -164,7 +172,7 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
         ) : (
           <>
             <p className="text-sm leading-relaxed text-muted">{t(TR.intro)}</p>
-            <div className="mt-5 space-y-2.5">
+            <div className="mt-5 space-y-2.5" onKeyDown={onFieldKeyDown}>
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}

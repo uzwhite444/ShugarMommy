@@ -249,10 +249,26 @@ export default function Services({ language, selectedZoneIds, onToggleZone, onBo
    * masters disagree and none is chosen — that figure is a floor, and printing
    * it plain would misquote the visit the moment Рената is picked.
    */
-  // Rows are priced by whoever the total is priced by: with nobody chosen that
-  // is the cheapest master covering the whole basket, so 110 000 + 200 000 can
-  // never sit above a total of 330 000.
+  /**
+   * Catalogue price of a zone — the price list and the body map.
+   *
+   * Deliberately NOT `calc.quotedBy`: that master is chosen for the CURRENT
+   * basket, and applying her to every other row made unrelated services lie.
+   * Ticking «Подмышечные впадины» picked Ангелина, and every Рената-only row —
+   * brow lamination at a published 200 000 — flipped to «по запросу».
+   */
   const priceText = (zone: ServiceZone): string => {
+    const price = zonePriceFor(zone, master);
+    if (price === null) return getLocalized(PRICE_ON_REQUEST, language);
+    const text = formatPrice(price, language);
+    return !master && zonePriceRange(zone.id).varies ? withFrom(text, language) : text;
+  };
+
+  /**
+   * Receipt price. Here `calc.quotedBy` IS right: these rows are the basket the
+   * total is computed from, so they must add up to it.
+   */
+  const receiptPriceText = (zone: ServiceZone): string => {
     const price = zonePriceFor(zone, master ?? calc.quotedBy);
     if (price === null) return getLocalized(PRICE_ON_REQUEST, language);
     const text = formatPrice(price, language);
@@ -616,7 +632,7 @@ export default function Services({ language, selectedZoneIds, onToggleZone, onBo
                                       : 'font-medium'
                                 }`}
                               >
-                                {unavailable ? getLocalized(TR.notOffered, language) : priceText(zone)}
+                                {unavailable ? getLocalized(TR.notOffered, language) : receiptPriceText(zone)}
                               </span>
                             </div>
                           </m.li>
