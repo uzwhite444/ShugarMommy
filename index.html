@@ -6,7 +6,7 @@
     <title>Shugar Mommy — студия шугаринга в Андижане</title>
     <meta
       name="description"
-      content="Shugar Mommy — студия шугаринга в Андижане: гладкая кожа без раздражения. Онлайн-запись за минуту, честные цены, опытные мастера, полная стерильность."
+      content="Shugar Mommy — студия шугаринга в Андижане: гладкая кожа без раздражения. Онлайн-запись за минуту, честные цены, сертифицированные мастера, полная стерильность."
     />
     <link rel="canonical" href="https://shugarmommy.vercel.app/" />
 
@@ -62,7 +62,16 @@
     <link rel="apple-touch-icon" href="/icon-192.png" />
 
     <!-- Structured data: the studio, its services and the FAQ, so Google can
-         show the address, opening hours, prices and expandable questions. -->
+         show the address, opening hours, prices and expandable questions.
+
+         Prices mirror src/data.ts (STANDARD_PRICES) — keep the two in step.
+         Zones the studio has not priced yet (Ягодицы, Поясница, зоны лица) are
+         deliberately absent: an Offer without a price is not eligible for rich
+         results, and inventing one would publish a price the studio never gave.
+         Hours are the studio envelope (STUDIO_HOURS), widest of the masters'
+         own windows; Sunday is simply not listed, which is how schema.org says
+         "closed". NOTE: JSON-LD is strict JSON — no comments inside the script. -->
+
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -75,7 +84,7 @@
             "url": "https://shugarmommy.vercel.app/",
             "image": "https://shugarmommy.vercel.app/og-cover.jpg",
             "telephone": "+998900000000",
-            "priceRange": "30000-160000 UZS",
+            "priceRange": "30000-170000 UZS",
             "currenciesAccepted": "UZS",
             "address": {
               "@type": "PostalAddress",
@@ -95,8 +104,8 @@
                   "Friday",
                   "Saturday"
                 ],
-                "opens": "08:30",
-                "closes": "21:00"
+                "opens": "08:00",
+                "closes": "20:00"
               }
             ],
             "hasOfferCatalog": {
@@ -105,44 +114,80 @@
               "itemListElement": [
                 {
                   "@type": "Offer",
-                  "itemOffered": { "@type": "Service", "name": "Шугаринг — бикини глубокое" },
-                  "price": "150000",
+                  "itemOffered": { "@type": "Service", "name": "Шугаринг — глубокое бикини" },
+                  "price": "110000",
                   "priceCurrency": "UZS"
                 },
                 {
                   "@type": "Offer",
-                  "itemOffered": { "@type": "Service", "name": "Шугаринг — бикини классическое" },
-                  "price": "100000",
+                  "itemOffered": {
+                    "@type": "Service",
+                    "name": "Шугаринг — ноги полностью + пальчики"
+                  },
+                  "price": "170000",
                   "priceCurrency": "UZS"
                 },
                 {
                   "@type": "Offer",
-                  "itemOffered": { "@type": "Service", "name": "Шугаринг — ноги полностью" },
-                  "price": "160000",
+                  "itemOffered": {
+                    "@type": "Service",
+                    "name": "Шугаринг — голени с захватом колена + пальчики"
+                  },
+                  "price": "130000",
                   "priceCurrency": "UZS"
                 },
                 {
                   "@type": "Offer",
-                  "itemOffered": { "@type": "Service", "name": "Шугаринг — ноги до колена" },
-                  "price": "100000",
+                  "itemOffered": { "@type": "Service", "name": "Шугаринг — бёдра с захватом колена" },
+                  "price": "90000",
                   "priceCurrency": "UZS"
                 },
                 {
                   "@type": "Offer",
-                  "itemOffered": { "@type": "Service", "name": "Шугаринг — подмышки" },
+                  "itemOffered": {
+                    "@type": "Service",
+                    "name": "Шугаринг — руки полностью + кисти, пальчики"
+                  },
+                  "price": "120000",
+                  "priceCurrency": "UZS"
+                },
+                {
+                  "@type": "Offer",
+                  "itemOffered": {
+                    "@type": "Service",
+                    "name": "Шугаринг — руки до локтя + кисти, пальчики"
+                  },
+                  "price": "80000",
+                  "priceCurrency": "UZS"
+                },
+                {
+                  "@type": "Offer",
+                  "itemOffered": { "@type": "Service", "name": "Шугаринг — кисти + пальчики" },
+                  "price": "30000",
+                  "priceCurrency": "UZS"
+                },
+                {
+                  "@type": "Offer",
+                  "itemOffered": { "@type": "Service", "name": "Шугаринг — подмышечные впадины" },
                   "price": "50000",
                   "priceCurrency": "UZS"
                 },
                 {
                   "@type": "Offer",
-                  "itemOffered": { "@type": "Service", "name": "Шугаринг — руки полностью" },
-                  "price": "100000",
+                  "itemOffered": { "@type": "Service", "name": "Шугаринг — спина" },
+                  "price": "60000",
                   "priceCurrency": "UZS"
                 },
                 {
                   "@type": "Offer",
-                  "itemOffered": { "@type": "Service", "name": "Шугаринг — лицо полностью" },
-                  "price": "70000",
+                  "itemOffered": { "@type": "Service", "name": "Шугаринг — грудь" },
+                  "price": "60000",
+                  "priceCurrency": "UZS"
+                },
+                {
+                  "@type": "Offer",
+                  "itemOffered": { "@type": "Service", "name": "Шугаринг — живот" },
+                  "price": "60000",
                   "priceCurrency": "UZS"
                 }
               ]

@@ -5,7 +5,7 @@ import Reveal from './ui/Reveal';
 import SectionHead from './ui/SectionHead';
 import { LanguageCode, Localized } from '../types';
 import { SERVICE_ZONES } from '../data';
-import { calcTotal, formatPrice, getLocalized } from '../utils';
+import { calcTotal, formatPrice, formatZonePrice, getLocalized, PRICE_ON_REQUEST } from '../utils';
 
 interface QuizProps {
   language: LanguageCode;
@@ -15,19 +15,37 @@ interface QuizProps {
 }
 
 interface AreaOption {
-  id: string;
+  /** Zone id from the price list — the quiz selection IS a zone selection. */
   zoneId: string;
+  /**
+   * Studio wording with the "+ кисти, пальчики" qualifier dropped, so the chip
+   * row stays scannable. The full official name is what the result list prints.
+   */
   label: Localized;
 }
 
-const AREAS: AreaOption[] = [
-  { id: 'bikini', zoneId: 'bikini-deep', label: { RU: 'Бикини', UZ: 'Bikini', EN: 'Bikini' } },
-  { id: 'legs', zoneId: 'legs-full', label: { RU: 'Ноги', UZ: 'Oyoqlar', EN: 'Legs' } },
-  { id: 'underarms', zoneId: 'underarms', label: { RU: 'Подмышки', UZ: 'Qo‘ltiq osti', EN: 'Underarms' } },
-  { id: 'arms', zoneId: 'arms-full', label: { RU: 'Руки', UZ: 'Qo‘llar', EN: 'Arms' } },
-  { id: 'face', zoneId: 'face-full', label: { RU: 'Лицо', UZ: 'Yuz', EN: 'Face' } },
-  { id: 'belly', zoneId: 'belly', label: { RU: 'Живот', UZ: 'Qorin', EN: 'Belly' } },
+/**
+ * The zones asked about first. Non-overlapping on purpose: offering both "Ноги
+ * полностью" and "Голени" would let a client pick two zones that contain each
+ * other and read a doubled total.
+ */
+const AREA_DEFS: readonly AreaOption[] = [
+  { zoneId: 'bikini-deep', label: { RU: 'Глубокое бикини', UZ: 'Chuqur bikini', EN: 'Deep bikini' } },
+  { zoneId: 'legs-full', label: { RU: 'Ноги полностью', UZ: 'Oyoqlar to‘liq', EN: 'Full legs' } },
+  { zoneId: 'underarms', label: { RU: 'Подмышечные впадины', UZ: 'Qo‘ltiq osti', EN: 'Underarms' } },
+  { zoneId: 'arms-full', label: { RU: 'Руки полностью', UZ: 'Qo‘llar to‘liq', EN: 'Full arms' } },
+  { zoneId: 'belly', label: { RU: 'Живот', UZ: 'Qorin', EN: 'Belly' } },
+  { zoneId: 'back', label: { RU: 'Спина', UZ: 'Orqa', EN: 'Back' } },
 ];
+
+/**
+ * Drop any chip whose zone is not published: SERVICE_ZONES already excludes the
+ * hidden face zones, so a chip can never offer something the price list does
+ * not carry (which is exactly how "Лицо" used to leak in here).
+ */
+const AREAS: readonly AreaOption[] = AREA_DEFS.filter((area) =>
+  SERVICE_ZONES.some((zone) => zone.id === area.zoneId),
+);
 
 type Method = 'razor' | 'wax' | 'sugaring' | 'none';
 type Skin = 'normal' | 'sensitive';
@@ -60,6 +78,11 @@ const TR = {
   yourCombo: { RU: 'Рекомендуемый комплекс', UZ: 'Tavsiya etilgan kompleks', EN: 'Recommended combo' },
   discount: { RU: 'скидка за комплекс', UZ: 'kompleks chegirmasi', EN: 'combo discount' },
   perVisit: { RU: 'за визит', UZ: 'har tashrif uchun', EN: 'per visit' },
+  onRequestNote: {
+    RU: 'Зоны с ценой «по запросу» в сумму не входят — стоимость назовём при записи.',
+    UZ: '«So‘rov bo‘yicha» zonalar summaga kirmaydi — narxni yozilish paytida aytamiz.',
+    EN: 'Zones priced on request are not in the total — we will confirm them when you book.',
+  },
   tips: { RU: 'Советы перед визитом', UZ: 'Tashrifdan oldin maslahatlar', EN: 'Tips before your visit' },
   tipMethod: {
     razor: {
@@ -112,13 +135,20 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
 
   const t = (loc: Localized) => getLocalized(loc, language);
 
-  const zoneIds = AREAS.filter((a) => areas.includes(a.id)).map((a) => a.zoneId);
-  const zones = SERVICE_ZONES.filter((z) => zoneIds.includes(z.id));
+  // Price-list order, not click order, so the combo reads like the price list.
+  const zones = SERVICE_ZONES.filter((z) => areas.includes(z.id));
+  // No master is chosen in the quiz — this quotes the shared price list.
   const calc = calcTotal(zones);
+  /**
+   * With nothing priced the total is a legitimate 0, which would read as "free".
+   * Say «по запросу» instead.
+   */
+  const totalLabel =
+    calc.pricedZones.length > 0 ? formatPrice(calc.total, language) : t(PRICE_ON_REQUEST);
 
-  const toggleArea = (id: string) => {
+  const toggleArea = (zoneId: string) => {
     setError('');
-    setAreas((prev) => (prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]));
+    setAreas((prev) => (prev.includes(zoneId) ? prev.filter((z) => z !== zoneId) : [...prev, zoneId]));
   };
 
   const goNext = () => {
@@ -138,7 +168,7 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
   };
 
   const handleBook = () => {
-    onApplyZones(zoneIds);
+    onApplyZones(areas);
     onBook();
   };
 
@@ -182,7 +212,12 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
                   <p className="mt-1 text-xs text-faint">{t(TR.q1hint)}</p>
                   <div className="mt-5 flex flex-wrap gap-2">
                     {AREAS.map((area) => (
-                      <button key={area.id} onClick={() => toggleArea(area.id)} aria-pressed={areas.includes(area.id)} className={chipCls(areas.includes(area.id))}>
+                      <button
+                        key={area.zoneId}
+                        onClick={() => toggleArea(area.zoneId)}
+                        aria-pressed={areas.includes(area.zoneId)}
+                        className={chipCls(areas.includes(area.zoneId))}
+                      >
                         {t(area.label)}
                       </button>
                     ))}
@@ -264,19 +299,24 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">{t(TR.yourCombo)}</p>
                     <ul className="mt-3 space-y-2">
                       {zones.map((zone) => (
-                        <li key={zone.id} className="flex items-baseline justify-between text-sm text-body">
+                        <li key={zone.id} className="flex items-baseline justify-between gap-4 text-sm text-body">
                           <span>{getLocalized(zone.name, language)}</span>
-                          <span className="font-medium text-ink">{formatPrice(zone.price, language)}</span>
+                          <span className="shrink-0 font-medium text-ink">
+                            {formatZonePrice(zone.price, language)}
+                          </span>
                         </li>
                       ))}
                     </ul>
-                    <div className="mt-4 flex items-baseline justify-between border-t border-ink/10 pt-4">
+                    <div className="mt-4 flex items-baseline justify-between gap-4 border-t border-ink/10 pt-4">
                       <span className="text-sm text-muted">
                         {calc.discountPct > 0 && `−${calc.discountPct}% ${t(TR.discount)} · `}
                         {t(TR.perVisit)}
                       </span>
-                      <span className="display text-3xl text-ink">{formatPrice(calc.total, language)}</span>
+                      <span className="display shrink-0 text-3xl text-ink">{totalLabel}</span>
                     </div>
+                    {calc.onRequestZones.length > 0 && (
+                      <p className="mt-3 text-xs leading-relaxed text-muted">{t(TR.onRequestNote)}</p>
+                    )}
                   </div>
 
                   <div className="mt-5">

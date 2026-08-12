@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { animate, m, useReducedMotion } from 'motion/react';
-import { Check, Share2, Timer } from 'lucide-react';
+import { Check, Share2 } from 'lucide-react';
 import Reveal from './ui/Reveal';
 import SectionHead from './ui/SectionHead';
 import { Stagger, StaggerItem } from './ui/Stagger';
@@ -8,7 +8,14 @@ import BodyMap from './BodyMap';
 import { EASE_INK, STAGGER } from '../lib/motion';
 import { CATEGORY_LABELS, SERVICE_ZONES } from '../data';
 import { LanguageCode, ZoneCategory } from '../types';
-import { calcTotal, DISCOUNT_TIERS, formatPrice, getLocalized } from '../utils';
+import {
+  calcTotal,
+  DISCOUNT_TIERS,
+  formatPrice,
+  formatZonePrice,
+  getLocalized,
+  PRICE_ON_REQUEST,
+} from '../utils';
 
 interface ServicesProps {
   language: LanguageCode;
@@ -21,12 +28,11 @@ const TR = {
   eyebrow: { RU: 'Прайс', UZ: 'Narxlar', EN: 'Pricing' },
   title: { RU: 'Услуги и цены', UZ: 'Xizmatlar va narxlar', EN: 'Services & prices' },
   subtitle: {
-    RU: 'Отметьте нужные зоны — калькулятор посчитает стоимость и применит скидку за сет. Цены указаны по прайсу топ-мастера: у остальных мастеров дешевле на 25%.',
-    UZ: 'Kerakli zonalarni belgilang — kalkulyator narxni hisoblab, set chegirmasini qo‘llaydi. Narxlar top-usta bo‘yicha: boshqa ustalarda 25% arzonroq.',
-    EN: 'Tick the zones you need — the calculator totals them and applies the set discount. Prices are the top master’s rate; other masters are 25% lower.',
+    RU: 'Отметьте нужные зоны — калькулятор посчитает стоимость и применит скидку за сет.',
+    UZ: 'Kerakli zonalarni belgilang — kalkulyator narxni hisoblab, set chegirmasini qo‘llaydi.',
+    EN: 'Tick the zones you need — the calculator totals them and applies the set discount.',
   },
   popular: { RU: 'Хит', UZ: 'Xit', EN: 'Top' },
-  min: { RU: 'мин', UZ: 'daq', EN: 'min' },
   summaryTitle: { RU: 'Ваш комплекс', UZ: 'Sizning kompleksingiz', EN: 'Your combo' },
   empty: {
     RU: 'Зоны пока не выбраны. Отметьте их в списке — и увидите итоговую цену.',
@@ -35,13 +41,15 @@ const TR = {
   },
   subtotal: { RU: 'Сумма', UZ: 'Jami', EN: 'Subtotal' },
   discount: { RU: 'Скидка за сет', UZ: 'Set chegirmasi', EN: 'Set discount' },
-  masterHint: {
-    RU: 'У Севары и Нилюфар — на 25% дешевле. Выберите мастера при записи.',
-    UZ: 'Sevara va Nilufarda 25% arzonroq. Yozilishda ustani tanlang.',
-    EN: 'Sevara and Nilufar are 25% cheaper. Pick a master when booking.',
+  // Says both halves of the truth on purpose: calcTotal counts the combo tier on
+  // priced zones only, so «3 зоны» in the hint below can be on screen while the
+  // discount line is not.
+  onRequestNote: {
+    RU: 'Зоны «по запросу» не входят ни в сумму, ни в скидку — их цену назовёт мастер.',
+    UZ: '«So‘rov bo‘yicha» zonalar summaga ham, chegirmaga ham kirmaydi — narxini usta aytadi.',
+    EN: '“On request” zones count toward neither the total nor the discount — the master will quote them.',
   },
   total: { RU: 'Итого', UZ: 'Yakuniy', EN: 'Total' },
-  duration: { RU: 'Время процедуры', UZ: 'Muolaja vaqti', EN: 'Duration' },
   book: { RU: 'Записаться на этот комплекс', UZ: 'Shu kompleksga yozilish', EN: 'Book this combo' },
   bookEmpty: { RU: 'Записаться', UZ: 'Yozilish', EN: 'Book now' },
   tiersHint: {
@@ -87,7 +95,9 @@ function AnimatedPrice({ value, language }: { value: number; language: LanguageC
 
 export default function Services({ language, selectedZoneIds, onToggleZone, onBook }: ServicesProps) {
   const selectedZones = SERVICE_ZONES.filter((z) => selectedZoneIds.includes(z.id));
+  // No master is chosen in this section, so the shared price list applies.
   const calc = calcTotal(selectedZones);
+  const hasPriced = calc.pricedZones.length > 0;
   const [shared, setShared] = useState(false);
   const reduced = useReducedMotion();
 
@@ -145,9 +155,14 @@ export default function Services({ language, selectedZoneIds, onToggleZone, onBo
                             <button
                               onClick={() => onToggleZone(zone.id)}
                               aria-pressed={selected}
-                              className="group btn-press ink-rule rule-row rule-long flex w-full items-center justify-between gap-4 py-3.5 text-left"
+                              className="group btn-press ink-rule rule-row rule-long flex w-full items-center justify-between gap-3 py-3.5 text-left sm:gap-4"
                             >
-                              <span className="flex items-center gap-3.5">
+                              {/* min-w-0 all the way down: the official zone names
+                                  run to "Голени с захватом колена + пальчики", and
+                                  a flex child defaults to min-width:auto — without
+                                  this the row refuses to shrink and pushes the
+                                  whole page sideways at 320px instead of wrapping. */}
+                              <span className="flex min-w-0 flex-1 items-center gap-3 sm:gap-3.5">
                                 <span
                                   aria-hidden
                                   className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
@@ -158,7 +173,7 @@ export default function Services({ language, selectedZoneIds, onToggleZone, onBo
                                 >
                                   {selected && <Check size={13} strokeWidth={3} />}
                                 </span>
-                                <span className={`text-[15px] transition-colors ${selected ? 'font-semibold text-ink' : 'font-medium text-body group-hover:text-ink'}`}>
+                                <span className={`min-w-0 text-[15px] transition-colors ${selected ? 'font-semibold text-ink' : 'font-medium text-body group-hover:text-ink'}`}>
                                   {getLocalized(zone.name, language)}
                                   {zone.popular && (
                                     <span className="ml-2.5 rounded-full bg-strong px-2 py-0.5 align-middle text-[11px] font-semibold text-ink/70">
@@ -167,11 +182,15 @@ export default function Services({ language, selectedZoneIds, onToggleZone, onBo
                                   )}
                                 </span>
                               </span>
-                              <span className="flex shrink-0 items-baseline gap-4 text-sm">
-                                <span className="hidden items-center gap-1 text-faint sm:flex">
-                                  <Timer size={13} /> {zone.durationMin} {getLocalized(TR.min, language)}
-                                </span>
-                                <span className="font-semibold text-ink">{formatPrice(zone.price, language)}</span>
+                              {/* A zone the studio has not priced yet reads
+                                  «по запросу» — never a number we invented, and
+                                  never a 0 that looks like it is free. */}
+                              <span
+                                className={`shrink-0 text-right text-sm ${
+                                  zone.price === null ? 'font-medium text-muted' : 'font-semibold text-ink'
+                                }`}
+                              >
+                                {formatZonePrice(zone.price, language)}
                               </span>
                             </button>
                           </li>
@@ -212,39 +231,59 @@ export default function Services({ language, selectedZoneIds, onToggleZone, onBo
                           animate={reduced ? undefined : { opacity: 1 }}
                           transition={{ duration: 0.3, ease: EASE_INK }}
                         >
-                          <div className="flex items-baseline justify-between gap-4 py-1.5 text-sm">
-                            <span className="text-ondark/85">{getLocalized(zone.name, language)}</span>
-                            <span className="font-medium">{formatPrice(zone.price, language)}</span>
+                          <div className="flex items-baseline justify-between gap-3 py-1.5 text-sm">
+                            <span className="min-w-0 text-ondark/85">{getLocalized(zone.name, language)}</span>
+                            <span
+                              className={`shrink-0 text-right ${zone.price === null ? 'text-ondark-soft' : 'font-medium'}`}
+                            >
+                              {formatZonePrice(zone.price, language)}
+                            </span>
                           </div>
                         </m.li>
                       ))}
                     </ul>
                     <dl className="mt-5 space-y-2.5 text-sm">
-                      <div className="flex justify-between text-ondark-soft">
-                        <dt>{getLocalized(TR.subtotal, language)}</dt>
-                        <dd>{formatPrice(calc.subtotal, language)}</dd>
-                      </div>
-                      {calc.discountPct > 0 && (
-                        <div className="flex justify-between text-champagne">
-                          <dt>
-                            {getLocalized(TR.discount, language)} −{calc.discountPct}%
-                          </dt>
-                          <dd>−{formatPrice(calc.discountAmount, language)}</dd>
-                        </div>
+                      {/* Subtotal and discount only exist once something priced is
+                          in the basket — otherwise they would both read 0 сум. */}
+                      {hasPriced && (
+                        <>
+                          <div className="flex justify-between text-ondark-soft">
+                            <dt>{getLocalized(TR.subtotal, language)}</dt>
+                            <dd>{formatPrice(calc.subtotal, language)}</dd>
+                          </div>
+                          {calc.discountPct > 0 && (
+                            <div className="flex justify-between text-champagne">
+                              <dt>
+                                {getLocalized(TR.discount, language)} −{calc.discountPct}%
+                              </dt>
+                              <dd>−{formatPrice(calc.discountAmount, language)}</dd>
+                            </div>
+                          )}
+                        </>
                       )}
-                      <div className="flex justify-between text-ondark-soft">
-                        <dt>{getLocalized(TR.duration, language)}</dt>
-                        <dd>
-                          ≈ {calc.durationMin} {getLocalized(TR.min, language)}
-                        </dd>
-                      </div>
-                      <div className="flex items-baseline justify-between border-t border-ondark/15 pt-4">
+                      <div className="flex items-baseline justify-between gap-3 border-t border-ondark/15 pt-4">
                         <dt className="font-semibold">{getLocalized(TR.total, language)}</dt>
-                        <dd className="display text-3xl tabular-nums">
-                          <AnimatedPrice value={calc.total} language={language} />
+                        {/* A basket of nothing but unpriced zones has no total to
+                            show: printing 0 сум would quote a price the studio
+                            never gave. */}
+                        <dd
+                          className={
+                            hasPriced ? 'display text-3xl tabular-nums' : 'text-right text-base font-semibold'
+                          }
+                        >
+                          {hasPriced ? (
+                            <AnimatedPrice value={calc.total} language={language} />
+                          ) : (
+                            getLocalized(PRICE_ON_REQUEST, language)
+                          )}
                         </dd>
                       </div>
                     </dl>
+                    {calc.onRequestZones.length > 0 && (
+                      <p className="mt-3.5 text-xs leading-relaxed text-champagne">
+                        {getLocalized(TR.onRequestNote, language)}
+                      </p>
+                    )}
                   </>
                 )}
 
@@ -257,14 +296,13 @@ export default function Services({ language, selectedZoneIds, onToggleZone, onBo
                 {selectedZones.length > 0 && (
                   <button
                     onClick={handleShare}
-                    className="btn-press ink-rule rule-slab rule-on-dark mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-ondark/20 px-5 py-2.5 text-xs font-semibold text-ondark/80 hover:border-ondark/50 hover:text-ondark"
+                    className="btn-press ink-rule rule-slab rule-on-dark mt-3 flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-ondark/20 px-5 text-xs font-semibold text-ondark/80 hover:border-ondark/50 hover:text-ondark"
                   >
                     {shared ? <Check size={13} /> : <Share2 size={13} />}
                     {getLocalized(shared ? TR.shared : TR.share, language)}
                   </button>
                 )}
                 <p className="mt-4 text-center text-xs text-ondark-soft">{getLocalized(TR.tiersHint, language)}</p>
-                <p className="mt-1.5 text-center text-xs text-ondark-soft">{getLocalized(TR.masterHint, language)}</p>
               </div>
             </Reveal>
           </div>

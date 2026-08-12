@@ -3,12 +3,17 @@ import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { LanguageCode } from '../types';
 import { EASE_INK } from '../lib/motion';
 import { subscribeScroll } from '../lib/scrollState';
-import { formatPrice, getLocalized } from '../utils';
+import { formatPrice, getLocalized, PRICE_ON_REQUEST } from '../utils';
 
 interface StickyCtaProps {
   language: LanguageCode;
   /** Total of the currently selected zones, 0 when nothing is picked. */
   total: number;
+  /**
+   * False when every selected zone is «по запросу» — `total` is then a
+   * legitimate 0 that must never be printed as a price.
+   */
+  hasPricedZones: boolean;
   zoneCount: number;
   onBook: () => void;
   /** Hidden while any modal is open. */
@@ -44,7 +49,14 @@ function zonesLabel(count: number, language: LanguageCode): string {
  * booking button is always one thumb-tap away. Mirrors the calculator total
  * when zones are selected.
  */
-export default function StickyCta({ language, total, zoneCount, onBook, hidden }: StickyCtaProps) {
+export default function StickyCta({
+  language,
+  total,
+  hasPricedZones,
+  zoneCount,
+  onBook,
+  hidden,
+}: StickyCtaProps) {
   const [visible, setVisible] = useState(false);
   const reduced = useReducedMotion();
 
@@ -101,8 +113,12 @@ export default function StickyCta({ language, total, zoneCount, onBook, hidden }
               {zoneCount > 0 ? (
                 <>
                   <p className="truncate text-xs text-muted">{zonesLabel(zoneCount, language)}</p>
+                  {/* A basket of nothing but unpriced zones has no total —
+                      "0 сум" here would read as "free". */}
                   <p className="font-serif text-lg font-semibold leading-tight text-ink">
-                    {formatPrice(total, language)}
+                    {hasPricedZones
+                      ? formatPrice(total, language)
+                      : getLocalized(PRICE_ON_REQUEST, language)}
                   </p>
                 </>
               ) : (

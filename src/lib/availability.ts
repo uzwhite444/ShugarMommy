@@ -122,12 +122,31 @@ export async function fetchDayAvailability(date: string): Promise<DayAvailabilit
   return result;
 }
 
-/** True when `time` cannot be booked for the chosen master. */
-export function isSlotTaken(availability: DayAvailability, time: string, masterName: string | null): boolean {
+/**
+ * True when `time` cannot be booked for the chosen master.
+ *
+ * `masterName` is the CANONICAL RU spelling — masterKey() from data.ts. The
+ * database stores that, and takenByMaster is keyed on it, so a localized name
+ * would silently match nothing and show busy slots as free.
+ *
+ * `roster` is the canonical names of the masters actually working that date
+ * (workingMasterKeys() from data.ts). It only matters for "любой мастер":
+ * without it the answer is derived from whoever happens to have a booking,
+ * so one busy master out of two would black out the whole grid. Pass it.
+ */
+export function isSlotTaken(
+  availability: DayAvailability,
+  time: string,
+  masterName: string | null,
+  roster?: readonly string[],
+): boolean {
   if (availability.dayClosed) return true;
   if (availability.takenForAll.has(time)) return true;
   if (masterName) return availability.takenByMaster.get(masterName)?.has(time) ?? false;
-  // "Any master" is only blocked when every master is busy at that time.
+  // "Any master" is only blocked when every master on shift is busy.
+  if (roster && roster.length > 0) {
+    return roster.every((name) => availability.takenByMaster.get(name)?.has(time) ?? false);
+  }
   const masters = [...availability.takenByMaster.values()];
   return masters.length > 0 && masters.every((set) => set.has(time));
 }
@@ -141,8 +160,11 @@ export function isRangeTaken(
   time: string,
   masterName: string | null,
   durationMin: number,
+  roster?: readonly string[],
 ): boolean {
-  return coveredSlots(time, durationMin).some((slot) => isSlotTaken(availability, slot, masterName));
+  return coveredSlots(time, durationMin).some((slot) =>
+    isSlotTaken(availability, slot, masterName, roster),
+  );
 }
 
 // --- Admin-side management -------------------------------------------------

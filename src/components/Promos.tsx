@@ -10,23 +10,21 @@ interface PromosProps {
   onBook: () => void;
 }
 
+/**
+ * Only offers the site can actually honour live here. The «−20% на первый
+ * визит» card that used to lead this section was removed: the studio never
+ * quoted that discount, and calcTotal() has no first-visit tier, so the booking
+ * total contradicted the promise on screen. To bring it back, the owner has to
+ * confirm the percentage AND a tier has to be added to DISCOUNT_TIERS logic —
+ * copy alone would put the two out of sync again.
+ */
 const TR = {
   eyebrow: { RU: 'Акции', UZ: 'Aksiyalar', EN: 'Offers' },
   title: { RU: 'Сейчас выгодно', UZ: 'Ayni damda foydali', EN: 'Good time to book' },
-  first: {
-    badge: { RU: 'Новым клиенткам', UZ: 'Yangi mijozlarga', EN: 'For new clients' },
-    value: '−20%',
-    title: { RU: 'Первый визит', UZ: 'Birinchi tashrif', EN: 'First visit' },
-    text: {
-      RU: 'Скидка 20% на первую процедуру — познакомьтесь со студией без лишних трат.',
-      UZ: 'Birinchi muolajaga 20% chegirma — studiya bilan ortiqcha xarajatsiz tanishing.',
-      EN: 'A 20% discount on your first procedure — meet the studio without overspending.',
-    },
-    cta: { RU: 'Записаться', UZ: 'Yozilish', EN: 'Book now' },
-  },
   combo: {
     // Wording is derived from DISCOUNT_TIERS so the promo can never promise a
     // discount the calculator does not apply.
+    badge: { RU: 'Всем клиенткам', UZ: 'Barcha mijozlarga', EN: 'For every client' },
     value: {
       RU: `до −${DISCOUNT_TIERS[0].pct}%`,
       UZ: `−${DISCOUNT_TIERS[0].pct}% gacha`,
@@ -38,7 +36,7 @@ const TR = {
       UZ: `Kalkulyatorda ${DISCOUNT_TIERS[1].minZones}+ zonani tanlang — ${DISCOUNT_TIERS[1].pct}% chegirma, ${DISCOUNT_TIERS[0].minZones} zonadan — ${DISCOUNT_TIERS[0].pct}%. Avtomatik qo‘llanadi.`,
       EN: `Pick ${DISCOUNT_TIERS[1].minZones}+ zones in the calculator for ${DISCOUNT_TIERS[1].pct}% off, ${DISCOUNT_TIERS[0].minZones}+ zones for ${DISCOUNT_TIERS[0].pct}% — applied automatically.`,
     },
-    cta: { RU: 'Собрать комплекс', UZ: "Kompleks yig'ish", EN: 'Build a combo' },
+    cta: { RU: 'Собрать комплекс', UZ: 'Kompleks yig‘ish', EN: 'Build a combo' },
   },
   gift: {
     title: { RU: 'Подарочный сертификат', UZ: 'Sovg‘a sertifikati', EN: 'Gift certificate' },
@@ -49,10 +47,12 @@ const TR = {
     },
     cta: { RU: 'Оформить в Telegram', UZ: 'Telegramda rasmiylashtirish', EN: 'Arrange on Telegram' },
   },
+  // Matches calcTotal(): the tier counts priced zones only, so a zone quoted
+  // «по запросу» neither enters the subtotal nor earns the discount.
   note: {
-    RU: 'Скидки не суммируются с другими акциями.',
-    UZ: 'Chegirmalar boshqa aksiyalar bilan qo‘shilmaydi.',
-    EN: 'Discounts do not stack with other offers.',
+    RU: 'Скидка за комплекс считается автоматически при записи. Зоны с ценой «по запросу» в расчёт не входят.',
+    UZ: 'Kompleks uchun chegirma yozilishda avtomatik hisoblanadi. Narxi «so‘rov bo‘yicha» zonalar hisobga kirmaydi.',
+    EN: 'The combo discount is applied automatically at booking. Zones priced on request are not part of the total.',
   },
 };
 
@@ -62,50 +62,35 @@ export default function Promos({ language, onBook }: PromosProps) {
       <div className="mx-auto max-w-6xl">
         <SectionHead eyebrow={getLocalized(TR.eyebrow, language)} title={getLocalized(TR.title, language)} />
 
-        {/* The loud card lands first and the two quiet ones follow it — order
-            comes from the DOM, so the lg 3-across row and the stacked phone
-            layout read the same way round. */}
-        <Stagger className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-3" step={STAGGER.loose} delay={0.12}>
+        {/* The loud card lands first and the quiet one follows it — order comes
+            from the DOM, so the two-across row and the stacked phone layout read
+            the same way round. Two columns, not three: the pair splits the row
+            evenly instead of leaving a dead cell. */}
+        <Stagger className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2" step={STAGGER.loose} delay={0.12}>
           {/* Terracotta callout — the one loud card on the page */}
           <StaggerItem variant="plate">
             {/* rule-on-primary: a terracotta rule on a terracotta card is
                 invisible, so this one card inks in white. */}
             <div className="ink-rule rule-top rule-on-primary rule-long flex h-full flex-col rounded-xl bg-primary p-8 text-white">
               <span className="self-start rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em]">
-                {getLocalized(TR.first.badge, language)}
+                {getLocalized(TR.combo.badge, language)}
               </span>
-              <p className="display mt-6 text-6xl">{TR.first.value}</p>
-              <h3 className="mt-3 text-lg font-semibold">{getLocalized(TR.first.title, language)}</h3>
+              {/* One step down on the narrowest phones: "до −15%" is far wider
+                  than a bare number. */}
+              <p className="display mt-6 text-5xl sm:text-6xl">{getLocalized(TR.combo.value, language)}</p>
+              <h3 className="mt-3 text-lg font-semibold">{getLocalized(TR.combo.title, language)}</h3>
               {/* No colour utility here on purpose: the paragraph inherits the
                   card's ink, which night mode corrects to dark. An explicit
                   text-white/85 bypasses that correction and drops to 2.2:1. */}
-              <p className="mt-2 flex-1 text-sm leading-relaxed">{getLocalized(TR.first.text, language)}</p>
+              <p className="mt-2 flex-1 text-sm leading-relaxed">{getLocalized(TR.combo.text, language)}</p>
               {/* The card stays light-on-terracotta in both themes, so this
                   always-white button needs tones pinned outside the theme swap. */}
               <button
                 onClick={onBook}
                 className="btn-press press-slab mt-6 flex min-h-11 items-center self-start rounded-lg bg-white px-5 text-sm font-semibold text-onwhite hover:bg-white-soft"
               >
-                {getLocalized(TR.first.cta, language)}
-              </button>
-            </div>
-          </StaggerItem>
-
-          <StaggerItem variant="plate">
-            <div className="ink-rule rule-top rule-long flex h-full flex-col rounded-xl bg-surface p-8">
-              {/* One step down on the narrowest phones: "up to −15%" is far
-                  wider than the bare number it replaced. */}
-              <p className="display text-5xl text-ink sm:text-6xl">{getLocalized(TR.combo.value, language)}</p>
-              <h3 className="mt-3 text-lg font-semibold text-ink">{getLocalized(TR.combo.title, language)}</h3>
-              <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
-                {getLocalized(TR.combo.text, language)}
-              </p>
-              <a
-                href="#services"
-                className="btn-press ink-rule rule-slab mt-6 flex min-h-11 items-center self-start rounded-lg border border-ink/20 px-5 text-sm font-semibold text-ink hover:border-ink"
-              >
                 {getLocalized(TR.combo.cta, language)}
-              </a>
+              </button>
             </div>
           </StaggerItem>
 

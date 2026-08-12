@@ -3,7 +3,7 @@ import { Check } from 'lucide-react';
 import { LanguageCode } from '../types';
 import { SERVICE_ZONES } from '../data';
 import { DUR, EASE_INK, VIEW } from '../lib/motion';
-import { formatPrice, getLocalized } from '../utils';
+import { formatZonePrice, getLocalized } from '../utils';
 import figure from '../assets/body-figure.webp';
 
 interface BodyMapProps {
@@ -20,16 +20,29 @@ interface MapPoint {
   side: 'left' | 'right';
 }
 
-/* Anchor dots for the most-booked zones; fine-tuning stays in the list below.
-   Percent coordinates match src/assets/body-figure.webp (full frame, untrimmed). */
+/* Anchor dots for the most-booked zones; the rest of the price list is one
+   scroll below. Percent coordinates are measured on the artwork in
+   src/assets/body-figure.webp (full frame, untrimmed) and are anchored to a box
+   that is exactly the image — see the wrapper in the markup below.
+
+   Head to toe, which is also the order they fade in.
+
+   Only zones visible from the front: спина, поясница and ягодицы are in the
+   price list but have no honest anchor on a front-facing figure.
+   Face zones are absent on purpose — they are hidden until Рената's price list
+   arrives, so SERVICE_ZONES does not contain them at all.
+
+   Spacing rule: the touch targets are 44px, so two dots must sit further than
+   that apart on at least one axis at the narrowest rendering (240px figure),
+   or their invisible hit areas would overlap and steal each other's taps. */
 const POINTS: MapPoint[] = [
-  { zoneId: 'face-full', x: 49, y: 11, side: 'right' },
-  { zoneId: 'underarms', x: 39, y: 23.5, side: 'left' },
-  { zoneId: 'arms-full', x: 30, y: 45, side: 'left' },
-  { zoneId: 'belly', x: 49, y: 38, side: 'right' },
-  { zoneId: 'bikini-deep', x: 49, y: 51, side: 'right' },
-  { zoneId: 'legs-full', x: 45, y: 63, side: 'left' },
-  { zoneId: 'legs-half', x: 49, y: 81, side: 'right' },
+  { zoneId: 'underarms', x: 40, y: 22.5, side: 'left' },
+  { zoneId: 'arms-full', x: 36, y: 37, side: 'left' },
+  { zoneId: 'belly', x: 56, y: 42, side: 'right' },
+  { zoneId: 'hands', x: 31.5, y: 50, side: 'left' },
+  { zoneId: 'bikini-deep', x: 51, y: 55, side: 'right' },
+  { zoneId: 'thighs', x: 45, y: 68, side: 'left' },
+  { zoneId: 'legs-half', x: 53, y: 82, side: 'right' },
 ];
 
 const TR_HINT = {
@@ -47,7 +60,13 @@ export default function BodyMap({ language, selectedZoneIds, onToggleZone }: Bod
 
   return (
     <div className="mb-12">
-      <div className="relative mx-auto w-full max-w-[420px]">
+      {/* The anchor box IS the figure, not a wider centred column: a dot's
+          percentage has to land on the same rib at every viewport width, and it
+          only does that when the positioning context is the image itself.
+          `relative` alone creates no stacking context, so `.body-figure` below
+          keeps blending against the section — which is the whole reason nothing
+          around here may animate. */}
+      <div className="relative mx-auto w-[240px] sm:w-[270px]">
         <img
           src={figure}
           alt=""
@@ -56,7 +75,7 @@ export default function BodyMap({ language, selectedZoneIds, onToggleZone }: Bod
           height={1024}
           loading="lazy"
           draggable={false}
-          className="body-figure mx-auto h-auto w-[240px] select-none sm:w-[270px]"
+          className="body-figure block h-auto w-full select-none"
         />
         {POINTS.map((point, i) => {
           const zone = SERVICE_ZONES.find((z) => z.id === point.zoneId);
@@ -68,7 +87,7 @@ export default function BodyMap({ language, selectedZoneIds, onToggleZone }: Bod
               key={zone.id}
               onClick={() => onToggleZone(zone.id)}
               aria-pressed={selected}
-              title={`${name} · ${formatPrice(zone.price, language)}`}
+              title={`${name} · ${formatZonePrice(zone.price, language)}`}
               // The dots ARE this figure's entrance: nothing may animate above
               // them, because a stacking context on any ancestor of
               // `.body-figure` isolates its mix-blend-mode and the artwork
@@ -121,10 +140,14 @@ export default function BodyMap({ language, selectedZoneIds, onToggleZone }: Bod
                   point.side === 'left' ? 'map-connector-flip' : ''
                 } ${selected ? 'map-connector-on bg-primary/70' : 'bg-primary/40'}`}
               />
+              {/* The studio's official wording is long — "Голени с захватом
+                  колена + пальчики" — and it may not be paraphrased, so the
+                  label wraps inside a fixed measure instead of running off the
+                  section on one line. It aligns toward its own dot. */}
               <span
-                className={`hidden whitespace-nowrap text-[11px] font-semibold transition-colors sm:inline ${
-                  selected ? 'text-ink' : 'text-muted group-hover:text-ink'
-                }`}
+                className={`hidden max-w-[124px] text-[11px] font-semibold leading-tight transition-colors sm:block ${
+                  point.side === 'left' ? 'text-right' : 'text-left'
+                } ${selected ? 'text-ink' : 'text-muted group-hover:text-ink'}`}
               >
                 {name}
               </span>

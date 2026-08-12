@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CalendarOff, Loader2, Plus, Trash2 } from 'lucide-react';
 import { BlockedSlot, createBlock, deleteBlock, fetchBlockedSlots } from '../../lib/availability';
 import { MASTERS, masterKey } from '../../data';
-import { WORK_HOURS } from '../../utils';
+import { STUDIO_HOURS } from '../../utils';
 import { Booking } from '../../types';
 import { todayIso } from './status';
 
@@ -13,8 +13,8 @@ interface ScheduleProps {
 /** 30-minute slots between opening and closing. */
 function buildTimeSlots(): string[] {
   const slots: string[] = [];
-  const [openH] = WORK_HOURS.open.split(':').map(Number);
-  const [closeH] = WORK_HOURS.close.split(':').map(Number);
+  const [openH] = STUDIO_HOURS.open.split(':').map(Number);
+  const [closeH] = STUDIO_HOURS.close.split(':').map(Number);
   for (let h = openH; h < closeH; h++) {
     slots.push(`${String(h).padStart(2, '0')}:00`);
     slots.push(`${String(h).padStart(2, '0')}:30`);

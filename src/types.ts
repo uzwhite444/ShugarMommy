@@ -9,12 +9,49 @@ export type ZoneCategory = 'face' | 'arms' | 'legs' | 'bikini' | 'body';
 export interface ServiceZone {
   id: string;
   category: ZoneCategory;
+  /** Official studio wording — never paraphrase it in the UI. */
   name: Localized;
-  /** Price in UZS. */
-  price: number;
-  /** Approximate procedure duration in minutes. */
-  durationMin: number;
+  /**
+   * Studio price in UZS, or null when the studio has not given one yet
+   * ("цена по запросу"). INVARIANT: a null price never enters any total —
+   * calcTotal() returns those zones separately in `onRequestZones`.
+   */
+  price: number | null;
+  /**
+   * Kept out of the public price list. Set on the face zones until the studio
+   * supplies their prices — the data stays here so one flag brings them back.
+   */
+  hidden?: boolean;
+  /**
+   * "Хит" badge. The studio has not marked any zone yet, so nothing sets it —
+   * the field stays so the badge can be switched on without a type change.
+   */
   popular?: boolean;
+}
+
+/**
+ * One stretch of a master's working calendar. A master's schedule is a list of
+ * these; the rule in force is chosen by the VISIT date, never by "today", so a
+ * September visit booked in August already uses the September rule.
+ */
+export interface MasterScheduleRule {
+  /**
+   * Local ISO date (YYYY-MM-DD) this rule starts applying, or null for the
+   * rule that applies before any dated one.
+   */
+  effectiveFrom: string | null;
+  /** Worked weekdays as Date.getDay(): 0 = Sunday … 6 = Saturday. */
+  weekdays: readonly number[];
+  /** "HH:MM" local (Asia/Tashkent). */
+  open: string;
+  /** "HH:MM" local (Asia/Tashkent). */
+  close: string;
+}
+
+/** An opening window for one day. */
+export interface WorkWindow {
+  open: string;
+  close: string;
 }
 
 export interface Master {
@@ -23,21 +60,32 @@ export interface Master {
    * Display name per language (RU Cyrillic, UZ/EN Latin transliteration).
    * INVARIANT: `name.RU` is the canonical key — it is what gets written to
    * bookings.master / blocked_slots.master, matched against takenByMaster in
-   * lib/availability.ts and shown in the admin panel. It must be identical in
-   * every language, otherwise availability matching and existing rows break.
+   * lib/availability.ts and shown in the admin panel. It must never change for
+   * an existing master, or availability matching and existing rows break.
    * Use masterKey() from data.ts for storage, getLocalized() for display.
    */
   name: Localized;
-  role: Localized;
-  experienceYears: number;
-  description: Localized;
-  /** Initials shown in the avatar placeholder until a real photo is added. */
-  initials: string;
+  /** Line under the name: «Топ-мастер» / «Сертифицированный мастер». */
+  title: Localized;
+  /** Extra credential line — present only where the studio stated one. */
+  credentials?: Localized;
   /**
-   * Discount off the base price list, in percent. Base prices belong to the
-   * top master; junior masters work at a lower rate.
+   * Only set where the studio actually gave a number. Absent means the studio
+   * did not state it — never substitute a guess.
    */
-  discountPct: number;
+  experienceYears?: number;
+  /** Hidden from the public site; kept in data so one flag brings her back. */
+  hidden?: boolean;
+  /** Zone ids this master performs. */
+  zoneIds: readonly string[];
+  /**
+   * zoneId → price in UZS. A missing key means this master has no price for
+   * that zone yet → "по запросу". There is no discount mechanic: each master
+   * simply carries her own price list.
+   */
+  prices: Readonly<Record<string, number | undefined>>;
+  /** Schedule rules; order does not matter, the visit date picks one. */
+  schedule: readonly MasterScheduleRule[];
 }
 
 export interface Review {

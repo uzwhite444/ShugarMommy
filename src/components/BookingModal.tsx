@@ -2,17 +2,26 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { m, useReducedMotion } from 'motion/react';
 import { X, Send, Loader2, CheckCircle2, Copy, Check, BellRing } from 'lucide-react';
-import { LanguageCode, ServiceZone } from '../types';
+import { LanguageCode, Localized, Master, ServiceZone, WorkWindow } from '../types';
 import {
   calcTotal,
-  DAY_OFF,
   formatPrice,
   getLocalized,
   MANAGER_BOT,
   MANAGER_TELEGRAM,
-  WORK_HOURS,
+  PRICE_ON_REQUEST,
+  masterInitial,
 } from '../utils';
-import { MASTERS, masterKey } from '../data';
+import {
+  isStudioClosedOn,
+  masterHoursOn,
+  masterKey,
+  MASTERS,
+  STUDIO_HOURS,
+  studioHoursOn,
+  toIsoDate,
+  workingMasterKeys,
+} from '../data';
 import { createBooking } from '../lib/bookings';
 import {
   fetchDayAvailability,
@@ -43,7 +52,11 @@ const TR = {
   },
   total: { RU: 'Итого', UZ: 'Yakuniy', EN: 'Total' },
   setDiscount: { RU: 'сет', UZ: 'set', EN: 'set' },
-  masterDiscount: { RU: 'мастер', UZ: 'usta', EN: 'master' },
+  onRequestLead: {
+    RU: 'В итог не входит, цену уточним при подтверждении:',
+    UZ: 'Yakuniyga kirmaydi, narxni tasdiqlashda aniqlaymiz:',
+    EN: 'Not included in the total, we will confirm the price:',
+  },
   stepContacts: { RU: 'Ваши данные', UZ: "Ma'lumotlaringiz", EN: 'Your details' },
   stepMaster: { RU: 'Мастер', UZ: 'Usta', EN: 'Master' },
   stepWhen: { RU: 'Дата и время', UZ: 'Sana va vaqt', EN: 'Date & time' },
@@ -52,7 +65,6 @@ const TR = {
   close: { RU: 'Закрыть', UZ: 'Yopish', EN: 'Close' },
   removeZone: { RU: 'Убрать зону', UZ: 'Zonani olib tashlash', EN: 'Remove zone' },
   anyMaster: { RU: 'Любой мастер', UZ: 'Istalgan usta', EN: 'Any master' },
-  offPriceList: { RU: 'к прайсу', UZ: 'praysga', EN: 'off the price list' },
   anyMasterHint: {
     RU: 'Подберёт администратор',
     UZ: 'Administrator tanlaydi',
@@ -65,6 +77,16 @@ const TR = {
     RU: 'Воскресенье — выходной. Мастер может выйти по двойному тарифу — напишите нам в Telegram.',
     UZ: 'Yakshanba — dam olish kuni. Usta ikki baravar tarif bilan chiqishi mumkin — Telegramga yozing.',
     EN: 'Sunday is our day off. A master can come in at double rate — message us on Telegram.',
+  },
+  hoursNote: {
+    RU: 'Часы приёма: {from}–{to}',
+    UZ: 'Qabul vaqti: {from}–{to}',
+    EN: 'Working hours: {from}–{to}',
+  },
+  masterDayOff: {
+    RU: 'В этот день мастер не принимает — выберите другую дату или мастера.',
+    UZ: 'Bu kuni usta qabul qilmaydi — boshqa sana yoki ustani tanlang.',
+    EN: 'This master does not work that day — pick another date or master.',
   },
   comment: { RU: 'Комментарий (необязательно)', UZ: 'Izoh (ixtiyoriy)', EN: 'Comment (optional)' },
   submit: { RU: 'Отправить заявку в Telegram', UZ: 'Arizani Telegramga yuborish', EN: 'Send request via Telegram' },
@@ -148,10 +170,16 @@ const TR = {
 /** Shortest bookable visit — one grid cell, even with no zones picked. */
 const MIN_DURATION_MIN = 30;
 
-/** 30-minute slots from opening until 30 minutes before closing. */
-function buildTimeSlots(): string[] {
-  const open = timeToMinutes(WORK_HOURS.open);
-  const close = timeToMinutes(WORK_HOURS.close);
+/**
+ * 30-minute slots from opening until 30 minutes before closing. The window is
+ * now per-master and per-date, so this can no longer be computed once: Ангелина
+ * opens at 09:00 while Муслима is already there from 08:00.
+ */
+function buildTimeSlots(hours: WorkWindow | null): string[] {
+  if (!hours) return [];
+  const open = timeToMinutes(hours.open);
+  const close = timeToMinutes(hours.close);
+  if (!Number.isFinite(open) || !Number.isFinite(close)) return [];
   const slots: string[] = [];
   for (let t = Math.ceil(open / 30) * 30; t <= close - 30; t += 30) {
     const h = String(Math.floor(t / 60)).padStart(2, '0');
@@ -161,6 +189,27 @@ function buildTimeSlots(): string[] {
   return slots;
 }
 
+/**
+ * Widest window a master ever works — the preview shown before a date is
+ * picked, when no single day's rule applies yet.
+ */
+function masterWidestHours(master: Master): WorkWindow {
+  // Not named `window`: shadowing the DOM global here confuses narrowing.
+  let widest: WorkWindow | null = null;
+  for (const rule of master.schedule) {
+    if (!widest) {
+      widest = { open: rule.open, close: rule.close };
+      continue;
+    }
+    widest = {
+      open: rule.open < widest.open ? rule.open : widest.open,
+      close: rule.close > widest.close ? rule.close : widest.close,
+    };
+  }
+  // A master always has at least one rule; the fallback keeps the type honest.
+  return widest ?? STUDIO_HOURS;
+}
+
 /** Next `count` days starting today, as local dates. */
 function buildDays(count = 14): Date[] {
   const today = new Date();
@@ -168,12 +217,6 @@ function buildDays(count = 14): Date[] {
     { length: count },
     (_, i) => new Date(today.getFullYear(), today.getMonth(), today.getDate() + i),
   );
-}
-
-/** Local YYYY-MM-DD (no UTC shift). */
-function toIsoDay(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 const INTL_LOCALE: Record<LanguageCode, string> = { RU: 'ru-RU', UZ: 'uz-Latn-UZ', EN: 'en-US' };
@@ -234,9 +277,11 @@ export default function BookingModal({
   // Set after a successful save — powers the "remind me" deep link.
   const [bookingId, setBookingId] = useState<string | null>(null);
 
-  const t = (loc: (typeof TR)[keyof typeof TR]) => getLocalized(loc, language);
+  const t = (loc: Localized) => getLocalized(loc, language);
+  // MASTERS is already filtered — a hidden master can never be selected here,
+  // and an unknown id simply falls back to "любой мастер".
   const selectedMaster = MASTERS.find((m) => m.id === masterId);
-  const calc = calcTotal(selectedZones, selectedMaster?.discountPct ?? 0);
+  const calc = calcTotal(selectedZones, selectedMaster);
   const tgLink = `https://t.me/${MANAGER_TELEGRAM}?text=${encodeURIComponent(requestMsg)}`;
 
   const days = useMemo(() => buildDays(), []);
@@ -276,23 +321,38 @@ export default function BookingModal({
     };
   }, [date]);
 
-  const slots = useMemo(() => buildTimeSlots(), []);
+  // Opening window that actually applies: one master's own hours once she is
+  // chosen, the union of everyone on shift for "любой мастер". Before a date is
+  // picked there is no rule to apply yet, so the widest window previews the grid.
+  const workHours = useMemo<WorkWindow | null>(() => {
+    if (!date) return selectedMaster ? masterWidestHours(selectedMaster) : STUDIO_HOURS;
+    return selectedMaster ? masterHoursOn(selectedMaster, date) : studioHoursOn(date);
+  }, [date, selectedMaster]);
+
+  // Masters on shift that date — without it "любой мастер" is blacked out as
+  // soon as a single master is busy.
+  const roster = useMemo(() => (date ? workingMasterKeys(date) : []), [date]);
+
+  const slots = useMemo(() => buildTimeSlots(workHours), [workHours]);
   const takenSet = useMemo(() => {
     if (!availability) return new Set<string>();
     return new Set(
-      slots.filter((slot) => isRangeTaken(availability, slot, selectedMasterName, comboDuration)),
+      slots.filter((slot) =>
+        isRangeTaken(availability, slot, selectedMasterName, comboDuration, roster),
+      ),
     );
-  }, [availability, slots, selectedMasterName, comboDuration]);
+  }, [availability, slots, selectedMasterName, comboDuration, roster]);
 
   // A long combo cannot start so late that it would run past closing.
   const tooLateSet = useMemo(() => {
-    const close = timeToMinutes(WORK_HOURS.close);
+    if (!workHours) return new Set<string>();
+    const close = timeToMinutes(workHours.close);
     return new Set(slots.filter((slot) => timeToMinutes(slot) + comboDuration > close));
-  }, [slots, comboDuration]);
+  }, [slots, comboDuration, workHours]);
 
   // When "today" is picked, times that already passed cannot be booked.
   const pastSet = useMemo(() => {
-    if (!date || date !== toIsoDay(new Date())) return new Set<string>();
+    if (!date || date !== toIsoDate(new Date())) return new Set<string>();
     const now = new Date();
     const nowMin = now.getHours() * 60 + now.getMinutes();
     return new Set(
@@ -303,12 +363,26 @@ export default function BookingModal({
     );
   }, [date, slots]);
 
-  // Switching to a master who is busy at the chosen time (or to a date where
-  // the time is already in the past) clears the choice, so an unbookable slot
-  // can never be submitted.
+  // Switching to a master who is busy at the chosen time — or whose day simply
+  // starts later, so the slot is no longer in her grid at all — clears the
+  // choice, so an unbookable time can never be submitted.
   useEffect(() => {
-    if (time && (takenSet.has(time) || pastSet.has(time) || tooLateSet.has(time))) setTime('');
-  }, [takenSet, pastSet, tooLateSet, time]);
+    if (!time) return;
+    if (!slots.includes(time) || takenSet.has(time) || pastSet.has(time) || tooLateSet.has(time)) {
+      setTime('');
+    }
+  }, [slots, takenSet, pastSet, tooLateSet, time]);
+
+  // Each master keeps her own calendar, so a date that was open for "любой
+  // мастер" can be a day off for the one just picked. Drop it rather than send
+  // a request for a day nobody works.
+  useEffect(() => {
+    if (!date) return;
+    const open = selectedMaster
+      ? masterHoursOn(selectedMaster, date) !== null
+      : !isStudioClosedOn(date);
+    if (!open) setDate('');
+  }, [selectedMaster, date]);
 
   // The form unmounts on success, so the focused control disappears and focus
   // would fall outside the dialog — move it onto the confirmation heading.
@@ -326,7 +400,12 @@ export default function BookingModal({
   const allTaken =
     Boolean(date) &&
     !loadingSlots &&
+    slots.length > 0 &&
     slots.every((slot) => takenSet.has(slot) || pastSet.has(slot) || tooLateSet.has(slot));
+
+  // The chosen master does not work that date at all (the auto-reset above
+  // normally gets there first — this is the belt-and-braces message).
+  const noHours = Boolean(date) && !loadingSlots && slots.length === 0;
 
   const handleSubmit = async () => {
     if (submitLockRef.current) return;
@@ -339,7 +418,7 @@ export default function BookingModal({
       return;
     }
     // The form may sit open long enough for the chosen time to pass.
-    if (date === toIsoDay(new Date())) {
+    if (date === toIsoDate(new Date())) {
       const [h, m] = time.split(':').map(Number);
       const now = new Date();
       if (h * 60 + m <= now.getHours() * 60 + now.getMinutes()) {
@@ -355,7 +434,7 @@ export default function BookingModal({
     try {
       // Someone may have taken the slot while the form was open.
       const fresh = await fetchDayAvailability(date);
-      if (isRangeTaken(fresh, time, selectedMasterName, comboDuration)) {
+      if (isRangeTaken(fresh, time, selectedMasterName, comboDuration, roster)) {
         setAvailability(fresh);
         setTime('');
         setError(t(TR.errTaken));
@@ -379,23 +458,29 @@ export default function BookingModal({
 
       const labels =
         language === 'RU'
-          ? { services: 'Зоны', master: 'Мастер', date: 'Дата', time: 'Время', total: 'Итого', name: 'Имя', phone: 'Телефон', comment: 'Комментарий' }
+          ? { services: 'Зоны', master: 'Мастер', date: 'Дата', time: 'Время', total: 'Итого', onRequest: 'Цена по запросу', name: 'Имя', phone: 'Телефон', comment: 'Комментарий' }
           : language === 'UZ'
-            ? { services: 'Zonalar', master: 'Usta', date: 'Sana', time: 'Vaqt', total: 'Jami', name: 'Ism', phone: 'Telefon', comment: 'Izoh' }
-            : { services: 'Zones', master: 'Master', date: 'Date', time: 'Time', total: 'Total', name: 'Name', phone: 'Phone', comment: 'Comment' };
+            ? { services: 'Zonalar', master: 'Usta', date: 'Sana', time: 'Vaqt', total: 'Jami', onRequest: 'Narx so‘rov bo‘yicha', name: 'Ism', phone: 'Telefon', comment: 'Izoh' }
+            : { services: 'Zones', master: 'Master', date: 'Date', time: 'Time', total: 'Total', onRequest: 'Price on request', name: 'Name', phone: 'Phone', comment: 'Comment' };
 
       let message = `${greeting}\n\n`;
       message += `💆‍♀️ ${labels.services}: ${servicesText}\n`;
       message += `👩‍🔬 ${labels.master}: ${masterName}\n`;
       message += `📅 ${labels.date}: ${date}\n`;
       message += `🕐 ${labels.time}: ${time}\n`;
-      if (selectedZones.length > 0) {
-        const notes = [
-          calc.discountPct > 0 ? `${t(TR.setDiscount)} −${calc.discountPct}%` : '',
-          calc.masterDiscountPct > 0 ? `${t(TR.masterDiscount)} −${calc.masterDiscountPct}%` : '',
-        ].filter(Boolean);
-        const discountNote = notes.length > 0 ? ` (${notes.join(', ')})` : '';
+      // The total covers priced zones only — quoting it while an unpriced zone
+      // is in the list would understate what the studio actually charges, so
+      // those zones are named separately instead of being folded in silently.
+      if (calc.pricedZones.length > 0) {
+        const discountNote =
+          calc.discountPct > 0 ? ` (${t(TR.setDiscount)} −${calc.discountPct}%)` : '';
         message += `💰 ${labels.total}: ${formatPrice(calc.total, language)}${discountNote}\n`;
+      }
+      if (calc.onRequestZones.length > 0) {
+        const onRequestText = calc.onRequestZones
+          .map((z) => getLocalized(z.name, language))
+          .join(', ');
+        message += `❓ ${labels.onRequest}: ${onRequestText}\n`;
       }
       message += `\n👤 ${labels.name}: ${name.trim()}\n📞 ${labels.phone}: ${phone.trim()}`;
       if (comment.trim()) message += `\n💬 ${labels.comment}: ${comment.trim()}`;
@@ -594,19 +679,25 @@ export default function BookingModal({
                       </li>
                     ))}
                   </ul>
+                  {/* Zones the studio has not priced yet stay out of the sum —
+                      showing them inside it would quote a total that is wrong. */}
                   <p className="mt-3 border-t border-ink/10 pt-3 font-serif text-xl font-semibold text-ink">
-                    {t(TR.total)}: {formatPrice(calc.total, language)}
+                    {t(TR.total)}:{' '}
+                    {calc.pricedZones.length > 0
+                      ? formatPrice(calc.total, language)
+                      : t(PRICE_ON_REQUEST)}
                   </p>
-                  {(calc.discountPct > 0 || calc.masterDiscountPct > 0) && (
+                  {calc.discountPct > 0 && (
                     <p className="mt-1 font-sans text-xs font-semibold text-primary-dark">
-                      {[
-                        calc.discountPct > 0 ? `${t(TR.setDiscount)} −${calc.discountPct}%` : '',
-                        calc.masterDiscountPct > 0
-                          ? `${t(TR.masterDiscount)} −${calc.masterDiscountPct}%`
-                          : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
+                      {t(TR.setDiscount)} −{calc.discountPct}%
+                    </p>
+                  )}
+                  {calc.onRequestZones.length > 0 && (
+                    <p className="mt-1.5 font-sans text-xs leading-relaxed text-muted">
+                      {t(TR.onRequestLead)}{' '}
+                      <span className="font-semibold text-body">
+                        {calc.onRequestZones.map((z) => getLocalized(z.name, language)).join(', ')}
+                      </span>
                     </p>
                   )}
                 </>
@@ -684,20 +775,14 @@ export default function BookingModal({
                             selected ? 'bg-canvas/15 text-canvas' : 'bg-primary-soft text-primary-dark'
                           }`}
                         >
-                          {master.initials}
+                          {masterInitial(master, language)}
                         </span>
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-semibold">
                             {getLocalized(master.name, language)}
                           </span>
                           <span className={`block truncate text-xs ${selected ? 'text-canvas/60' : 'text-faint'}`}>
-                            {master.discountPct > 0 ? (
-                              <span className={selected ? 'text-canvas' : 'font-semibold text-primary-dark'}>
-                                −{master.discountPct}% {t(TR.offPriceList)}
-                              </span>
-                            ) : (
-                              getLocalized(master.role, language)
-                            )}
+                            {getLocalized(master.title, language)}
                           </span>
                         </span>
                       </button>
@@ -717,9 +802,13 @@ export default function BookingModal({
                   aria-label={t(TR.stepWhen)}
                 >
                   {days.map((day, i) => {
-                    const iso = toIsoDay(day);
+                    const iso = toIsoDate(day);
                     const selected = date === iso;
-                    const closed = day.getDay() === DAY_OFF;
+                    // Per-master calendars: a day is bookable only if the master
+                    // actually works it, or — for "любой мастер" — if anyone does.
+                    const closed = selectedMaster
+                      ? masterHoursOn(selectedMaster, iso) === null
+                      : isStudioClosedOn(iso);
                     const topLabel = closed
                       ? t(TR.dayOff)
                       : i === 0
@@ -752,12 +841,23 @@ export default function BookingModal({
                   })}
                 </div>
                 <p className="mt-2.5 text-xs leading-relaxed text-faint">{t(TR.dayOffNote)}</p>
-                {/* Availability changes silently as the date is switched —
-                    the live region reads it out. */}
+                {/* Availability — and now the working window itself — change
+                    silently as the date or master is switched; the live region
+                    reads both out. */}
                 <div aria-live="polite" aria-atomic="true">
+                  {workHours && (
+                    <p className="mt-2.5 text-xs font-medium text-muted">
+                      {t(TR.hoursNote)
+                        .replace('{from}', workHours.open)
+                        .replace('{to}', workHours.close)}
+                    </p>
+                  )}
                   {loadingSlots && <p className="mt-3 text-xs text-faint">{t(TR.loadingSlots)}</p>}
                   {availability?.dayClosed && (
                     <p className="mt-3 text-xs font-semibold text-danger">{t(TR.dayClosed)}</p>
+                  )}
+                  {noHours && !availability?.dayClosed && (
+                    <p className="mt-3 text-xs font-semibold text-danger">{t(TR.masterDayOff)}</p>
                   )}
                   {allTaken && !availability?.dayClosed && (
                     <p className="mt-3 text-xs font-semibold text-danger">{t(TR.noSlotsLeft)}</p>

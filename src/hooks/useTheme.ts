@@ -102,12 +102,19 @@ export function useTheme(): { theme: Theme; toggleTheme: (origin?: RevealOrigin)
     // `types` is undefined before Chromium 125 — declared so the theme change
     // stays a distinct transition type from the language cross-fade.
     transition.types?.add('theme');
-    void transition.finished.finally(() => {
-      // A newer press already owns the root: leave its attribute alone.
-      if (transitionRef.current !== transition) return;
-      transitionRef.current = null;
-      root.removeAttribute(VT_ATTR);
-    });
+    // `.finally()` forwards the rejection: a transition skipped because the tab
+    // is hidden, or because a second press cut this one short, rejects
+    // `finished` and the unhandled rejection lands in the console as an
+    // InvalidStateError. Settle both channels explicitly.
+    transition.ready?.catch(() => {});
+    void transition.finished
+      .catch(() => {})
+      .finally(() => {
+        // A newer press already owns the root: leave its attribute alone.
+        if (transitionRef.current !== transition) return;
+        transitionRef.current = null;
+        root.removeAttribute(VT_ATTR);
+      });
   }, []);
 
   return { theme, toggleTheme };

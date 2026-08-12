@@ -24,8 +24,8 @@ export default function Faq({ language }: FaqProps) {
       <div className="mx-auto max-w-3xl">
         <SectionHead eyebrow={getLocalized(TR.eyebrow, language)} title={getLocalized(TR.title, language)} />
         {/* A list assembling itself, top-down: the tightest stagger there is
-            (40ms), because eleven questions arriving at card pace would be an
-            eleven-beat wait for the first answer. */}
+            (40ms), because a whole column of questions arriving at card pace
+            would be a one-beat-per-question wait for the first answer. */}
         <Stagger className="mt-12 border-t border-hairline" step={STAGGER.tight} delay={0.1}>
           {FAQ_ITEMS.map((item, i) => {
             const open = openIndex === i;

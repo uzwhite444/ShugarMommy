@@ -6,8 +6,29 @@ import SectionHead from './ui/SectionHead';
 import SplitWords from './ui/SplitWords';
 import { Stagger, StaggerItem } from './ui/Stagger';
 import { DUR, EASE_INK, VIEW } from '../lib/motion';
-import { LanguageCode } from '../types';
-import { ADDRESS, getLocalized, INSTAGRAM, MANAGER_TELEGRAM, PHONE, WORK_HOURS } from '../utils';
+import { MASTERS } from '../data';
+import { LanguageCode, Master, WorkWindow } from '../types';
+import { ADDRESS, getLocalized, INSTAGRAM, MANAGER_TELEGRAM, PHONE, STUDIO_HOURS } from '../utils';
+
+/**
+ * The widest window this master ever works, across all her schedule rules.
+ * Display copy only — whether she works a GIVEN day is masterHoursOn()'s job,
+ * and the booking grid must keep asking that instead of reading this.
+ */
+function scheduleWindow(master: Master): WorkWindow | null {
+  // Not named `window`: shadowing the DOM global here confused inference into
+  // resolving `.open` against Window instead of WorkWindow.
+  let widest: WorkWindow | null = null;
+  for (const rule of master.schedule) {
+    if (widest === null) {
+      widest = { open: rule.open, close: rule.close };
+      continue;
+    }
+    if (rule.open < widest.open) widest = { ...widest, open: rule.open };
+    if (rule.close > widest.close) widest = { ...widest, close: rule.close };
+  }
+  return widest;
+}
 
 interface ContactsProps {
   language: LanguageCode;
@@ -21,6 +42,7 @@ const TR = {
   phone: { RU: 'Телефон', UZ: 'Telefon', EN: 'Phone' },
   hours: { RU: 'Режим работы', UZ: 'Ish vaqti', EN: 'Working hours' },
   weekdays: { RU: 'Пн–Сб', UZ: 'Du–Sha', EN: 'Mon–Sat' },
+  byMaster: { RU: 'Часы по мастерам', UZ: 'Ustalar bo‘yicha soatlar', EN: 'Hours by master' },
   sunday: {
     RU: 'Вс — выходной. Выход мастера по двойному тарифу — по договорённости.',
     UZ: 'Yakshanba — dam olish kuni. Usta ikki baravar tarif bilan chiqadi — kelishuv asosida.',
@@ -53,19 +75,30 @@ export default function Contacts({ language, onCancelBooking }: ContactsProps) {
   const bandIn = useInView(bandRef, VIEW.far);
   const bandOn = reduced ? true : bandIn;
 
+  // Every master keeps her own hours now, so the headline range is the studio
+  // envelope and the rows below say who is actually in at the edges of it.
+  const masterRows = MASTERS.map((master) => ({ master, window: scheduleWindow(master) })).flatMap(
+    ({ master, window }) =>
+      window ? [{ name: getLocalized(master.name, language), hours: `${window.open} – ${window.close}` }] : [],
+  );
+
   const cards: Array<{
     icon: typeof MapPin;
     label: string;
     value: string;
     href?: string;
     note?: string;
+    rows?: Array<{ name: string; hours: string }>;
+    rowsLabel?: string;
   }> = [
     { icon: MapPin, label: getLocalized(TR.address, language), value: getLocalized(ADDRESS, language) },
     { icon: Phone, label: getLocalized(TR.phone, language), value: PHONE, href: phoneHref },
     {
       icon: Clock,
       label: getLocalized(TR.hours, language),
-      value: `${getLocalized(TR.weekdays, language)} ${WORK_HOURS.open} – ${WORK_HOURS.close}`,
+      value: `${getLocalized(TR.weekdays, language)} ${STUDIO_HOURS.open} – ${STUDIO_HOURS.close}`,
+      rows: masterRows,
+      rowsLabel: getLocalized(TR.byMaster, language),
       note: getLocalized(TR.sunday, language),
     },
   ];
@@ -96,7 +129,22 @@ export default function Contacts({ language, onCancelBooking }: ContactsProps) {
                 ) : (
                   <p className="mt-1.5 font-medium text-ink">{card.value}</p>
                 )}
-                {card.note && <p className="mt-2 text-xs leading-relaxed text-muted">{card.note}</p>}
+                {card.rows && card.rows.length > 0 && (
+                  <>
+                    <p className="mt-4 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-faint">
+                      {card.rowsLabel}
+                    </p>
+                    <dl className="mt-1.5 space-y-1">
+                      {card.rows.map((row) => (
+                        <div key={row.name} className="flex items-baseline justify-between gap-3 text-sm">
+                          <dt className="text-muted">{row.name}</dt>
+                          <dd className="shrink-0 font-medium text-body tabular-nums">{row.hours}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </>
+                )}
+                {card.note && <p className="mt-4 text-xs leading-relaxed text-muted">{card.note}</p>}
               </div>
             </StaggerItem>
           ))}

@@ -2,7 +2,7 @@ import { Leaf, HeartHandshake, BadgePercent, CalendarCheck } from 'lucide-react'
 import SectionHead from './ui/SectionHead';
 import { Stagger, StaggerItem } from './ui/Stagger';
 import { LanguageCode } from '../types';
-import { getLocalized } from '../utils';
+import { DISCOUNT_TIERS, getLocalized } from '../utils';
 
 interface AdvantagesProps {
   language: LanguageCode;
@@ -33,10 +33,13 @@ const TR = {
     {
       icon: BadgePercent,
       title: { RU: 'Выгодные сеты', UZ: 'Foydali setlar', EN: 'Value sets' },
+      // Percentage is read from DISCOUNT_TIERS, never typed in: the only
+      // discount the studio has is the combo tier, and this card must not be
+      // able to drift away from what the calculator actually applies.
       text: {
-        RU: 'Скидка до 15% за несколько зон плюс до 25% у отдельных мастеров — считается автоматически.',
-        UZ: 'Bir necha zona uchun 15% gacha va ayrim ustalarda 25% gacha chegirma — avtomatik hisoblanadi.',
-        EN: 'Up to 15% off for multiple zones plus up to 25% with selected masters — calculated automatically.',
+        RU: `Скидка до ${DISCOUNT_TIERS[0].pct}% при выборе нескольких зон — считается автоматически.`,
+        UZ: `Bir nechta zona tanlanganda ${DISCOUNT_TIERS[0].pct}% gacha chegirma — avtomatik hisoblanadi.`,
+        EN: `Up to ${DISCOUNT_TIERS[0].pct}% off when you pick several zones — calculated automatically.`,
       },
     },
     {

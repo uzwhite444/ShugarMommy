@@ -105,9 +105,18 @@ export default function App() {
 
     // Cross-fade the copy instead of snapping to the new language.
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const doc = document as Document & { startViewTransition?: (cb: () => void) => void };
+    type ViewTransitionLike = { ready?: Promise<unknown>; finished?: Promise<unknown> };
+    const doc = document as Document & {
+      startViewTransition?: (cb: () => void) => ViewTransitionLike | void;
+    };
     if (!reduced && typeof doc.startViewTransition === 'function') {
-      doc.startViewTransition(apply);
+      const transition = doc.startViewTransition(apply);
+      // A transition is SKIPPED whenever the tab is hidden or another one is
+      // still running (tapping RU → UZ → EN quickly). `ready` then rejects, and
+      // with nothing awaiting it the rejection lands in the console as an
+      // uncaught InvalidStateError. The language switch itself is unaffected.
+      transition?.ready?.catch(() => {});
+      transition?.finished?.catch(() => {});
     } else {
       apply();
     }
@@ -136,6 +145,8 @@ export default function App() {
   }
 
   const selectedZones = SERVICE_ZONES.filter((z) => selectedZoneIds.includes(z.id));
+  // Shared price list — no master is chosen at this level.
+  const selectionCalc = calcTotal(selectedZones);
 
   return (
     <div className="relative min-h-screen bg-canvas font-sans text-ink antialiased">
@@ -144,6 +155,9 @@ export default function App() {
         <Hero language={language} onBook={() => setBookingOpen(true)} />
         <Advantages language={language} />
         <Ingredients language={language} />
+        {/* The owner was asked about these four figures and chose to keep them
+            as they are. The 7-year one does have a real basis — it is Рената's
+            record — even though she is hidden from the roster for now. */}
         <StatsBand language={language} />
         <Services
           language={language}
@@ -167,7 +181,8 @@ export default function App() {
       <Footer language={language} />
       <StickyCta
         language={language}
-        total={calcTotal(selectedZones).total}
+        total={selectionCalc.total}
+        hasPricedZones={selectionCalc.pricedZones.length > 0}
         zoneCount={selectedZones.length}
         onBook={() => setBookingOpen(true)}
         hidden={bookingOpen}

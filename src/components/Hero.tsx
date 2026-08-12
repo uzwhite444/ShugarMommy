@@ -2,7 +2,8 @@ import { useRef } from 'react';
 import { m, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react';
 import { Check } from 'lucide-react';
 import { LanguageCode } from '../types';
-import { formatPrice, getLocalized } from '../utils';
+import { SERVICE_ZONES } from '../data';
+import { calcTotal, formatPrice, formatZonePrice, getLocalized } from '../utils';
 import { DUR, EASE_INK, VIEW } from '../lib/motion';
 
 interface HeroProps {
@@ -28,27 +29,30 @@ const TR = {
   ],
   /* Booking-preview card (static product mock, like a receipt) */
   mockTitle: { RU: 'Ваша запись', UZ: 'Sizning yozuvingiz', EN: 'Your booking' },
-  mockZone1: { RU: 'Бикини глубокое', UZ: 'Chuqur bikini', EN: 'Deep bikini' },
-  mockZone2: { RU: 'Ноги полностью', UZ: "Oyoqlar to'liq", EN: 'Full legs' },
-  mockZone3: { RU: 'Подмышки', UZ: "Qo'ltiq osti", EN: 'Underarms' },
   mockDiscount: { RU: 'Скидка за комплекс', UZ: 'Kompleks chegirmasi', EN: 'Combo discount' },
   mockTotal: { RU: 'Итого', UZ: 'Jami', EN: 'Total' },
   mockCta: { RU: 'Отправить заявку', UZ: 'Ariza yuborish', EN: 'Send request' },
   mockNote: { RU: 'Подтвердим время в Telegram', UZ: 'Vaqtni Telegramda tasdiqlaymiz', EN: 'We confirm the time on Telegram' },
 };
 
-const MOCK_ROWS = [
-  { name: TR.mockZone1, price: 150_000 },
-  { name: TR.mockZone2, price: 160_000 },
-  { name: TR.mockZone3, price: 50_000 },
-];
+/**
+ * The preview quotes the REAL price list, by zone id — it is the first thing a
+ * visitor reads, and hardcoded numbers here contradicted the calculator one
+ * screen below. Unpriced ids are dropped rather than shown as «по запросу»:
+ * a receipt mock has to add up.
+ */
+const MOCK_ZONES = ['bikini-deep', 'legs-full', 'underarms'].flatMap((id) => {
+  const zone = SERVICE_ZONES.find((z) => z.id === id);
+  return zone && zone.price !== null ? [zone] : [];
+});
 
 export default function Hero({ language, onBook }: HeroProps) {
   const reduced = useReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
 
-  const subtotal = MOCK_ROWS.reduce((s, r) => s + r.price, 0);
-  const discount = Math.round(subtotal * 0.1);
+  // Same maths the calculator runs, so the combo tier shown here is the tier
+  // the client actually gets.
+  const mock = calcTotal(MOCK_ZONES);
 
   // Gentle parallax: the receipt card trails the scroll by a few px. 40px, not
   // 56: at 375px the card's resting bottom clears the hero's own bottom
@@ -145,20 +149,29 @@ export default function Hero({ language, onBook }: HeroProps) {
               {getLocalized(TR.mockTitle, language)}
             </p>
             <ul className="mt-5 space-y-3.5">
-              {MOCK_ROWS.map((row) => (
-                <li key={row.name.EN} className="flex items-baseline justify-between gap-4 text-sm text-body">
-                  <span>{getLocalized(row.name, language)}</span>
-                  <span className="font-medium text-ink">{formatPrice(row.price, language)}</span>
+              {MOCK_ZONES.map((zone) => (
+                <li key={zone.id} className="flex items-baseline justify-between gap-4 text-sm text-body">
+                  {/* Official zone wording runs long ("Ноги полностью + пальчики"),
+                      so the name must be allowed to shrink and wrap instead of
+                      pushing the price out of the card. */}
+                  <span className="min-w-0">{getLocalized(zone.name, language)}</span>
+                  <span className="shrink-0 font-medium text-ink">
+                    {formatZonePrice(zone.price, language)}
+                  </span>
                 </li>
               ))}
-              <li className="flex items-baseline justify-between gap-4 border-t border-ink/10 pt-3.5 text-sm text-primary-dark">
-                <span>{getLocalized(TR.mockDiscount, language)} −10%</span>
-                <span className="font-medium">−{formatPrice(discount, language)}</span>
-              </li>
+              {mock.discountPct > 0 && (
+                <li className="flex items-baseline justify-between gap-4 border-t border-ink/10 pt-3.5 text-sm text-primary-dark">
+                  <span className="min-w-0">
+                    {getLocalized(TR.mockDiscount, language)} −{mock.discountPct}%
+                  </span>
+                  <span className="shrink-0 font-medium">−{formatPrice(mock.discountAmount, language)}</span>
+                </li>
+              )}
             </ul>
-            <div className="mt-5 flex items-baseline justify-between border-t border-ink/10 pt-5">
+            <div className="mt-5 flex items-baseline justify-between gap-4 border-t border-ink/10 pt-5">
               <span className="text-sm font-semibold text-ink">{getLocalized(TR.mockTotal, language)}</span>
-              <span className="display text-3xl text-ink">{formatPrice(subtotal - discount, language)}</span>
+              <span className="display shrink-0 text-3xl text-ink">{formatPrice(mock.total, language)}</span>
             </div>
             {/* Part of the decorative receipt mock — the whole card is
                 aria-hidden. It used to carry a live onClick while being
