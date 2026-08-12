@@ -143,6 +143,11 @@ const TR = {
     UZ: 'Bu vaqt band — boshqasini tanlang.',
     EN: 'That time is taken — please pick another.',
   },
+  errPhoneShort: {
+    RU: 'Проверьте номер телефона — в нём должно быть не меньше 7 цифр.',
+    UZ: 'Telefon raqamini tekshiring — unda kamida 7 ta raqam bo‘lishi kerak.',
+    EN: 'Check the phone number — it needs at least 7 digits.',
+  },
   errTooMany: {
     RU: 'На этот номер уже есть несколько активных записей. Напишите администратору в Telegram — поможем со временем.',
     UZ: 'Bu raqamda allaqachon bir nechta faol yozuv bor. Administratorga Telegramda yozing — vaqtni birga tanlaymiz.',
@@ -553,6 +558,12 @@ export default function BookingModal({
       setError(t(TR.errFill));
       return;
     }
+    // Catch it here rather than let the database CHECK reject the row: a number
+    // this short cannot be called back, so the booking is useless to both sides.
+    if (phone.replace(/[^0-9]/g, '').length < 7) {
+      setError(t(TR.errPhoneShort));
+      return;
+    }
     if (!date || !time) {
       setError(t(TR.errDate));
       return;
@@ -663,6 +674,10 @@ export default function BookingModal({
       }
       if (result.status === 'rate-limited') {
         setError(t(TR.errTooMany));
+        return;
+      }
+      if (result.status === 'invalid') {
+        setError(t(TR.errPhoneShort));
         return;
       }
       // 'unavailable' still goes through: a backend outage must never cost the

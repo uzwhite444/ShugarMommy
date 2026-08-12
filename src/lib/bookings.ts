@@ -36,6 +36,8 @@ export type BookingResult =
   | { status: 'slot-taken' }
   /** The antiflood trigger refused: too many bookings for this phone. */
   | { status: 'rate-limited' }
+  /** A CHECK constraint refused the row — today only a phone under 7 digits. */
+  | { status: 'invalid' }
   /** Supabase unreachable or misconfigured — nothing was rejected. */
   | { status: 'unavailable' };
 
@@ -65,6 +67,14 @@ function classifyInsertError(error: InsertError): BookingResult {
   // P0001 = raise_exception from the antiflood trigger (08_hardening_v3.sql).
   if (error.code === 'P0001' && /booking limit/i.test(error.message)) {
     return { status: 'rate-limited' };
+  }
+  // 23514 = check_violation. Falling through to 'unavailable' would send the
+  // client to the success screen with no row saved — the studio would see the
+  // Telegram message but the site would have no booking, no slot held and no
+  // reminder. A rejected row must never read as a placed booking.
+  if (error.code === '23514') {
+    console.error('createBooking rejected by a CHECK constraint:', error.message);
+    return { status: 'invalid' };
   }
   console.error('createBooking failed:', error.message);
   return { status: 'unavailable' };

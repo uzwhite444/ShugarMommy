@@ -1,0 +1,160 @@
+/** All localized copy for the booking modal (RU/UZ/EN), shared by every step. */
+export const TR = {
+  title: { RU: 'Онлайн-запись', UZ: 'Onlayn yozilish', EN: 'Online booking' },
+  yourCombo: { RU: 'Выбранные зоны', UZ: 'Tanlangan zonalar', EN: 'Selected zones' },
+  noZones: {
+    RU: 'Зоны не выбраны — обсудим услуги в чате с администратором.',
+    UZ: 'Zonalar tanlanmagan — xizmatlarni administrator bilan kelishamiz.',
+    EN: 'No zones selected — we will agree on services in the chat.',
+  },
+  total: { RU: 'Итого', UZ: 'Yakuniy', EN: 'Total' },
+  // Two different mechanisms, deliberately two different words: Ангелина и
+  // Муслима give a percentage off, Рената gives a fixed-price set. Calling the
+  // percentage «сет» (as this modal used to) misstates both offers.
+  comboDiscount: { RU: 'скидка за комплекс', UZ: 'kompleks chegirmasi', EN: 'combo discount' },
+  setApplied: { RU: 'Сет', UZ: 'Set', EN: 'Set' },
+  setSaving: { RU: 'выгода {sum}', UZ: '{sum} tejaysiz', EN: 'you save {sum}' },
+  discountWith: {
+    RU: '−{pct}% при записи к: {masters}',
+    UZ: '{masters} bilan yozilsangiz −{pct}%',
+    EN: '−{pct}% when booking with {masters}',
+  },
+  variesNote: {
+    RU: 'Цена зависит от мастера — показана минимальная. Выберите мастера, чтобы увидеть точный итог.',
+    UZ: 'Narx ustaga bog‘liq — eng past narx ko‘rsatilgan. Aniq summa uchun ustani tanlang.',
+    EN: 'The price depends on the master — this is the lowest one. Pick a master to see the exact total.',
+  },
+  masterCantDo: {
+    RU: 'не делает эти зоны',
+    UZ: 'bu zonalarni qilmaydi',
+    EN: 'does not do these zones',
+  },
+  anyMasterOff: {
+    RU: 'недоступно для этих зон',
+    UZ: 'bu zonalar uchun mavjud emas',
+    EN: 'not available for these zones',
+  },
+  onlyMasterNote: {
+    RU: 'Эти зоны выполняет только {masters}: {zones}. Другие мастера для этой записи недоступны.',
+    UZ: 'Bu zonalarni faqat {masters} bajaradi: {zones}. Bu yozuv uchun boshqa ustalar mavjud emas.',
+    EN: 'Only {masters} performs these zones: {zones}. Other masters cannot take this booking.',
+  },
+  errNoMaster: {
+    RU: 'Такой набор зон сейчас не выполняет ни один мастер — напишите нам в Telegram.',
+    UZ: 'Bunday zonalar to‘plamini hozir hech bir usta bajarmaydi — Telegramga yozing.',
+    EN: 'No master performs this combination right now — please message us on Telegram.',
+  },
+  onRequestLead: {
+    RU: 'В итог не входит, цену уточним при подтверждении:',
+    UZ: 'Yakuniyga kirmaydi, narxni tasdiqlashda aniqlaymiz:',
+    EN: 'Not included in the total, we will confirm the price:',
+  },
+  stepContacts: { RU: 'Ваши данные', UZ: "Ma'lumotlaringiz", EN: 'Your details' },
+  stepMaster: { RU: 'Мастер', UZ: 'Usta', EN: 'Master' },
+  stepWhen: { RU: 'Дата и время', UZ: 'Sana va vaqt', EN: 'Date & time' },
+  name: { RU: 'Ваше имя', UZ: 'Ismingiz', EN: 'Your name' },
+  phone: { RU: 'Телефон', UZ: 'Telefon', EN: 'Phone' },
+  close: { RU: 'Закрыть', UZ: 'Yopish', EN: 'Close' },
+  removeZone: { RU: 'Убрать зону', UZ: 'Zonani olib tashlash', EN: 'Remove zone' },
+  anyMaster: { RU: 'Любой мастер', UZ: 'Istalgan usta', EN: 'Any master' },
+  anyMasterHint: {
+    RU: 'Подберёт администратор',
+    UZ: 'Administrator tanlaydi',
+    EN: 'Admin will assign',
+  },
+  today: { RU: 'Сегодня', UZ: 'Bugun', EN: 'Today' },
+  tomorrow: { RU: 'Завтра', UZ: 'Ertaga', EN: 'Tomorrow' },
+  dayOff: { RU: 'выходной', UZ: 'dam olish', EN: 'closed' },
+  dayOffNote: {
+    RU: 'Воскресенье — выходной. Мастер может выйти по двойному тарифу — напишите нам в Telegram.',
+    UZ: 'Yakshanba — dam olish kuni. Usta ikki baravar tarif bilan chiqishi mumkin — Telegramga yozing.',
+    EN: 'Sunday is our day off. A master can come in at double rate — message us on Telegram.',
+  },
+  hoursNote: {
+    RU: 'Часы приёма: {from}–{to}',
+    UZ: 'Qabul vaqti: {from}–{to}',
+    EN: 'Working hours: {from}–{to}',
+  },
+  masterDayOff: {
+    RU: 'В этот день мастер не принимает — выберите другую дату или мастера.',
+    UZ: 'Bu kuni usta qabul qilmaydi — boshqa sana yoki ustani tanlang.',
+    EN: 'This master does not work that day — pick another date or master.',
+  },
+  comment: { RU: 'Комментарий (необязательно)', UZ: 'Izoh (ixtiyoriy)', EN: 'Comment (optional)' },
+  submit: { RU: 'Отправить заявку в Telegram', UZ: 'Arizani Telegramga yuborish', EN: 'Send request via Telegram' },
+  disclaimer: {
+    RU: 'Откроется чат с администратором в Telegram — подтвердим свободное время и запишем вас.',
+    UZ: 'Telegramda administrator bilan chat ochiladi — bo‘sh vaqtni tasdiqlab, sizni yozamiz.',
+    EN: 'A Telegram chat with our administrator opens — we confirm the slot and book you in.',
+  },
+  consentPre: {
+    RU: 'Отправляя заявку, вы соглашаетесь с',
+    UZ: 'Ariza yuborish orqali siz rozilik bildirasiz:',
+    EN: 'By sending the request you agree to our',
+  },
+  consentLink: {
+    RU: 'политикой конфиденциальности',
+    UZ: 'maxfiylik siyosati',
+    EN: 'privacy policy',
+  },
+  errFill: { RU: 'Укажите имя и телефон.', UZ: 'Ism va telefonni kiriting.', EN: 'Please enter your name and phone.' },
+  errDate: { RU: 'Выберите дату и время.', UZ: 'Sana va vaqtni tanlang.', EN: 'Please pick a date and time.' },
+  errPast: {
+    RU: 'Это время уже прошло — выберите другое.',
+    UZ: "Bu vaqt o'tib ketdi — boshqasini tanlang.",
+    EN: 'That time has already passed — please pick another.',
+  },
+  errTaken: {
+    RU: 'Это время уже занято — выберите другое.',
+    UZ: 'Bu vaqt band — boshqasini tanlang.',
+    EN: 'That time is taken — please pick another.',
+  },
+  errTooMany: {
+    RU: 'На этот номер уже есть несколько активных записей. Напишите администратору в Telegram — поможем со временем.',
+    UZ: 'Bu raqamda allaqachon bir nechta faol yozuv bor. Administratorga Telegramda yozing — vaqtni birga tanlaymiz.',
+    EN: 'This number already has several active bookings. Message our administrator on Telegram and we will sort out the time.',
+  },
+  comboDuration: {
+    RU: 'Процедура займёт около {min} мин — показываем только то время, куда она целиком помещается до закрытия.',
+    UZ: 'Muolaja taxminan {min} daqiqa davom etadi — faqat yopilishgacha to‘liq sig‘adigan vaqtlar ko‘rsatiladi.',
+    EN: 'The visit takes about {min} min — only start times that fit before closing are shown.',
+  },
+  loadingSlots: { RU: 'Проверяем свободное время…', UZ: "Bo'sh vaqtni tekshiryapmiz…", EN: 'Checking availability…' },
+  dayClosed: {
+    RU: 'В этот день студия не принимает — выберите другую дату.',
+    UZ: 'Bu kuni studiya ishlamaydi — boshqa sanani tanlang.',
+    EN: 'The studio is closed that day — please pick another date.',
+  },
+  noSlotsLeft: {
+    RU: 'На эту дату всё занято — выберите другой день.',
+    UZ: "Bu sanaga hammasi band — boshqa kunni tanlang.",
+    EN: 'Fully booked that day — please pick another one.',
+  },
+  slotTaken: { RU: 'занято', UZ: 'band', EN: 'taken' },
+  doneTitle: { RU: 'Заявка готова!', UZ: 'Ariza tayyor!', EN: 'Request ready!' },
+  doneText: {
+    RU: 'Если Telegram не открылся автоматически — нажмите кнопку ниже или скопируйте текст заявки.',
+    UZ: 'Telegram avtomatik ochilmasa — quyidagi tugmani bosing yoki ariza matnini nusxalang.',
+    EN: 'If Telegram did not open automatically, use the button below or copy the request text.',
+  },
+  openTg: { RU: 'Открыть Telegram', UZ: 'Telegramni ochish', EN: 'Open Telegram' },
+  copyMsg: { RU: 'Скопировать заявку', UZ: 'Arizani nusxalash', EN: 'Copy request' },
+  copied: { RU: 'Скопировано!', UZ: 'Nusxalandi!', EN: 'Copied!' },
+  changedMind: {
+    RU: 'Планы изменились? Запись можно отменить на сайте или по телефону.',
+    UZ: 'Rejalar o‘zgardimi? Yozuvni saytda yoki telefon orqali bekor qilish mumkin.',
+    EN: 'Plans changed? You can cancel on the site or by phone.',
+  },
+  cancelLink: { RU: 'Отменить запись', UZ: 'Yozuvni bekor qilish', EN: 'Cancel booking' },
+  remindTitle: {
+    RU: 'Напомнить за час до визита?',
+    UZ: 'Tashrifdan bir soat oldin eslataylikmi?',
+    EN: 'Want a reminder an hour before?',
+  },
+  remindText: {
+    RU: 'Нажмите — откроется наш бот, останется нажать «Старт». Пришлём напоминание ровно за час.',
+    UZ: 'Bosing — botimiz ochiladi, «Start» tugmasini bosing. Roppa-rosa bir soat oldin eslatamiz.',
+    EN: 'Tap to open our bot and press “Start”. We will remind you exactly an hour before.',
+  },
+  remindBtn: { RU: 'Напомнить в Telegram', UZ: 'Telegramda eslatish', EN: 'Remind me on Telegram' },
+};
