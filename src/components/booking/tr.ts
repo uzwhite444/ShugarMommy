@@ -109,6 +109,11 @@ export const TR = {
     UZ: 'Bu vaqt band — boshqasini tanlang.',
     EN: 'That time is taken — please pick another.',
   },
+  errPhoneShort: {
+    RU: 'Проверьте номер телефона — в нём должно быть не меньше 7 цифр.',
+    UZ: 'Telefon raqamini tekshiring — unda kamida 7 ta raqam bo‘lishi kerak.',
+    EN: 'Check the phone number — it needs at least 7 digits.',
+  },
   errTooMany: {
     RU: 'На этот номер уже есть несколько активных записей. Напишите администратору в Telegram — поможем со временем.',
     UZ: 'Bu raqamda allaqachon bir nechta faol yozuv bor. Administratorga Telegramda yozing — vaqtni birga tanlaymiz.',
