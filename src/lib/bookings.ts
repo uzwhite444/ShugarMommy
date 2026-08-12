@@ -19,11 +19,15 @@ export interface NewBooking {
   master: string | null;
   visit_date: string;
   visit_time: string;
-  total_price: number;
+  /**
+   * What was selected — NOT what it costs. The price and the visit length are
+   * computed by the database from these ids (supabase/12_server_pricing.sql):
+   * a total that arrives from the browser can be anything, and the admin
+   * panel's revenue and reports treat it as the truth.
+   */
+  zone_ids: string[];
   comment: string | null;
   source?: string | null;
-  /** Visit length in minutes — blocks every cell it covers (09_visit_duration.sql). */
-  duration_min?: number | null;
 }
 
 /**
@@ -31,7 +35,13 @@ export interface NewBooking {
  * 'slot-taken' / 'rate-limited': the database rejected those bookings.
  */
 export type BookingResult =
-  | { status: 'ok'; id: string | null }
+  | {
+      status: 'ok';
+      id: string | null;
+      /** What the SERVER charged. Compare with the figure on screen — see warnOnPriceDrift(). */
+      totalPrice: number | null;
+      durationMin: number | null;
+    }
   /** bookings_slot_uniq fired — somebody took the slot first. */
   | { status: 'slot-taken' }
   /** The antiflood trigger refused: too many bookings for this phone. */
@@ -44,20 +54,6 @@ export type BookingResult =
 interface InsertError {
   code?: string;
   message: string;
-}
-
-/** Columns added by later migrations; absent on a database that lags behind. */
-const OPTIONAL_COLUMNS = ['source', 'duration_min'] as const;
-
-/**
- * Which optional columns the backend does not know about. PostgREST reports an
- * unknown column as PGRST204 and names it in the message; when it does not,
- * every optional column is dropped so the booking still lands.
- */
-function missingOptionalColumns(error: InsertError): string[] {
-  if (error.code !== 'PGRST204' && !/schema cache/i.test(error.message)) return [];
-  const named = OPTIONAL_COLUMNS.filter((column) => error.message.includes(column));
-  return named.length > 0 ? named : [...OPTIONAL_COLUMNS];
 }
 
 function classifyInsertError(error: InsertError): BookingResult {
@@ -76,8 +72,20 @@ function classifyInsertError(error: InsertError): BookingResult {
     console.error('createBooking rejected by a CHECK constraint:', error.message);
     return { status: 'invalid' };
   }
+  // Everything else is 'unavailable' — including PGRST202, which is what
+  // PostgREST answers while supabase/12_server_pricing.sql has not been run
+  // yet. Nothing was rejected there either: the request never reached a
+  // working backend, so the forgiving Telegram path is the right one.
   console.error('createBooking failed:', error.message);
   return { status: 'unavailable' };
+}
+
+/** What create_booking() answers with — see supabase/12_server_pricing.sql. */
+interface CreatedBooking {
+  id?: string;
+  master?: string | null;
+  total_price?: number;
+  duration_min?: number;
 }
 
 /**
@@ -86,6 +94,13 @@ function classifyInsertError(error: InsertError): BookingResult {
  * anonymous visitors insert but not read back. A rejected booking is reported
  * as such; 'unavailable' keeps the forgiving path (the Telegram handoff still
  * happens), so a backend hiccup never costs the studio a client.
+ *
+ * The row is written by the create_booking() function rather than by a direct
+ * insert: the price and the visit length are the database's to decide, and the
+ * table no longer accepts anonymous inserts at all. The function is a plain
+ * insert underneath, so the antiflood trigger, the slot uniqueness index and
+ * their SQLSTATEs reach us exactly as before — which is why the outcomes below
+ * still tell "taken" from "too many" from "rejected".
  */
 export async function createBooking(booking: NewBooking): Promise<BookingResult> {
   const id =
@@ -93,27 +108,51 @@ export async function createBooking(booking: NewBooking): Promise<BookingResult>
   try {
     const supabase = await getClient();
     if (!supabase) return { status: 'unavailable' };
-    const row: Record<string, unknown> = id ? { ...booking, id } : { ...booking };
-    const { error } = await supabase.from('bookings').insert(row);
-    if (!error) return { status: 'ok', id: id ?? null };
+    // Every argument is passed explicitly, including the null ones: PostgREST
+    // matches a function by the set of keys it receives, and an omitted key
+    // would make it answer "no such function" instead of calling this one.
+    const { data, error } = await supabase.rpc('create_booking', {
+      p_id: id ?? null,
+      p_customer_name: booking.customer_name,
+      p_phone: booking.phone,
+      p_services: booking.services,
+      p_master: booking.master,
+      p_visit_date: booking.visit_date,
+      p_visit_time: booking.visit_time,
+      p_zone_ids: booking.zone_ids,
+      p_comment: booking.comment,
+      p_source: booking.source ?? null,
+    });
+    if (error) return classifyInsertError(error);
 
-    // `source` (05_source.sql) and `duration_min` (09_visit_duration.sql) are
-    // optional. If a migration has not been applied yet, retry without those
-    // columns rather than losing the booking.
-    const missing = missingOptionalColumns(error);
-    if (missing.length > 0) {
-      const retryRow = { ...row };
-      for (const column of missing) delete retryRow[column];
-      const retry = await supabase.from('bookings').insert(retryRow);
-      if (!retry.error) return { status: 'ok', id: id ?? null };
-      return classifyInsertError(retry.error);
-    }
-
-    return classifyInsertError(error);
+    const saved = (data ?? null) as CreatedBooking | null;
+    return {
+      status: 'ok',
+      id: saved?.id ?? id ?? null,
+      totalPrice: typeof saved?.total_price === 'number' ? saved.total_price : null,
+      durationMin: typeof saved?.duration_min === 'number' ? saved.duration_min : null,
+    };
   } catch (err) {
     console.error('createBooking failed:', err);
     return { status: 'unavailable' };
   }
+}
+
+/**
+ * Shouts into the console when the price the client showed is not the price the
+ * database charged. There is only one way for those to differ: the price list
+ * in the database has fallen behind src/data.ts — i.e. supabase/12_server_pricing.sql
+ * was regenerated but never run. Nothing is shown to the visitor: the figure she
+ * read is the one the studio will honour, and an alarming banner would cost a
+ * booking over an accounting discrepancy.
+ */
+export function warnOnPriceDrift(shown: number, result: BookingResult): void {
+  if (result.status !== 'ok' || result.totalPrice === null) return;
+  if (result.totalPrice === shown) return;
+  console.error(
+    `Цена разошлась: сайт показал ${shown}, база записала ${result.totalPrice}. ` +
+      'Прайс в базе отстал от src/data.ts — выполните supabase/12_server_pricing.sql.',
+  );
 }
 
 /** All bookings, newest first. Admin-only (RLS blocks anonymous reads). */
@@ -138,26 +177,64 @@ export async function fetchBookings(): Promise<Booking[]> {
 }
 
 /**
- * Cancels the customer's own bookings for a date, identified by phone.
- * Returns how many were cancelled, or null if the feature is not installed
- * (supabase/06_cancel.sql) so the UI can fall back to "call us".
+ * How many characters of the booking id make up the cancellation code.
+ * Eight is the first UUID group — 16^8 ≈ 4.3 billion codes, which the server
+ * additionally pairs with the phone and throttles to 5 misses per 15 minutes
+ * (supabase/11_cancel_by_code.sql). Short enough to read out over the phone.
  */
-export async function cancelBookingByPhone(phone: string, date: string): Promise<number | null> {
+const CODE_LENGTH = 8;
+
+/**
+ * Reduces anything the customer might paste — "3F7A-9C21", "3f7a 9c21", the
+ * whole booking id out of a link — to the bare lowercase hex code the server
+ * compares. Returns '' when there are not enough hex characters to be a code,
+ * so a typo is caught before it costs a throttled attempt.
+ */
+export function normalizeBookingCode(raw: string): string {
+  const hex = raw.toLowerCase().replace(/[^0-9a-f]/g, '');
+  return hex.length >= CODE_LENGTH ? hex.slice(0, CODE_LENGTH) : '';
+}
+
+/** The code as it is shown and dictated: `3F7A-9C21`. Null when there is none. */
+export function formatBookingCode(id: string | null): string | null {
+  if (!id) return null;
+  const hex = normalizeBookingCode(id);
+  if (!hex) return null;
+  return `${hex.slice(0, 4)}-${hex.slice(4)}`.toUpperCase();
+}
+
+/**
+ * Outcome of a cancellation attempt. 'mismatch' deliberately covers every
+ * "it did not match" case — wrong code, wrong phone, already cancelled — so
+ * the form cannot be used to find out which of them is true.
+ */
+export type CancelResult = 'ok' | 'mismatch' | 'throttled' | 'unavailable';
+
+/**
+ * Cancels one booking, identified by its code AND the phone it was made with.
+ * Both are required: a forwarded reminder link carries the code alone and
+ * cancels nothing. 'unavailable' means the request never reached a working
+ * backend (offline, or supabase/11_cancel_by_code.sql not applied yet), so the
+ * UI must fall back to "call us" instead of claiming the booking is still on.
+ */
+export async function cancelBookingByCode(code: string, phone: string): Promise<CancelResult> {
   try {
     const supabase = await getClient();
-    if (!supabase) return null;
-    const { data, error } = await supabase.rpc('cancel_booking', {
+    if (!supabase) return 'unavailable';
+    const { data, error } = await supabase.rpc('cancel_booking_by_code', {
+      booking_code: code,
       customer_phone: phone,
-      target_date: date,
     });
     if (error) {
-      console.error('cancelBooking failed:', error.message);
-      return null;
+      console.error('cancelBookingByCode failed:', error.message);
+      return 'unavailable';
     }
-    return typeof data === 'number' ? data : 0;
+    if (data === 'ok') return 'ok';
+    if (data === 'throttled') return 'throttled';
+    return 'mismatch';
   } catch (err) {
-    console.error('cancelBooking failed:', err);
-    return null;
+    console.error('cancelBookingByCode failed:', err);
+    return 'unavailable';
   }
 }
 

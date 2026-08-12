@@ -49,12 +49,11 @@ grant execute on function public.is_admin() to authenticated;
 
 alter table public.bookings enable row level security;
 
--- Клиентки (anon) по-прежнему могут только создавать заявки.
+-- Прямая вставка от anon СНЯТА в 13_lock_anon_insert.sql: цену считает
+-- сервер в create_booking(), а политика позволяла прислать любую сумму.
+-- Здесь остаётся только drop, иначе повторный запуск этого файла вернул бы
+-- обход пересчёта.
 drop policy if exists "anon can insert bookings" on public.bookings;
-create policy "anon can insert bookings"
-  on public.bookings for insert
-  to anon
-  with check (status = 'new');
 
 drop policy if exists "authenticated can read bookings" on public.bookings;
 drop policy if exists "admin can read bookings" on public.bookings;
@@ -212,44 +211,17 @@ before insert on public.bookings
 for each row execute function public.bookings_antiflood();
 
 -- ============================================================
--- 6. ОТМЕНА ЗАПИСИ — по последним 9 цифрам номера
+-- 6. ОТМЕНА ЗАПИСИ
+--
+-- Здесь раньше создавалась cancel_booking(телефон, дата). Она отменяла
+-- чужую запись по одному лишь номеру и дате и по коду возврата выдавала,
+-- есть ли у номера визит. Функция УДАЛЕНА в 11_cancel_by_code.sql, и
+-- воссоздавать её тут нельзя: этот файл README разрешает перезапускать,
+-- а перезапуск вернул бы дыру. Актуальная отмена — по коду заявки плюс
+-- телефон, см. 11_cancel_by_code.sql.
 -- ============================================================
 
-create or replace function public.cancel_booking(customer_phone text, target_date date)
-returns integer
-language plpgsql
-security definer
-set search_path = public
-as $function$
-declare
-  digits text;
-  affected integer;
-begin
-  -- [^0-9] вместо \D: без обратных слешей, чтобы не зависеть
-  -- от настроек экранирования строк.
-  digits := regexp_replace(coalesce(customer_phone, ''), '[^0-9]', '', 'g');
-
-  -- Слишком короткий номер — не пытаемся угадывать, ничего не отменяем.
-  if char_length(digits) < 9 then
-    return 0;
-  end if;
-
-  -- Сравниваем 9 последних цифр (узбекский абонентский номер): запись,
-  -- сделанную как «+998 90 123-45-67», отменяет ввод «90 123 45 67».
-  update public.bookings b
-  set status = 'cancelled'
-  where b.visit_date = target_date
-    and b.status in ('new', 'confirmed')
-    and right(regexp_replace(b.phone, '[^0-9]', '', 'g'), 9) = right(digits, 9);
-
-  get diagnostics affected = row_count;
-  return affected;
-end;
-$function$;
-
-revoke all on function public.cancel_booking(text, date) from public;
--- Вызывается клиенткой с сайта без входа — доступ остаётся публичным.
-grant execute on function public.cancel_booking(text, date) to anon, authenticated;
+drop function if exists public.cancel_booking(text, date);
 
 -- Занятость слотов сайту тоже нужна без входа — оставляем публичной.
 revoke all on function public.booked_slots(date) from public;

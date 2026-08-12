@@ -103,12 +103,19 @@ begin
               or visit_at - now() < interval '45 minutes';
 
     begin
+      -- Код заявки = первые 8 знаков id: то же, что клиентка видела на
+      -- экране подтверждения. В ссылке он подставляется в форму отмены,
+      -- в тексте — на случай, если она отменяет с другого устройства.
+      -- Одной ссылки мало: форма всё равно спросит телефон записи, поэтому
+      -- пересланное напоминание чужую запись не снимет.
       msg := format(
-        E'⏰ <b>Напоминание о визите</b>\n\n%s, ждём вас через час!\n\n✨ %s\n👩‍🔬 %s\n🕐 Сегодня в %s\n\nЕсли планы изменились — отмените запись на сайте: https://shugarmommy.vercel.app/#/cancel',
+        E'⏰ <b>Напоминание о визите</b>\n\n%s, ждём вас через час!\n\n✨ %s\n👩‍🔬 %s\n🕐 Сегодня в %s\n\n🔑 Код записи: <b>%s</b>\nЕсли планы изменились — <a href="https://shugarmommy.vercel.app/#/cancel?code=%s">отменить запись</a> (понадобится ваш телефон).',
         replace(replace(replace(coalesce(b.customer_name, ''), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'),
         replace(replace(replace(coalesce(b.services, '—'), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'),
         replace(replace(replace(coalesce(b.master, 'мастер студии'), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'),
-        b.visit_time
+        b.visit_time,
+        upper(left(b.id::text, 4)) || '-' || upper(substr(b.id::text, 5, 4)),
+        left(b.id::text, 8)
       );
 
       perform net.http_post(

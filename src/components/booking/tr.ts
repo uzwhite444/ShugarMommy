@@ -151,6 +151,12 @@ export const TR = {
     EN: 'Plans changed? You can cancel on the site or by phone.',
   },
   cancelLink: { RU: 'Отменить запись', UZ: 'Yozuvni bekor qilish', EN: 'Cancel booking' },
+  codeTitle: { RU: 'Код записи', UZ: 'Yozuv kodi', EN: 'Booking code' },
+  codeHint: {
+    RU: 'Сохраните код — по нему вы отмените запись сами, без звонка. Он же уйдёт в вашу переписку с администратором и придёт в напоминании за час до визита.',
+    UZ: 'Kodni saqlang — u bilan yozuvni qo‘ng‘iroqsiz o‘zingiz bekor qilasiz. Kod administrator bilan yozishmangizda ham qoladi va tashrifdan bir soat oldingi eslatmada ham keladi.',
+    EN: 'Keep this code — it lets you cancel yourself, no call needed. It also goes into your chat with the administrator and into the reminder an hour before the visit.',
+  },
   remindTitle: {
     RU: 'Напомнить за час до визита?',
     UZ: 'Tashrifdan bir soat oldin eslataylikmi?',

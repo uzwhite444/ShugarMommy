@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3100 --host=0.0.0.0",
-    "build": "vite build",
+    "pricing:sql": "node scripts/gen-pricing-sql.mjs",
+    "pricing:check": "node scripts/gen-pricing-sql.mjs --check",
+    "build": "npm run pricing:check && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

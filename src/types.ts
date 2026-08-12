@@ -183,4 +183,11 @@ export interface Booking {
    * created before that migration — treat as 30.
    */
   duration_min?: number | null;
+  /**
+   * The zones `total_price` and `duration_min` were computed from, server-side
+   * (requires 12_server_pricing.sql). Null on every row created before that
+   * migration — those prices came from the browser and cannot be re-derived.
+   * Not shown anywhere: it exists so a disputed total can be recomputed.
+   */
+  zone_ids?: string[] | null;
 }

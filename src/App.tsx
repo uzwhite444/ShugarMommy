@@ -49,6 +49,10 @@ export default function App() {
   });
   const [bookingOpen, setBookingOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  // Booking code the cancellation form should open with — set from the
+  // reminder link or from the confirmation screen, empty when the visitor
+  // reaches the form from the contacts block and has to type it herself.
+  const [cancelCode, setCancelCode] = useState('');
   const [route, setRoute] = useState(() => window.location.hash);
 
   useEffect(() => {
@@ -57,14 +61,19 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  // #/cancel — the link we put in reminder messages: open the form straight
-  // away and clear the hash so refreshing does not reopen it.
+  // #/cancel?code=… — the link we put in reminder messages: open the form
+  // straight away with the code filled in, then clear the hash so refreshing
+  // does not reopen it and the code does not sit in the address bar. The code
+  // alone cancels nothing — the form still asks for the booking phone.
   useEffect(() => {
-    if (route.startsWith('#/cancel')) {
-      setCancelOpen(true);
-      history.replaceState(null, '', window.location.pathname + window.location.search);
-      setRoute('');
-    }
+    if (!route.startsWith('#/cancel')) return;
+    const query = route.indexOf('?');
+    const code = query === -1 ? '' : (new URLSearchParams(route.slice(query + 1)).get('code') ?? '');
+    // A UUID is 36 characters; anything longer is not a code we sent.
+    setCancelCode(code.slice(0, 40));
+    setCancelOpen(true);
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    setRoute('');
   }, [route]);
 
   // Keep <html lang> in sync so screen readers and search engines see the
@@ -122,6 +131,11 @@ export default function App() {
     }
   };
 
+  const openCancel = (code = '') => {
+    setCancelCode(code);
+    setCancelOpen(true);
+  };
+
   const toggleZone = (zoneId: string) => {
     setSelectedZoneIds((prev) =>
       prev.includes(zoneId) ? prev.filter((id) => id !== zoneId) : [...prev, zoneId],
@@ -176,7 +190,7 @@ export default function App() {
         <Gallery language={language} />
         <Reviews language={language} />
         <Faq language={language} />
-        <Contacts language={language} onCancelBooking={() => setCancelOpen(true)} />
+        <Contacts language={language} onCancelBooking={() => openCancel()} />
       </main>
       <Footer language={language} />
       <StickyCta
@@ -195,13 +209,24 @@ export default function App() {
             selectedZones={selectedZones}
             onClose={() => setBookingOpen(false)}
             onRemoveZone={toggleZone}
-            onCancelBooking={() => {
+            onCancelBooking={(code) => {
               setBookingOpen(false);
-              setCancelOpen(true);
+              openCancel(code);
             }}
           />
         )}
-        {cancelOpen && <CancelModal language={language} onClose={() => setCancelOpen(false)} />}
+        {cancelOpen && (
+          <CancelModal
+            language={language}
+            initialCode={cancelCode}
+            onClose={() => {
+              setCancelOpen(false);
+              // Otherwise the next visitor to open the form from the contacts
+              // block would find someone else's code sitting in the field.
+              setCancelCode('');
+            }}
+          />
+        )}
       </Suspense>
     </div>
   );

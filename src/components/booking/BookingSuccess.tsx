@@ -1,7 +1,8 @@
 import { RefObject } from 'react';
-import { BellRing, Check, CheckCircle2, Copy, Send } from 'lucide-react';
+import { BellRing, Check, CheckCircle2, Copy, KeyRound, Send } from 'lucide-react';
 import { Localized } from '../../types';
 import { MANAGER_BOT } from '../../utils';
+import { formatBookingCode, normalizeBookingCode } from '../../lib/bookings';
 import { TR } from './tr';
 
 interface PlacedInfo {
@@ -19,10 +20,11 @@ interface BookingSuccessProps {
   tgLink: string;
   copied: boolean;
   onCopy: () => void;
-  onCancelBooking?: () => void;
+  /** Opens the cancellation form, pre-filled with this booking's code. */
+  onCancelBooking?: (code?: string) => void;
 }
 
-/** Confirmation screen: Telegram handoff, copy-to-clipboard, reminder deep link, cancel link. */
+/** Confirmation screen: booking code, Telegram handoff, copy, reminder deep link, cancel link. */
 export function BookingSuccess({
   t,
   doneHeadingRef,
@@ -33,6 +35,10 @@ export function BookingSuccess({
   onCopy,
   onCancelBooking,
 }: BookingSuccessProps) {
+  // The code is the first 8 characters of the id, so it exists exactly when the
+  // booking reached the database — same condition as the reminder deep link.
+  const code = formatBookingCode(bookingId);
+
   return (
     <div className="text-center">
       {/* Scoped to the confirmation copy — a live region around the whole
@@ -71,6 +77,20 @@ export function BookingSuccess({
             </div>
           )}
         </dl>
+      )}
+
+      {/* The one thing on this screen she has to keep: without the code the
+          booking can only be cancelled by phoning the studio. */}
+      {code && (
+        <div className="mt-5 rounded-xl border border-primary/30 bg-surface p-5 text-left">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+            <KeyRound size={13} /> {t(TR.codeTitle)}
+          </p>
+          <p className="mt-1.5 select-all font-mono text-2xl font-semibold tracking-[0.18em] text-ink">
+            {code}
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-muted">{t(TR.codeHint)}</p>
+        </div>
       )}
 
       {/* Opt-in reminder: works only when the booking reached the base,
@@ -113,8 +133,10 @@ export function BookingSuccess({
       {onCancelBooking && (
         <p className="mt-6 border-t border-hairline pt-4 text-xs leading-relaxed text-muted">
           {t(TR.changedMind)}{' '}
+          {/* One tap: the form opens with the code already filled in, so all
+              she types is the phone she booked with. */}
           <button
-            onClick={onCancelBooking}
+            onClick={() => onCancelBooking(normalizeBookingCode(bookingId ?? ''))}
             className="btn-press ink-rule rule-link rule-short font-semibold text-primary-dark"
           >
             {t(TR.cancelLink)}

@@ -1,36 +1,56 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { m, useReducedMotion } from 'motion/react';
-import { CheckCircle2, Loader2, Phone, Send, X } from 'lucide-react';
+import { CheckCircle2, KeyRound, Loader2, Phone, Send, X } from 'lucide-react';
 import { LanguageCode } from '../types';
 import { getLocalized, MANAGER_TELEGRAM, PHONE } from '../utils';
-import { cancelBookingByPhone } from '../lib/bookings';
+import { cancelBookingByCode, formatBookingCode, normalizeBookingCode } from '../lib/bookings';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
 interface CancelModalProps {
   language: LanguageCode;
+  /** Code carried in from the reminder link or the confirmation screen. */
+  initialCode?: string;
   onClose: () => void;
 }
 
 const TR = {
   title: { RU: 'Отменить запись', UZ: 'Yozuvni bekor qilish', EN: 'Cancel a booking' },
   intro: {
-    RU: 'Укажите телефон, который вы оставляли при записи, и дату визита — мы освободим это время.',
-    UZ: 'Yozilishda qoldirgan telefoningizni va tashrif sanasini kiriting — vaqtni bo‘shatamiz.',
-    EN: 'Enter the phone you booked with and the visit date — we will free the slot.',
+    RU: 'Нужны код записи и телефон, с которого вы записывались. Код мы показали сразу после записи и присылаем в напоминании за час до визита.',
+    UZ: 'Yozuv kodi va yozilishda ishlatgan telefoningiz kerak. Kodni yozuvdan keyin darhol ko‘rsatamiz va tashrifdan bir soat oldingi eslatmada yuboramiz.',
+    EN: 'We need the booking code and the phone you booked with. The code is shown right after booking and comes in the reminder an hour before the visit.',
+  },
+  code: { RU: 'Код записи', UZ: 'Yozuv kodi', EN: 'Booking code' },
+  codeHint: {
+    RU: '8 символов — цифры и буквы A–F. Ищите его в переписке с администратором или в напоминании от бота.',
+    UZ: '8 ta belgi — raqamlar va A–F harflari. Uni administrator bilan yozishmangizda yoki botning eslatmasida qidiring.',
+    EN: '8 characters — digits and letters A–F. Look for it in your chat with the administrator or in the bot reminder.',
   },
   phone: { RU: 'Телефон', UZ: 'Telefon', EN: 'Phone' },
-  date: { RU: 'Дата визита', UZ: 'Tashrif sanasi', EN: 'Visit date' },
   submit: { RU: 'Отменить запись', UZ: 'Bekor qilish', EN: 'Cancel booking' },
   errFill: {
-    RU: 'Укажите телефон и дату визита.',
-    UZ: 'Telefon va tashrif sanasini kiriting.',
-    EN: 'Please enter the phone and the visit date.',
+    RU: 'Укажите код записи и телефон.',
+    UZ: 'Yozuv kodi va telefonni kiriting.',
+    EN: 'Please enter the booking code and the phone.',
   },
-  notFound: {
-    RU: 'Активной записи с таким телефоном на эту дату не нашлось. Проверьте данные или свяжитесь с нами.',
-    UZ: 'Bu telefon va sana bo‘yicha faol yozuv topilmadi. Ma’lumotlarni tekshiring yoki biz bilan bog‘laning.',
-    EN: 'No active booking found for that phone and date. Check the details or contact us.',
+  errCodeShape: {
+    RU: 'Код состоит из 8 символов: цифры и буквы A–F. Например 3F7A-9C21.',
+    UZ: 'Kod 8 ta belgidan iborat: raqamlar va A–F harflari. Masalan 3F7A-9C21.',
+    EN: 'The code is 8 characters: digits and letters A–F. For example 3F7A-9C21.',
+  },
+  // One message for every mismatch — wrong code, wrong phone, already
+  // cancelled. Naming which one failed would turn this form into a way of
+  // checking whether a phone number has a booking at all.
+  notMatched: {
+    RU: 'Отменить не получилось. Проверьте код и телефон — они должны быть теми же, что при записи. Если запись уже отменена или визит прошёл, отменять нечего.',
+    UZ: 'Bekor qilib bo‘lmadi. Kod va telefonni tekshiring — ular yozilishdagidek bo‘lishi kerak. Agar yozuv allaqachon bekor qilingan yoki tashrif o‘tgan bo‘lsa, bekor qiladigan narsa yo‘q.',
+    EN: 'That did not work. Check the code and the phone — both must match the booking. If it is already cancelled or the visit has passed, there is nothing to cancel.',
+  },
+  throttled: {
+    RU: 'Слишком много попыток подряд. Подождите 15 минут или позвоните нам — отменим сразу.',
+    UZ: 'Ketma-ket urinishlar juda ko‘p. 15 daqiqa kuting yoki qo‘ng‘iroq qiling — darhol bekor qilamiz.',
+    EN: 'Too many attempts in a row. Wait 15 minutes or call us — we will cancel it right away.',
   },
   failed: {
     RU: 'Не удалось отменить автоматически — позвоните нам или напишите в Telegram.',
@@ -44,16 +64,21 @@ const TR = {
     EN: 'The slot is free again. We would love to see you another day — book online any time.',
   },
   close: { RU: 'Закрыть', UZ: 'Yopish', EN: 'Close' },
-  orCall: { RU: 'Или свяжитесь с нами', UZ: 'Yoki biz bilan bog‘laning', EN: 'Or contact us' },
+  lostCode: {
+    RU: 'Не нашли код? Позвоните или напишите — отменим запись за вас.',
+    UZ: 'Kod topilmadimi? Qo‘ng‘iroq qiling yoki yozing — yozuvni o‘zimiz bekor qilamiz.',
+    EN: 'Lost the code? Call or message us — we will cancel it for you.',
+  },
 };
 
-/** Self-service cancellation: phone + date, no account needed. */
-export default function CancelModal({ language, onClose }: CancelModalProps) {
+/** Self-service cancellation: booking code + the phone it was made with. */
+export default function CancelModal({ language, initialCode, onClose }: CancelModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, true, onClose);
   const reduced = useReducedMotion();
 
   const doneHeadingRef = useRef<HTMLHeadingElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
   // Blocks a second tap from firing a parallel cancel before React re-renders
   // the button as disabled.
   const submitLockRef = useRef(false);
@@ -61,11 +86,17 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
   // otherwise releasing a text selection over the backdrop wipes the form.
   const overlayPressRef = useRef(false);
 
+  // A code arriving from a link is shown in the readable form, so she can see
+  // it is the same code she was given rather than a string of noise.
+  const [code, setCode] = useState(() => formatBookingCode(initialCode ?? '') ?? '');
   const [phone, setPhone] = useState('');
-  const [date, setDate] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+
+  // Whether the code arrived ready-made. Read once at mount: recomputing it
+  // from `code` would flip while she types and pull focus out of the field.
+  const prefilledRef = useRef(code !== '');
 
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -73,6 +104,12 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
     return () => {
       document.body.style.overflow = previous;
     };
+  }, []);
+
+  // Arriving from the reminder link there is exactly one thing left to type.
+  // This runs after the focus trap's own effect, so it wins.
+  useEffect(() => {
+    if (prefilledRef.current) phoneRef.current?.focus();
   }, []);
 
   // The form unmounts on success, so the focused control disappears and focus
@@ -92,18 +129,27 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
 
   const handleSubmit = async () => {
     if (submitLockRef.current) return;
-    if (!phone.trim() || !date) {
+    if (!code.trim() || !phone.trim()) {
       setError(t(TR.errFill));
+      return;
+    }
+    // Caught here rather than sent to the server: a code this shape can never
+    // match anything, and a wasted attempt counts against the throttle that
+    // protects her from someone else guessing.
+    const normalized = normalizeBookingCode(code);
+    if (!normalized) {
+      setError(t(TR.errCodeShape));
       return;
     }
     setError('');
     submitLockRef.current = true;
     setSubmitting(true);
     try {
-      const cancelled = await cancelBookingByPhone(phone.trim(), date);
-      if (cancelled === null) setError(t(TR.failed));
-      else if (cancelled === 0) setError(t(TR.notFound));
-      else setDone(true);
+      const result = await cancelBookingByCode(normalized, phone.trim());
+      if (result === 'ok') setDone(true);
+      else if (result === 'throttled') setError(t(TR.throttled));
+      else if (result === 'mismatch') setError(t(TR.notMatched));
+      else setError(t(TR.failed));
     } finally {
       submitLockRef.current = false;
       setSubmitting(false);
@@ -176,7 +222,37 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
           <>
             <p className="text-sm leading-relaxed text-muted">{t(TR.intro)}</p>
             <div className="mt-5 space-y-2.5">
+              <div>
+                <div className="relative">
+                  <KeyRound
+                    size={16}
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted"
+                  />
+                  <input
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="3F7A-9C21"
+                    aria-label={t(TR.code)}
+                    aria-describedby="cancel-code-hint"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    onKeyDown={onFieldKeyDown}
+                    maxLength={40}
+                    className={`${inputCls} pl-11 font-mono uppercase tracking-[0.12em]`}
+                  />
+                </div>
+                <p id="cancel-code-hint" className="mt-1.5 text-xs leading-relaxed text-faint">
+                  {t(TR.codeHint)}
+                </p>
+              </div>
+              {/* The phone stays a second factor and is never pre-filled: a
+                  forwarded reminder link carries the code alone, so it cannot
+                  cancel anybody else's visit. */}
               <input
+                ref={phoneRef}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder={`${t(TR.phone)} · +998 __ ___-__-__`}
@@ -186,14 +262,6 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
                 autoComplete="tel"
                 onKeyDown={onFieldKeyDown}
                 maxLength={32}
-                className={inputCls}
-              />
-              <input
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                type="date"
-                onKeyDown={onFieldKeyDown}
-                aria-label={t(TR.date)}
                 className={inputCls}
               />
             </div>
@@ -214,7 +282,7 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
             </button>
 
             <div className="mt-6 border-t border-hairline pt-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">{t(TR.orCall)}</p>
+              <p className="text-xs leading-relaxed text-muted">{t(TR.lostCode)}</p>
               <div className="mt-2.5 flex flex-wrap gap-2">
                 <a
                   href={`tel:${PHONE.replace(/[^+\d]/g, '')}`}

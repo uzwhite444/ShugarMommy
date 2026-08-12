@@ -5,7 +5,7 @@ import { X, Send, Loader2 } from 'lucide-react';
 import { LanguageCode, Localized, ServiceZone } from '../types';
 import { calcTotal, formatPrice, getLocalized, MANAGER_TELEGRAM } from '../utils';
 import { MASTERS, masterKey, toIsoDate } from '../data';
-import { createBooking } from '../lib/bookings';
+import { createBooking, formatBookingCode, warnOnPriceDrift } from '../lib/bookings';
 import { fetchDayAvailability, isRangeTaken } from '../lib/availability';
 import { getSource } from '../lib/attribution';
 import { useFocusTrap } from '../hooks/useFocusTrap';
@@ -24,8 +24,8 @@ interface BookingModalProps {
   onClose: () => void;
   /** Removes a zone straight from the summary chips. */
   onRemoveZone?: (zoneId: string) => void;
-  /** Opens the self-service cancellation form. */
-  onCancelBooking?: () => void;
+  /** Opens the self-service cancellation form, pre-filled with the code. */
+  onCancelBooking?: (code?: string) => void;
 }
 
 /** Shortest bookable visit — one grid cell, even with no zones picked. */
@@ -258,10 +258,10 @@ export default function BookingModal({
 
       const labels =
         language === 'RU'
-          ? { services: 'Зоны', master: 'Мастер', date: 'Дата', time: 'Время', total: 'Итого', onRequest: 'Цена по запросу', name: 'Имя', phone: 'Телефон', comment: 'Комментарий' }
+          ? { services: 'Зоны', master: 'Мастер', date: 'Дата', time: 'Время', total: 'Итого', onRequest: 'Цена по запросу', name: 'Имя', phone: 'Телефон', comment: 'Комментарий', code: 'Код записи' }
           : language === 'UZ'
-            ? { services: 'Zonalar', master: 'Usta', date: 'Sana', time: 'Vaqt', total: 'Jami', onRequest: 'Narx so‘rov bo‘yicha', name: 'Ism', phone: 'Telefon', comment: 'Izoh' }
-            : { services: 'Zones', master: 'Master', date: 'Date', time: 'Time', total: 'Total', onRequest: 'Price on request', name: 'Name', phone: 'Phone', comment: 'Comment' };
+            ? { services: 'Zonalar', master: 'Usta', date: 'Sana', time: 'Vaqt', total: 'Jami', onRequest: 'Narx so‘rov bo‘yicha', name: 'Ism', phone: 'Telefon', comment: 'Izoh', code: 'Yozuv kodi' }
+            : { services: 'Zones', master: 'Master', date: 'Date', time: 'Time', total: 'Total', onRequest: 'Price on request', name: 'Name', phone: 'Phone', comment: 'Comment', code: 'Booking code' };
 
       const setText = calc.appliedSet ? setTitle(calc.appliedSet, language) : null;
 
@@ -299,7 +299,10 @@ export default function BookingModal({
       if (comment.trim()) message += `\n💬 ${labels.comment}: ${comment.trim()}`;
 
       // Persist to the backend. `master` must stay the canonical RU spelling —
-      // availability matching and the admin panel key on it.
+      // availability matching, the admin panel AND the server-side price list
+      // all key on it. The total and the visit length are deliberately absent:
+      // the database derives both from `zone_ids` and this master, so a request
+      // forged with a price of 0 buys nothing but the studio's real price.
       const result = await createBooking({
         customer_name: name.trim(),
         phone: phone.trim(),
@@ -307,11 +310,13 @@ export default function BookingModal({
         master: master ? masterKey(master) : null,
         visit_date: date,
         visit_time: time,
-        total_price: calc.total,
+        zone_ids: selectedZones.map((z) => z.id),
         comment: comment.trim() || null,
         source: getSource(),
-        duration_min: comboDuration,
       });
+      // Both sides compute from src/data.ts, so they agree — unless the copy in
+      // the database was never refreshed. That is worth a console error.
+      warnOnPriceDrift(calc.total, result);
 
       // The database rejected the booking — showing the success screen would
       // send the client away believing she is booked.
@@ -332,7 +337,14 @@ export default function BookingModal({
       // 'unavailable' still goes through: a backend outage must never cost the
       // studio a client, the request reaches the administrator via Telegram.
 
-      setBookingId(result.status === 'ok' ? result.id : null);
+      const savedId = result.status === 'ok' ? result.id : null;
+      // The code travels with the request itself, so it ends up in her own
+      // Telegram thread with the studio — the place she will actually look
+      // for it days later, when this screen is long gone.
+      const code = formatBookingCode(savedId);
+      if (code) message += `\n\n🔑 ${labels.code}: ${code}`;
+
+      setBookingId(savedId);
       setRequestMsg(message);
       setPlacedInfo({
         master: masterName,

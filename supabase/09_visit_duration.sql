@@ -24,7 +24,7 @@
 
 alter table public.bookings
   add column if not exists duration_min integer default 30
-  check (duration_min is null or duration_min between 5 and 600);
+  check (duration_min is null or duration_min between 5 and 720);
 
 -- ============================================================
 -- 2. ЗАНЯТОСТЬ СЛОТОВ — теперь отдаёт и длительность
