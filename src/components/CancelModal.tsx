@@ -84,9 +84,8 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
   const t = (loc: (typeof TR)[keyof typeof TR]) => getLocalized(loc, language);
 
   /** Enter in a field submits — the behaviour a <form> would give. */
-  const onFieldKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const onFieldKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter' || e.shiftKey) return;
-    if ((e.target as HTMLElement).tagName !== 'INPUT') return;
     e.preventDefault();
     void handleSubmit();
   };
@@ -115,6 +114,10 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
     'field w-full rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm text-ink outline-none focus:border-primary';
 
   return createPortal(
+    /* The backdrop is a dimming layer, not a control: it takes no focus, so a
+       keyboard handler on it could never fire. Keyboard dismissal is Escape
+       (useFocusTrap) plus the labelled Close button inside the dialog. */
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 sm:items-center sm:p-4"
       onPointerDown={(e) => {
@@ -172,7 +175,7 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
         ) : (
           <>
             <p className="text-sm leading-relaxed text-muted">{t(TR.intro)}</p>
-            <div className="mt-5 space-y-2.5" onKeyDown={onFieldKeyDown}>
+            <div className="mt-5 space-y-2.5">
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -181,6 +184,7 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
                 type="tel"
                 inputMode="tel"
                 autoComplete="tel"
+                onKeyDown={onFieldKeyDown}
                 maxLength={32}
                 className={inputCls}
               />
@@ -188,6 +192,7 @@ export default function CancelModal({ language, onClose }: CancelModalProps) {
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 type="date"
+                onKeyDown={onFieldKeyDown}
                 aria-label={t(TR.date)}
                 className={inputCls}
               />

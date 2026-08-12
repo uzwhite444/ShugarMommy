@@ -359,13 +359,15 @@ export default function BookingModal({
   // Face, brows and polymer zones are Рената's alone. A master who does not
   // perform every selected zone must not be bookable for this visit at all —
   // otherwise the studio receives a request nobody on that shift can carry out.
+  // `selectedZones` is a fresh array on every parent render, so memoising on it
+  // never hits. The ids are the real dependency — deriving them inside the memo
+  // keeps that true AND honest to the dependency checker, which cannot see that
+  // `zoneKey` already encodes the array.
   const zoneKey = selectedZones.map((z) => z.id).join('|');
-  const eligibleMasters = useMemo(
-    // `selectedZones` is a fresh array on every parent render; the ids in it are
-    // the real dependency, so the memo is keyed on those and stays stable.
-    () => MASTERS.filter((master) => selectedZones.every((z) => master.zoneIds.includes(z.id))),
-    [zoneKey],
-  );
+  const eligibleMasters = useMemo(() => {
+    const ids = zoneKey ? zoneKey.split('|') : [];
+    return MASTERS.filter((master) => ids.every((id) => master.zoneIds.includes(id)));
+  }, [zoneKey]);
   // Zones that make the choice narrower, named in the explanation below.
   const restrictedZones = selectedZones.filter(
     (zone) => !MASTERS.every((master) => master.zoneIds.includes(zone.id)),
@@ -532,10 +534,8 @@ export default function BookingModal({
   const noHours = Boolean(date) && !loadingSlots && slots.length === 0;
 
   /** Enter in a text field submits — the behaviour a <form> would give. */
-  const onFieldKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const onFieldKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter' || e.shiftKey) return;
-    const target = e.target as HTMLElement;
-    if (target.tagName !== 'INPUT') return;
     e.preventDefault();
     void handleSubmit();
   };
@@ -710,6 +710,10 @@ export default function BookingModal({
     }`;
 
   return createPortal(
+    /* The backdrop is a dimming layer, not a control: it takes no focus, so a
+       keyboard handler on it could never fire. Keyboard dismissal is Escape
+       (useFocusTrap) plus the labelled Close button inside the dialog. */
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 sm:items-center sm:p-4"
       onPointerDown={(e) => {
@@ -921,7 +925,7 @@ export default function BookingModal({
                     not usable here: the nine buttons below (masters, dates,
                     slots, zone chips) carry no type="button", so wrapping them
                     would turn picking a date into a submit. */}
-                <div className="mt-3 space-y-2.5" onKeyDown={onFieldKeyDown}>
+                <div className="mt-3 space-y-2.5">
                   <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -929,6 +933,7 @@ export default function BookingModal({
                     aria-label={t(TR.name)}
                     autoComplete="name"
                     maxLength={120}
+                    onKeyDown={onFieldKeyDown}
                     className={inputCls}
                   />
                   <input
@@ -940,6 +945,7 @@ export default function BookingModal({
                     autoComplete="tel"
                     inputMode="tel"
                     maxLength={32}
+                    onKeyDown={onFieldKeyDown}
                     className={inputCls}
                   />
                 </div>
