@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { m, useReducedMotion } from 'motion/react';
 import { X, Send, Loader2, CheckCircle2, Copy, Check, BellRing } from 'lucide-react';
-import { LanguageCode, Localized, Master, ServiceZone, WorkWindow } from '../types';
+import { LanguageCode, Localized, Master, ServiceSet, ServiceZone, WorkWindow } from '../types';
 import {
   calcTotal,
   formatPrice,
@@ -12,16 +12,7 @@ import {
   PRICE_ON_REQUEST,
   masterInitial,
 } from '../utils';
-import {
-  isStudioClosedOn,
-  masterHoursOn,
-  masterKey,
-  MASTERS,
-  STUDIO_HOURS,
-  studioHoursOn,
-  toIsoDate,
-  workingMasterKeys,
-} from '../data';
+import { findZone, masterHoursOn, masterKey, MASTERS, STUDIO_HOURS, toIsoDate } from '../data';
 import { createBooking } from '../lib/bookings';
 import {
   fetchDayAvailability,
@@ -51,7 +42,42 @@ const TR = {
     EN: 'No zones selected — we will agree on services in the chat.',
   },
   total: { RU: 'Итого', UZ: 'Yakuniy', EN: 'Total' },
-  setDiscount: { RU: 'сет', UZ: 'set', EN: 'set' },
+  // Two different mechanisms, deliberately two different words: Ангелина and
+  // Муслима give a percentage off, Рената gives a fixed-price set. Calling the
+  // percentage «сет» (as this modal used to) misstates both offers.
+  comboDiscount: { RU: 'скидка за комплекс', UZ: 'kompleks chegirmasi', EN: 'combo discount' },
+  setApplied: { RU: 'Сет', UZ: 'Set', EN: 'Set' },
+  setSaving: { RU: 'выгода {sum}', UZ: '{sum} tejaysiz', EN: 'you save {sum}' },
+  discountWith: {
+    RU: '−{pct}% при записи к: {masters}',
+    UZ: '{masters} bilan yozilsangiz −{pct}%',
+    EN: '−{pct}% when booking with {masters}',
+  },
+  variesNote: {
+    RU: 'Цена зависит от мастера — показана минимальная. Выберите мастера, чтобы увидеть точный итог.',
+    UZ: 'Narx ustaga bog‘liq — eng past narx ko‘rsatilgan. Aniq summa uchun ustani tanlang.',
+    EN: 'The price depends on the master — this is the lowest one. Pick a master to see the exact total.',
+  },
+  masterCantDo: {
+    RU: 'не делает эти зоны',
+    UZ: 'bu zonalarni qilmaydi',
+    EN: 'does not do these zones',
+  },
+  anyMasterOff: {
+    RU: 'недоступно для этих зон',
+    UZ: 'bu zonalar uchun mavjud emas',
+    EN: 'not available for these zones',
+  },
+  onlyMasterNote: {
+    RU: 'Эти зоны выполняет только {masters}: {zones}. Другие мастера для этой записи недоступны.',
+    UZ: 'Bu zonalarni faqat {masters} bajaradi: {zones}. Bu yozuv uchun boshqa ustalar mavjud emas.',
+    EN: 'Only {masters} performs these zones: {zones}. Other masters cannot take this booking.',
+  },
+  errNoMaster: {
+    RU: 'Такой набор зон сейчас не выполняет ни один мастер — напишите нам в Telegram.',
+    UZ: 'Bunday zonalar to‘plamini hozir hech bir usta bajarmaydi — Telegramga yozing.',
+    EN: 'No master performs this combination right now — please message us on Telegram.',
+  },
   onRequestLead: {
     RU: 'В итог не входит, цену уточним при подтверждении:',
     UZ: 'Yakuniyga kirmaydi, narxni tasdiqlashda aniqlaymiz:',
@@ -189,25 +215,67 @@ function buildTimeSlots(hours: WorkWindow | null): string[] {
   return slots;
 }
 
+function widen(current: WorkWindow | null, next: WorkWindow): WorkWindow {
+  if (!current) return next;
+  return {
+    open: next.open < current.open ? next.open : current.open,
+    close: next.close > current.close ? next.close : current.close,
+  };
+}
+
 /**
- * Widest window a master ever works — the preview shown before a date is
+ * Widest window these masters ever work — the preview shown before a date is
  * picked, when no single day's rule applies yet.
+ *
+ * Takes a list rather than one master because "любой мастер" is now scoped to
+ * the masters who can actually do the selected zones: STUDIO_HOURS would
+ * promise Муслима's 08:00 for a face zone only Рената performs from 11:00.
  */
-function masterWidestHours(master: Master): WorkWindow {
+function widestHours(masters: readonly Master[]): WorkWindow {
   // Not named `window`: shadowing the DOM global here confuses narrowing.
   let widest: WorkWindow | null = null;
-  for (const rule of master.schedule) {
-    if (!widest) {
-      widest = { open: rule.open, close: rule.close };
-      continue;
+  for (const master of masters) {
+    for (const rule of master.schedule) {
+      widest = widen(widest, { open: rule.open, close: rule.close });
     }
-    widest = {
-      open: rule.open < widest.open ? rule.open : widest.open,
-      close: rule.close > widest.close ? rule.close : widest.close,
-    };
   }
-  // A master always has at least one rule; the fallback keeps the type honest.
+  // Every master has at least one rule; the fallback keeps the type honest.
   return widest ?? STUDIO_HOURS;
+}
+
+/** Combined window of these masters on one date, or null when none of them works. */
+function unionHoursOn(masters: readonly Master[], date: string): WorkWindow | null {
+  let combined: WorkWindow | null = null;
+  for (const master of masters) {
+    const hours = masterHoursOn(master, date);
+    if (hours) combined = widen(combined, hours);
+  }
+  return combined;
+}
+
+/**
+ * A set's title, composed from its zone names — ServiceSet carries no name of
+ * its own, so the card can never drift from the price list (and is translated
+ * for free).
+ */
+function setTitle(set: ServiceSet, lang: LanguageCode): string {
+  return set.zoneIds
+    .map((id) => {
+      const zone = findZone(id);
+      return zone ? getLocalized(zone.name, lang) : id;
+    })
+    .join(' + ');
+}
+
+/**
+ * «от 140 000 сум» — a floor, not a quote. Uzbek marks it with the ablative
+ * suffix, so this cannot be a shared prefix in all three languages.
+ */
+function priceFrom(price: number, lang: LanguageCode): string {
+  const value = formatPrice(price, lang);
+  if (lang === 'UZ') return `${value}dan`;
+  if (lang === 'EN') return `from ${value}`;
+  return `от ${value}`;
 }
 
 /** Next `count` days starting today, as local dates. */
@@ -276,12 +344,65 @@ export default function BookingModal({
   const [copied, setCopied] = useState(false);
   // Set after a successful save — powers the "remind me" deep link.
   const [bookingId, setBookingId] = useState<string | null>(null);
+  // Snapshot of what was actually sent. The confirmation screen must repeat the
+  // request, not re-derive it: the form's state keeps living behind the success
+  // screen and a later reset would rewrite what the client believes she booked.
+  const [placedInfo, setPlacedInfo] = useState<{
+    master: string;
+    when: string;
+    total: string | null;
+    set: string | null;
+  } | null>(null);
 
   const t = (loc: Localized) => getLocalized(loc, language);
+
+  // Face, brows and polymer zones are Рената's alone. A master who does not
+  // perform every selected zone must not be bookable for this visit at all —
+  // otherwise the studio receives a request nobody on that shift can carry out.
+  const zoneKey = selectedZones.map((z) => z.id).join('|');
+  const eligibleMasters = useMemo(
+    // `selectedZones` is a fresh array on every parent render; the ids in it are
+    // the real dependency, so the memo is keyed on those and stays stable.
+    () => MASTERS.filter((master) => selectedZones.every((z) => master.zoneIds.includes(z.id))),
+    [zoneKey],
+  );
+  // Zones that make the choice narrower, named in the explanation below.
+  const restrictedZones = selectedZones.filter(
+    (zone) => !MASTERS.every((master) => master.zoneIds.includes(zone.id)),
+  );
+  // When one master is the only one who can do the work, she is not a choice —
+  // she is the booking. "Любой мастер" would otherwise quote the lowest price
+  // across the studio, which is a price only a master who cannot do these zones
+  // charges, and would send the admin a visit to assign to nobody.
+  const soleMaster = eligibleMasters.length === 1 ? eligibleMasters[0] : null;
   // MASTERS is already filtered — a hidden master can never be selected here,
-  // and an unknown id simply falls back to "любой мастер".
-  const selectedMaster = MASTERS.find((m) => m.id === masterId);
+  // and an unknown or now-ineligible id simply falls back to "любой мастер".
+  const selectedMaster = soleMaster ?? eligibleMasters.find((m) => m.id === masterId);
+  // What the picker shows as chosen: the forced master wins over stale state.
+  const activeMasterId = selectedMaster?.id ?? '';
   const calc = calcTotal(selectedZones, selectedMaster);
+  // The number as it may be shown: without a master it is the lowest price of
+  // the masters who could take the visit, so it has to read «от».
+  const totalLabel = calc.priceVaries
+    ? priceFrom(calc.total, language)
+    : formatPrice(calc.total, language);
+  /**
+   * Masters this selection would already earn a percentage discount with —
+   * shown only while no master is chosen, and always by name, because the
+   * discount belongs to her and not to the studio. Mixed percentages are not
+   * summarised: one line cannot state two different offers truthfully.
+   */
+  const discountOffers = selectedMaster
+    ? []
+    : eligibleMasters.flatMap((master) =>
+        master.discount && calc.pricedZones.length >= master.discount.minZones
+          ? [{ name: getLocalized(master.name, language), pct: master.discount.pct }]
+          : [],
+      );
+  const discountHint =
+    discountOffers.length > 0 && new Set(discountOffers.map((o) => o.pct)).size === 1
+      ? { pct: discountOffers[0].pct, masters: discountOffers.map((o) => o.name).join(', ') }
+      : null;
   const tgLink = `https://t.me/${MANAGER_TELEGRAM}?text=${encodeURIComponent(requestMsg)}`;
 
   const days = useMemo(() => buildDays(), []);
@@ -325,13 +446,18 @@ export default function BookingModal({
   // chosen, the union of everyone on shift for "любой мастер". Before a date is
   // picked there is no rule to apply yet, so the widest window previews the grid.
   const workHours = useMemo<WorkWindow | null>(() => {
-    if (!date) return selectedMaster ? masterWidestHours(selectedMaster) : STUDIO_HOURS;
-    return selectedMaster ? masterHoursOn(selectedMaster, date) : studioHoursOn(date);
-  }, [date, selectedMaster]);
+    const masters = selectedMaster ? [selectedMaster] : eligibleMasters;
+    if (!date) return widestHours(masters);
+    return unionHoursOn(masters, date);
+  }, [date, selectedMaster, eligibleMasters]);
 
   // Masters on shift that date — without it "любой мастер" is blacked out as
-  // soon as a single master is busy.
-  const roster = useMemo(() => (date ? workingMasterKeys(date) : []), [date]);
+  // soon as a single master is busy. Only the eligible ones count: a slot that
+  // is free solely because Муслима is idle is not free for a face zone.
+  const roster = useMemo(
+    () => (date ? eligibleMasters.filter((m) => masterHoursOn(m, date)).map(masterKey) : []),
+    [date, eligibleMasters],
+  );
 
   const slots = useMemo(() => buildTimeSlots(workHours), [workHours]);
   const takenSet = useMemo(() => {
@@ -378,11 +504,9 @@ export default function BookingModal({
   // a request for a day nobody works.
   useEffect(() => {
     if (!date) return;
-    const open = selectedMaster
-      ? masterHoursOn(selectedMaster, date) !== null
-      : !isStudioClosedOn(date);
-    if (!open) setDate('');
-  }, [selectedMaster, date]);
+    const masters = selectedMaster ? [selectedMaster] : eligibleMasters;
+    if (unionHoursOn(masters, date) === null) setDate('');
+  }, [selectedMaster, eligibleMasters, date]);
 
   // The form unmounts on success, so the focused control disappears and focus
   // would fall outside the dialog — move it onto the confirmation heading.
@@ -409,6 +533,13 @@ export default function BookingModal({
 
   const handleSubmit = async () => {
     if (submitLockRef.current) return;
+    // Last line of defence for the same rule the picker enforces: a request the
+    // studio cannot carry out must not be sent, whatever state got us here.
+    // (An empty selection leaves every master eligible, so this cannot fire on it.)
+    if (eligibleMasters.length === 0) {
+      setError(t(TR.errNoMaster));
+      return;
+    }
     if (!name.trim() || !phone.trim()) {
       setError(t(TR.errFill));
       return;
@@ -463,6 +594,8 @@ export default function BookingModal({
             ? { services: 'Zonalar', master: 'Usta', date: 'Sana', time: 'Vaqt', total: 'Jami', onRequest: 'Narx so‘rov bo‘yicha', name: 'Ism', phone: 'Telefon', comment: 'Izoh' }
             : { services: 'Zones', master: 'Master', date: 'Date', time: 'Time', total: 'Total', onRequest: 'Price on request', name: 'Name', phone: 'Phone', comment: 'Comment' };
 
+      const setText = calc.appliedSet ? setTitle(calc.appliedSet, language) : null;
+
       let message = `${greeting}\n\n`;
       message += `💆‍♀️ ${labels.services}: ${servicesText}\n`;
       message += `👩‍🔬 ${labels.master}: ${masterName}\n`;
@@ -471,10 +604,21 @@ export default function BookingModal({
       // The total covers priced zones only — quoting it while an unpriced zone
       // is in the list would understate what the studio actually charges, so
       // those zones are named separately instead of being folded in silently.
+      // `totalLabel` already carries «от» when no master is picked and her
+      // choice would move the price.
       if (calc.pricedZones.length > 0) {
         const discountNote =
-          calc.discountPct > 0 ? ` (${t(TR.setDiscount)} −${calc.discountPct}%)` : '';
-        message += `💰 ${labels.total}: ${formatPrice(calc.total, language)}${discountNote}\n`;
+          calc.discountPct > 0 ? ` (${t(TR.comboDiscount)} −${calc.discountPct}%)` : '';
+        message += `💰 ${labels.total}: ${totalLabel}${discountNote}\n`;
+      }
+      // Named, not just priced: the administrator has to see which offer the
+      // total came from, or the fixed set price looks like an arithmetic error.
+      if (setText) {
+        const saving =
+          calc.setSavings > 0
+            ? ` · ${t(TR.setSaving).replace('{sum}', formatPrice(calc.setSavings, language))}`
+            : '';
+        message += `🎁 ${t(TR.setApplied)}: ${setText}${saving}\n`;
       }
       if (calc.onRequestZones.length > 0) {
         const onRequestText = calc.onRequestZones
@@ -517,6 +661,12 @@ export default function BookingModal({
 
       setBookingId(result.status === 'ok' ? result.id : null);
       setRequestMsg(message);
+      setPlacedInfo({
+        master: masterName,
+        when: `${date} · ${time}`,
+        total: calc.pricedZones.length > 0 ? totalLabel : null,
+        set: setText,
+      });
       setPlaced(true);
 
       // window.open('_blank') is often blocked inside in-app browsers, so we
@@ -598,6 +748,34 @@ export default function BookingModal({
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{t(TR.doneText)}</p>
             </div>
+
+            {/* Repeat of the request as sent — same master, same total, same
+                offer, so the confirmation cannot say something the Telegram
+                message does not. */}
+            {placedInfo && (
+              <dl className="mt-5 space-y-2 rounded-xl bg-surface p-5 text-left text-sm">
+                <div className="flex items-baseline justify-between gap-4">
+                  <dt className="text-muted">{t(TR.stepMaster)}</dt>
+                  <dd className="text-right font-medium text-ink">{placedInfo.master}</dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-4">
+                  <dt className="text-muted">{t(TR.stepWhen)}</dt>
+                  <dd className="text-right font-medium text-ink">{placedInfo.when}</dd>
+                </div>
+                {placedInfo.set && (
+                  <div className="flex items-baseline justify-between gap-4">
+                    <dt className="text-muted">{t(TR.setApplied)}</dt>
+                    <dd className="text-right font-medium text-primary-dark">{placedInfo.set}</dd>
+                  </div>
+                )}
+                {placedInfo.total && (
+                  <div className="flex items-baseline justify-between gap-4 border-t border-ink/10 pt-2">
+                    <dt className="text-muted">{t(TR.total)}</dt>
+                    <dd className="text-right font-semibold text-ink">{placedInfo.total}</dd>
+                  </div>
+                )}
+              </dl>
+            )}
 
             {/* Opt-in reminder: works only when the booking reached the base,
                 since the deep link carries its id. */}
@@ -682,14 +860,34 @@ export default function BookingModal({
                   {/* Zones the studio has not priced yet stay out of the sum —
                       showing them inside it would quote a total that is wrong. */}
                   <p className="mt-3 border-t border-ink/10 pt-3 font-serif text-xl font-semibold text-ink">
-                    {t(TR.total)}:{' '}
-                    {calc.pricedZones.length > 0
-                      ? formatPrice(calc.total, language)
-                      : t(PRICE_ON_REQUEST)}
+                    {t(TR.total)}: {calc.pricedZones.length > 0 ? totalLabel : t(PRICE_ON_REQUEST)}
                   </p>
+                  {/* Set and percentage are different offers and never both
+                      apply: only Рената has sets, and she gives no percentage. */}
+                  {calc.appliedSet && (
+                    <p className="mt-1 font-sans text-xs font-semibold text-primary-dark">
+                      {t(TR.setApplied)}: {setTitle(calc.appliedSet, language)}
+                      {calc.setSavings > 0 &&
+                        ` · ${t(TR.setSaving).replace('{sum}', formatPrice(calc.setSavings, language))}`}
+                    </p>
+                  )}
                   {calc.discountPct > 0 && (
                     <p className="mt-1 font-sans text-xs font-semibold text-primary-dark">
-                      {t(TR.setDiscount)} −{calc.discountPct}%
+                      {t(TR.comboDiscount)} −{calc.discountPct}%
+                    </p>
+                  )}
+                  {/* Before a master is chosen the discount is hers, not the
+                      studio's — so it is offered by name and never applied. */}
+                  {discountHint && (
+                    <p className="mt-1 font-sans text-xs font-medium text-muted">
+                      {t(TR.discountWith)
+                        .replace('{pct}', String(discountHint.pct))
+                        .replace('{masters}', discountHint.masters)}
+                    </p>
+                  )}
+                  {calc.priceVaries && (
+                    <p className="mt-1.5 font-sans text-xs leading-relaxed text-muted">
+                      {t(TR.variesNote)}
                     </p>
                   )}
                   {calc.onRequestZones.length > 0 && (
@@ -738,41 +936,64 @@ export default function BookingModal({
               <div>
                 <StepLabel number="02">{t(TR.stepMaster)}</StepLabel>
                 <div className="mt-3 grid grid-cols-2 gap-2" role="group" aria-label={t(TR.stepMaster)}>
+                  {/* "Любой мастер" is off the table when only one master can do
+                      the selection: there is nothing left to choose between. */}
                   <button
-                    onClick={() => setMasterId('')}
-                    aria-pressed={masterId === ''}
+                    onClick={() => !soleMaster && setMasterId('')}
+                    disabled={Boolean(soleMaster)}
+                    aria-pressed={activeMasterId === ''}
                     className={`btn-press ink-rule rule-chip flex items-center gap-2.5 rounded-lg border p-2.5 text-left ${
-                      masterId === '' ? 'border-ink bg-ink text-canvas' : 'border-hairline bg-canvas hover:border-muted'
+                      soleMaster
+                        ? 'cursor-not-allowed border-hairline/60 bg-surface/50 text-faint'
+                        : activeMasterId === ''
+                          ? 'border-ink bg-ink text-canvas'
+                          : 'border-hairline bg-canvas hover:border-muted'
                     }`}
                   >
                     <span
                       className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
-                        masterId === '' ? 'bg-canvas/15 text-canvas' : 'bg-surface text-muted'
+                        activeMasterId === '' ? 'bg-canvas/15 text-canvas' : 'bg-surface text-muted'
                       }`}
                     >
                       ✦
                     </span>
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-semibold">{t(TR.anyMaster)}</span>
-                      <span className={`block truncate text-xs ${masterId === '' ? 'text-canvas/60' : 'text-faint'}`}>
-                        {t(TR.anyMasterHint)}
+                      <span
+                        className={`block truncate text-xs ${
+                          activeMasterId === '' ? 'text-canvas/60' : 'text-faint'
+                        }`}
+                      >
+                        {soleMaster ? t(TR.anyMasterOff) : t(TR.anyMasterHint)}
                       </span>
                     </span>
                   </button>
                   {MASTERS.map((master) => {
-                    const selected = masterId === master.id;
+                    // A master who does not perform every selected zone cannot
+                    // be booked for this visit — she would have to refuse it.
+                    const canDo = eligibleMasters.includes(master);
+                    const selected = activeMasterId === master.id;
                     return (
                       <button
                         key={master.id}
-                        onClick={() => setMasterId(master.id)}
+                        onClick={() => canDo && setMasterId(master.id)}
+                        disabled={!canDo}
                         aria-pressed={selected}
                         className={`btn-press ink-rule rule-chip flex items-center gap-2.5 rounded-lg border p-2.5 text-left ${
-                          selected ? 'border-ink bg-ink text-canvas' : 'border-hairline bg-canvas hover:border-muted'
+                          !canDo
+                            ? 'cursor-not-allowed border-hairline/60 bg-surface/50 text-faint'
+                            : selected
+                              ? 'border-ink bg-ink text-canvas'
+                              : 'border-hairline bg-canvas hover:border-muted'
                         }`}
                       >
                         <span
                           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-serif text-base font-semibold ${
-                            selected ? 'bg-canvas/15 text-canvas' : 'bg-primary-soft text-primary-dark'
+                            !canDo
+                              ? 'bg-surface text-faint'
+                              : selected
+                                ? 'bg-canvas/15 text-canvas'
+                                : 'bg-primary-soft text-primary-dark'
                           }`}
                         >
                           {masterInitial(master, language)}
@@ -782,13 +1003,33 @@ export default function BookingModal({
                             {getLocalized(master.name, language)}
                           </span>
                           <span className={`block truncate text-xs ${selected ? 'text-canvas/60' : 'text-faint'}`}>
-                            {getLocalized(master.title, language)}
+                            {canDo ? getLocalized(master.title, language) : t(TR.masterCantDo)}
                           </span>
                         </span>
                       </button>
                     );
                   })}
                 </div>
+                {/* Why the greyed-out cards are greyed out — a disabled control
+                    with no reason reads as a bug. */}
+                {restrictedZones.length > 0 && eligibleMasters.length > 0 && (
+                  <p className="mt-2.5 text-xs leading-relaxed text-muted">
+                    {t(TR.onlyMasterNote)
+                      .replace(
+                        '{masters}',
+                        eligibleMasters.map((m) => getLocalized(m.name, language)).join(', '),
+                      )
+                      .replace(
+                        '{zones}',
+                        restrictedZones.map((z) => getLocalized(z.name, language)).join(', '),
+                      )}
+                  </p>
+                )}
+                {eligibleMasters.length === 0 && (
+                  <p className="mt-2.5 text-xs font-semibold leading-relaxed text-danger">
+                    {t(TR.errNoMaster)}
+                  </p>
+                )}
               </div>
 
               {/* 03 — date strip + time grid */}
@@ -805,10 +1046,12 @@ export default function BookingModal({
                     const iso = toIsoDate(day);
                     const selected = date === iso;
                     // Per-master calendars: a day is bookable only if the master
-                    // actually works it, or — for "любой мастер" — if anyone does.
-                    const closed = selectedMaster
-                      ? masterHoursOn(selectedMaster, iso) === null
-                      : isStudioClosedOn(iso);
+                    // actually works it, or — for "любой мастер" — if anyone who
+                    // can do these zones does. Рената's Tue/Thu/Sat autumn rule
+                    // therefore greys out the rest of the week for her zones.
+                    const closed =
+                      unionHoursOn(selectedMaster ? [selectedMaster] : eligibleMasters, iso) ===
+                      null;
                     const topLabel = closed
                       ? t(TR.dayOff)
                       : i === 0

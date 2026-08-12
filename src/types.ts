@@ -3,7 +3,20 @@ export type LanguageCode = 'RU' | 'UZ' | 'EN';
 /** A string translated into every supported language. */
 export type Localized = Record<LanguageCode, string>;
 
-export type ZoneCategory = 'face' | 'arms' | 'legs' | 'bikini' | 'body';
+/**
+ * `brows` and `polymer` are NOT sugaring — they are separate techniques Рената
+ * performs, and the studio prices them differently from the sugaring zone of
+ * the same name (see the polymer zones in data.ts). They are their own
+ * categories precisely so the price list can never present them as sugaring.
+ */
+export type ZoneCategory =
+  | 'face'
+  | 'arms'
+  | 'legs'
+  | 'bikini'
+  | 'body'
+  | 'brows'
+  | 'polymer';
 
 /** One depilation zone in the price list / calculator. */
 export interface ServiceZone {
@@ -18,8 +31,9 @@ export interface ServiceZone {
    */
   price: number | null;
   /**
-   * Kept out of the public price list. Set on the face zones until the studio
-   * supplies their prices — the data stays here so one flag brings them back.
+   * Kept out of the public price list. Nothing sets it today — the face zones
+   * were unhidden once Рената's prices arrived. The flag stays so a zone can be
+   * pulled from the site without deleting its data (and its share links).
    */
   hidden?: boolean;
   /**
@@ -54,6 +68,36 @@ export interface WorkWindow {
   close: string;
 }
 
+/**
+ * A master's combo discount: pick `minZones` PRICED zones or more with her and
+ * `pct` comes off the subtotal.
+ *
+ * INVARIANT: this is a property of the MASTER, not of the studio. Ангелина and
+ * Муслима give −20% from 3 zones; Рената gives no percentage discount at all —
+ * her offer is the fixed sets below. A discount must therefore never be quoted
+ * before a master is chosen (see calcTotal in utils.ts).
+ */
+export interface MasterDiscount {
+  minZones: number;
+  pct: number;
+}
+
+/**
+ * A fixed-price bundle: take exactly these zones with this master and pay
+ * `price` instead of the sum of her per-zone prices.
+ *
+ * Deliberately has NO name field. The title a client reads is composed from the
+ * zone names via findZone(), so the set card and the price list can never drift
+ * apart, and the composition stays correct in all three languages for free.
+ */
+export interface ServiceSet {
+  id: string;
+  /** Exact composition. A selection matches only when it is these ids and nothing else. */
+  zoneIds: readonly string[];
+  /** Fixed studio price in UZS. Always lower than the sum of the master's zone prices. */
+  price: number;
+}
+
 export interface Master {
   id: string;
   /**
@@ -70,20 +114,36 @@ export interface Master {
   /** Extra credential line — present only where the studio stated one. */
   credentials?: Localized;
   /**
-   * Only set where the studio actually gave a number. Absent means the studio
-   * did not state it — never substitute a guess.
+   * Experience in WHOLE MONTHS, only where the studio gave a number. Absent
+   * means the studio did not state it — never substitute a guess.
+   *
+   * Months, not years, because Муслима's stated experience is 6 months and a
+   * fractional `experienceYears: 0.5` would render as "0.5 года". The field was
+   * renamed rather than reused so that no caller can keep reading a month count
+   * as years — the rename is what makes the change a compile error.
+   * Display goes through formatExperience() in utils.ts.
    */
-  experienceYears?: number;
+  experienceMonths?: number;
   /** Hidden from the public site; kept in data so one flag brings her back. */
   hidden?: boolean;
   /** Zone ids this master performs. */
   zoneIds: readonly string[];
   /**
    * zoneId → price in UZS. A missing key means this master has no price for
-   * that zone yet → "по запросу". There is no discount mechanic: each master
-   * simply carries her own price list.
+   * that zone → "по запросу" (today: Подбородок, for Рената). Each master
+   * carries her own price list; there is no studio-wide rate.
    */
   prices: Readonly<Record<string, number | undefined>>;
+  /**
+   * Her combo discount, or absent when she gives none (Рената). Absent is not
+   * "0%" by accident — it is the studio's actual position.
+   */
+  discount?: MasterDiscount;
+  /**
+   * Her fixed-price bundles. Only Рената has any. A set is her own offer, so it
+   * is never applied to a booking made with "любой мастер".
+   */
+  sets?: readonly ServiceSet[];
   /** Schedule rules; order does not matter, the visit date picks one. */
   schedule: readonly MasterScheduleRule[];
 }

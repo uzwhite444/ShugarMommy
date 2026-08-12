@@ -6,9 +6,34 @@ import SectionHead from './ui/SectionHead';
 import SplitWords from './ui/SplitWords';
 import { Stagger, StaggerItem } from './ui/Stagger';
 import { DUR, EASE_INK, VIEW } from '../lib/motion';
-import { MASTERS } from '../data';
+import { MASTERS, toIsoDate } from '../data';
 import { LanguageCode, Master, WorkWindow } from '../types';
 import { ADDRESS, getLocalized, INSTAGRAM, MANAGER_TELEGRAM, PHONE, STUDIO_HOURS } from '../utils';
+
+/** Date.getDay() index → short weekday name. */
+const WEEKDAY_SHORT: Record<LanguageCode, readonly string[]> = {
+  RU: ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'],
+  UZ: ['yak', 'du', 'se', 'chor', 'pay', 'ju', 'sha'],
+  EN: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+};
+
+const DATE_LOCALE: Record<LanguageCode, string> = { RU: 'ru-RU', UZ: 'uz-UZ', EN: 'en-US' };
+
+/** "2026-09-01" → "1 сентября" / "1 sentabr" / "September 1". */
+function formatDay(iso: string, lang: LanguageCode): string {
+  // Midnight-local parse, never Date(iso): the bare form is read as UTC and
+  // Asia/Tashkent (UTC+5) would render the previous day.
+  return new Intl.DateTimeFormat(DATE_LOCALE[lang], { day: 'numeric', month: 'long' }).format(
+    new Date(`${iso}T00:00:00`),
+  );
+}
+
+/** «С 1 сентября — Рената: вт, чт, сб» */
+function changeLine(date: string, name: string, days: string, lang: LanguageCode): string {
+  if (lang === 'UZ') return `${date}dan — ${name}: ${days}`;
+  if (lang === 'EN') return `From ${date} — ${name}: ${days}`;
+  return `С ${date} — ${name}: ${days}`;
+}
 
 /**
  * The widest window this master ever works, across all her schedule rules.
@@ -82,12 +107,31 @@ export default function Contacts({ language, onCancelBooking }: ContactsProps) {
       window ? [{ name: getLocalized(master.name, language), hours: `${window.open} – ${window.close}` }] : [],
   );
 
+  // A master's row above is one window — it cannot say "these days, from that
+  // date", and Рената moves to every other day on 1 September. Derived from the
+  // schedule rules, so the line retires itself once the date passes instead of
+  // becoming a stale promise.
+  const todayIso = toIsoDate(new Date());
+  const scheduleChanges = MASTERS.flatMap((master) =>
+    master.schedule.flatMap((rule) => {
+      const from = rule.effectiveFrom;
+      if (from === null || from <= todayIso) return [];
+      const days = [...rule.weekdays]
+        .sort((a, b) => a - b)
+        .map((day) => WEEKDAY_SHORT[language][day] ?? '')
+        .filter(Boolean)
+        .join(', ');
+      return [changeLine(formatDay(from, language), getLocalized(master.name, language), days, language)];
+    }),
+  );
+
   const cards: Array<{
     icon: typeof MapPin;
     label: string;
     value: string;
     href?: string;
     note?: string;
+    changes?: string[];
     rows?: Array<{ name: string; hours: string }>;
     rowsLabel?: string;
   }> = [
@@ -99,6 +143,7 @@ export default function Contacts({ language, onCancelBooking }: ContactsProps) {
       value: `${getLocalized(TR.weekdays, language)} ${STUDIO_HOURS.open} – ${STUDIO_HOURS.close}`,
       rows: masterRows,
       rowsLabel: getLocalized(TR.byMaster, language),
+      changes: scheduleChanges,
       note: getLocalized(TR.sunday, language),
     },
   ];
@@ -143,6 +188,15 @@ export default function Contacts({ language, onCancelBooking }: ContactsProps) {
                       ))}
                     </dl>
                   </>
+                )}
+                {card.changes && card.changes.length > 0 && (
+                  <ul className="mt-3 space-y-1">
+                    {card.changes.map((line) => (
+                      <li key={line} className="text-xs leading-relaxed text-primary-dark">
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
                 )}
                 {card.note && <p className="mt-4 text-xs leading-relaxed text-muted">{card.note}</p>}
               </div>

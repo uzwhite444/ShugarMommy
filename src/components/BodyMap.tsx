@@ -1,15 +1,27 @@
 import { m, useReducedMotion } from 'motion/react';
 import { Check } from 'lucide-react';
-import { LanguageCode } from '../types';
+import { LanguageCode, Master, ServiceZone } from '../types';
 import { SERVICE_ZONES } from '../data';
 import { DUR, EASE_INK, VIEW } from '../lib/motion';
-import { formatZonePrice, getLocalized } from '../utils';
+import { getLocalized } from '../utils';
 import figure from '../assets/body-figure.webp';
 
 interface BodyMapProps {
   language: LanguageCode;
   selectedZoneIds: string[];
   onToggleZone: (zoneId: string) => void;
+  /**
+   * Whose price list the section is showing, or null for "любой мастер". Dots
+   * for zones she does not perform are not drawn — tapping one would put a zone
+   * in the basket that the chosen master cannot do.
+   */
+  master?: Master | null;
+  /**
+   * Renders a zone's price for the CURRENT master, «от …» included. Supplied by
+   * the parent rather than computed here so the map and the price list can
+   * never word the same price two different ways.
+   */
+  priceLabel: (zone: ServiceZone) => string;
 }
 
 interface MapPoint {
@@ -29,8 +41,14 @@ interface MapPoint {
 
    Only zones visible from the front: спина, поясница and ягодицы are in the
    price list but have no honest anchor on a front-facing figure.
-   Face zones are absent on purpose — they are hidden until Рената's price list
-   arrives, so SERVICE_ZONES does not contain them at all.
+
+   NO FACE DOT, even though the face zones are published now. The figure is a
+   full-body drawing, so the head occupies roughly y 4–17% and the upper lip
+   lands near y 15%, x 48%. At the narrowest rendering (240px wide → 360px tall)
+   that is 27px above and ~20px across from the underarm anchor at (40, 22.5) —
+   both inside the 44px touch target, so the two hit areas would overlap and
+   steal each other's taps. Face zones are reachable in the list below, in their
+   own category block.
 
    Spacing rule: the touch targets are 44px, so two dots must sit further than
    that apart on at least one axis at the narrowest rendering (240px figure),
@@ -55,7 +73,13 @@ const TR_HINT = {
  * Interactive zone map: an elegant line-art figure with tappable dots wired
  * to the same selection state as the price list — pick zones on the body.
  */
-export default function BodyMap({ language, selectedZoneIds, onToggleZone }: BodyMapProps) {
+export default function BodyMap({
+  language,
+  selectedZoneIds,
+  onToggleZone,
+  master,
+  priceLabel,
+}: BodyMapProps) {
   const reduced = useReducedMotion();
 
   return (
@@ -80,14 +104,20 @@ export default function BodyMap({ language, selectedZoneIds, onToggleZone }: Bod
         {POINTS.map((point, i) => {
           const zone = SERVICE_ZONES.find((z) => z.id === point.zoneId);
           if (!zone) return null;
+          if (master && !master.zoneIds.includes(zone.id)) return null;
           const selected = selectedZoneIds.includes(zone.id);
           const name = getLocalized(zone.name, language);
+          // The tooltip is read on its own, away from the picker above it, so a
+          // master's price carries her name with it.
+          const title = master
+            ? `${name} · ${priceLabel(zone)} · ${getLocalized(master.name, language)}`
+            : `${name} · ${priceLabel(zone)}`;
           return (
             <m.button
               key={zone.id}
               onClick={() => onToggleZone(zone.id)}
               aria-pressed={selected}
-              title={`${name} · ${formatZonePrice(zone.price, language)}`}
+              title={title}
               // The dots ARE this figure's entrance: nothing may animate above
               // them, because a stacking context on any ancestor of
               // `.body-figure` isolates its mix-blend-mode and the artwork

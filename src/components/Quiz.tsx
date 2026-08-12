@@ -4,8 +4,19 @@ import { ArrowLeft, ArrowRight, Sparkles, Check, RotateCcw } from 'lucide-react'
 import Reveal from './ui/Reveal';
 import SectionHead from './ui/SectionHead';
 import { LanguageCode, Localized } from '../types';
-import { SERVICE_ZONES } from '../data';
+import { SERVICE_ZONES, zonePriceRange } from '../data';
 import { calcTotal, formatPrice, formatZonePrice, getLocalized, PRICE_ON_REQUEST } from '../utils';
+
+/**
+ * «от 110 000 сум» — a floor, not a quote. Uzbek marks it with the ablative
+ * suffix, so this cannot be a shared prefix in all three languages.
+ */
+function priceFrom(price: number, lang: LanguageCode): string {
+  const value = formatPrice(price, lang);
+  if (lang === 'UZ') return `${value}dan`;
+  if (lang === 'EN') return `from ${value}`;
+  return `от ${value}`;
+}
 
 interface QuizProps {
   language: LanguageCode;
@@ -76,8 +87,18 @@ const TR = {
   back: { RU: 'Назад', UZ: 'Orqaga', EN: 'Back' },
   resultTitle: { RU: 'Ваш план готов', UZ: 'Rejangiz tayyor', EN: 'Your plan is ready' },
   yourCombo: { RU: 'Рекомендуемый комплекс', UZ: 'Tavsiya etilgan kompleks', EN: 'Recommended combo' },
-  discount: { RU: 'скидка за комплекс', UZ: 'kompleks chegirmasi', EN: 'combo discount' },
   perVisit: { RU: 'за визит', UZ: 'har tashrif uchun', EN: 'per visit' },
+  /**
+   * The quiz asks no master, and price, discount and sets all depend on her —
+   * so the number here is the lowest one the studio charges and is labelled as
+   * such. Promising a percentage would be promising Ангелина's and Муслимы's
+   * offer for a visit the client may well book with Ренатой, who has none.
+   */
+  masterNote: {
+    RU: 'Цена зависит от мастера — показываем минимальную. Точный итог, скидки и выгодные сеты посчитаем на шаге записи.',
+    UZ: 'Narx ustaga bog‘liq — eng past narxni ko‘rsatamiz. Aniq summa, chegirma va foydali setlarni yozilish bosqichida hisoblaymiz.',
+    EN: 'The price depends on the master — this is the lowest one. The exact total, discounts and value sets are calculated at the booking step.',
+  },
   onRequestNote: {
     RU: 'Зоны с ценой «по запросу» в сумму не входят — стоимость назовём при записи.',
     UZ: '«So‘rov bo‘yicha» zonalar summaga kirmaydi — narxni yozilish paytida aytamiz.',
@@ -87,7 +108,7 @@ const TR = {
   tipMethod: {
     razor: {
       RU: 'После бритвы отрастите волоски 2–3 недели — оптимальная длина от 8 мм до 1 см.',
-      UZ: 'Ustaradan keyin tuklarni 2–3 hafta o‘stiring — eng maqbul uzunlik 8 mm dan 1 sm gacha.',
+      UZ: 'Ustaradan keyin tuklarni 2–3 hafta o‘stiring — eng maqbul uzunlik 8 mmdan 1 smgacha.',
       EN: 'After a razor, let hair grow 2–3 weeks — the ideal length is 8 mm to 1 cm.',
     },
     wax: {
@@ -137,14 +158,19 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
 
   // Price-list order, not click order, so the combo reads like the price list.
   const zones = SERVICE_ZONES.filter((z) => areas.includes(z.id));
-  // No master is chosen in the quiz — this quotes the shared price list.
+  // No master is chosen in the quiz, so this is the lowest price across the
+  // masters — a floor, and `calc.priceVaries` says when it has to read «от».
   const calc = calcTotal(zones);
   /**
    * With nothing priced the total is a legitimate 0, which would read as "free".
    * Say «по запросу» instead.
    */
   const totalLabel =
-    calc.pricedZones.length > 0 ? formatPrice(calc.total, language) : t(PRICE_ON_REQUEST);
+    calc.pricedZones.length === 0
+      ? t(PRICE_ON_REQUEST)
+      : calc.priceVaries
+        ? priceFrom(calc.total, language)
+        : formatPrice(calc.total, language);
 
   const toggleArea = (zoneId: string) => {
     setError('');
@@ -301,19 +327,25 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
                       {zones.map((zone) => (
                         <li key={zone.id} className="flex items-baseline justify-between gap-4 text-sm text-body">
                           <span>{getLocalized(zone.name, language)}</span>
+                          {/* Every masters' price list is her own: a zone that
+                              costs 110 000 with Ангелиной is 130 000 with
+                              Ренатой, so a bare number here would be a quote the
+                              studio cannot honour. */}
                           <span className="shrink-0 font-medium text-ink">
-                            {formatZonePrice(zone.price, language)}
+                            {zone.price !== null && zonePriceRange(zone.id).varies
+                              ? priceFrom(zone.price, language)
+                              : formatZonePrice(zone.price, language)}
                           </span>
                         </li>
                       ))}
                     </ul>
                     <div className="mt-4 flex items-baseline justify-between gap-4 border-t border-ink/10 pt-4">
-                      <span className="text-sm text-muted">
-                        {calc.discountPct > 0 && `−${calc.discountPct}% ${t(TR.discount)} · `}
-                        {t(TR.perVisit)}
-                      </span>
+                      <span className="text-sm text-muted">{t(TR.perVisit)}</span>
                       <span className="display shrink-0 text-3xl text-ink">{totalLabel}</span>
                     </div>
+                    {calc.priceVaries && (
+                      <p className="mt-3 text-xs leading-relaxed text-muted">{t(TR.masterNote)}</p>
+                    )}
                     {calc.onRequestZones.length > 0 && (
                       <p className="mt-3 text-xs leading-relaxed text-muted">{t(TR.onRequestNote)}</p>
                     )}

@@ -1,10 +1,14 @@
 import {
   FaqItem,
+  Localized,
   Master,
+  MasterDiscount,
   MasterScheduleRule,
   Review,
+  ServiceSet,
   ServiceZone,
   WorkWindow,
+  ZoneCategory,
 } from './types';
 
 /**
@@ -27,11 +31,10 @@ export function toIsoDate(date: Date | string): string {
 
 /**
  * The price list Ангелина and Муслима both work at, in UZS (zoneId → price).
- * Single source of truth: SERVICE_ZONES reads its public price from here and
- * both masters reference it, so a price is edited in exactly one place.
+ * Both masters reference this object, so a price is edited in exactly one place.
  *
- * A zone missing from this map has no price yet ("по запросу") — that is the
- * case for Ягодицы and Поясница, and for every face zone.
+ * They perform sugaring of the BODY only — no face zones, no brows/lashes, no
+ * polymer depilation. Those ids are absent here on purpose, not by omission.
  */
 export const STANDARD_PRICES: Readonly<Record<string, number | undefined>> = {
   'arms-full': 120_000,
@@ -45,8 +48,76 @@ export const STANDARD_PRICES: Readonly<Record<string, number | undefined>> = {
   back: 60_000,
   chest: 60_000,
   belly: 60_000,
-  // buttocks / lower-back: цену владелица пришлёт отдельно.
+  buttocks: 50_000,
+  'lower-back': 50_000,
 };
+
+/**
+ * Рената's own price list — higher on every shared zone, plus the four
+ * categories only she performs.
+ *
+ * `chin` is deliberately absent: the studio gave no price for Подбородок, so it
+ * quotes as «по запросу». Never fill it in with a guess.
+ */
+export const RENATA_PRICES: Readonly<Record<string, number | undefined>> = {
+  // Тело (шугаринг)
+  'arms-full': 140_000,
+  'arms-half': 100_000,
+  hands: 40_000,
+  underarms: 60_000,
+  'legs-full': 200_000,
+  'legs-half': 150_000,
+  thighs: 100_000,
+  'bikini-deep': 130_000,
+  back: 70_000,
+  chest: 70_000,
+  belly: 70_000,
+  buttocks: 70_000,
+  'lower-back': 70_000,
+  // Лицо (шугаринг) — делает только она
+  'face-full': 120_000,
+  mustache: 30_000,
+  sideburns: 50_000,
+  forehead: 30_000,
+  'neck-nape': 50_000,
+  // chin: цены нет → «по запросу».
+  // Брови и ресницы
+  'brow-shape': 100_000,
+  'brow-tint': 100_000,
+  'brow-lamination': 200_000,
+  'lash-lamination': 200_000,
+  // Депиляция полимером — ДРУГАЯ техника, дороже одноимённых зон шугаринга
+  // (40 000 против 30 000, 50 000 против 30 000). Не объединять.
+  'polymer-mustache': 40_000,
+  'polymer-forehead': 50_000,
+};
+
+/** Every published price list, in no particular order. */
+const PRICE_TABLES: ReadonlyArray<Readonly<Record<string, number | undefined>>> = [
+  STANDARD_PRICES,
+  RENATA_PRICES,
+];
+
+/**
+ * What one zone costs across the masters who perform it.
+ *
+ * `varies` is what lets the UI print «от 110 000» instead of a bare number
+ * before a master is picked: the same zone genuinely costs two different
+ * amounts, and quoting one of them as final would misprice the visit.
+ */
+export function zonePriceRange(zoneId: string): {
+  min: number | null;
+  max: number | null;
+  varies: boolean;
+} {
+  const prices = PRICE_TABLES.map((table) => table[zoneId]).filter(
+    (price): price is number => typeof price === 'number',
+  );
+  if (prices.length === 0) return { min: null, max: null, varies: false };
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  return { min, max, varies: min !== max };
+}
 
 /* ---------------------------------------------------------------------------
  * Zones
@@ -128,55 +199,102 @@ const ZONE_DEFS: readonly ZoneDef[] = [
   // 'Bel' means waist in Uzbek — the zone sold here is the back, i.e. 'Orqa'.
   { id: 'back', category: 'body', name: { RU: 'Спина', UZ: 'Orqa', EN: 'Back' } },
   { id: 'chest', category: 'body', name: { RU: 'Грудь', UZ: 'Ko‘krak', EN: 'Chest' } },
-  // Ягодицы и Поясница: без цены, но остаются на сайте — владелица пришлёт цены.
   { id: 'buttocks', category: 'body', name: { RU: 'Ягодицы', UZ: 'Dumba', EN: 'Buttocks' } },
   { id: 'lower-back', category: 'body', name: { RU: 'Поясница', UZ: 'Bel', EN: 'Lower back' } },
   { id: 'belly', category: 'body', name: { RU: 'Живот', UZ: 'Qorin', EN: 'Belly' } },
 
-  // Лицо — делает ТОЛЬКО Рената. Скрыто целиком, пока нет её прайса; когда
-  // прайс придёт, убрать `hidden` здесь и у мастера ниже.
+  // Лицо (шугаринг) — делает ТОЛЬКО Рената.
   {
     id: 'face-full',
     category: 'face',
-    hidden: true,
     name: { RU: 'Лицо полностью', UZ: 'Yuz to‘liq', EN: 'Full face' },
   },
   {
     id: 'mustache',
     category: 'face',
-    hidden: true,
     name: { RU: 'Усики', UZ: 'Mo‘ylov', EN: 'Upper lip' },
   },
   {
     id: 'forehead',
     category: 'face',
-    hidden: true,
     name: { RU: 'Лобная часть', UZ: 'Peshona', EN: 'Forehead' },
   },
   {
     id: 'sideburns',
     category: 'face',
-    hidden: true,
     name: { RU: 'Бакенбарды', UZ: 'Bakenbardlar', EN: 'Sideburns' },
   },
+  // Единственная зона без цены у кого бы то ни было — «по запросу».
   {
     id: 'chin',
     category: 'face',
-    hidden: true,
     name: { RU: 'Подбородок', UZ: 'Iyak', EN: 'Chin' },
   },
   {
     id: 'neck-nape',
     category: 'face',
-    hidden: true,
     name: { RU: 'Шея (затылочная часть)', UZ: 'Bo‘yin (ensa qismi)', EN: 'Neck (nape)' },
+  },
+
+  // Брови и ресницы — делает ТОЛЬКО Рената. Не шугаринг.
+  {
+    id: 'brow-shape',
+    category: 'brows',
+    name: { RU: 'Архитектура бровей', UZ: 'Qosh arxitekturasi', EN: 'Brow shaping' },
+  },
+  {
+    id: 'brow-tint',
+    category: 'brows',
+    name: { RU: 'Окрашивание бровей', UZ: 'Qoshni bo‘yash', EN: 'Brow tinting' },
+  },
+  {
+    id: 'brow-lamination',
+    category: 'brows',
+    name: { RU: 'Ламинация бровей', UZ: 'Qosh laminatsiyasi', EN: 'Brow lamination' },
+  },
+  {
+    id: 'lash-lamination',
+    category: 'brows',
+    name: { RU: 'Ламинация ресниц', UZ: 'Kiprik laminatsiyasi', EN: 'Lash lamination' },
+  },
+
+  // Депиляция полимером — делает ТОЛЬКО Рената, и это НЕ шугаринг.
+  // The technique is spelled out inside the NAME, not just carried by the
+  // category: these zones travel through flat, category-less lists — the
+  // booking summary, the Telegram message to the studio, the "?zones=" share
+  // link — where a bare "Усики" would be indistinguishable from the 30 000
+  // sugaring zone of the same name.
+  {
+    id: 'polymer-mustache',
+    category: 'polymer',
+    name: {
+      RU: 'Усики — депиляция полимером',
+      UZ: 'Mo‘ylov — polimer bilan depilyatsiya',
+      EN: 'Upper lip — polymer depilation',
+    },
+  },
+  {
+    id: 'polymer-forehead',
+    category: 'polymer',
+    name: {
+      RU: 'Лобная часть — депиляция полимером',
+      UZ: 'Peshona — polimer bilan depilyatsiya',
+      EN: 'Forehead — polymer depilation',
+    },
   },
 ];
 
-/** Every zone the studio knows about, including the hidden face ones. */
+/**
+ * Every zone the studio knows about, including any hidden one.
+ *
+ * `price` is the LOWEST published price across the masters — the «от» figure.
+ * It is what "любой мастер" quotes, because that booking may be served by any
+ * of them and the client must never be shown a number she could beat. Pair it
+ * with zonePriceRange(id).varies to print «от» wherever the masters disagree.
+ */
 export const ALL_SERVICE_ZONES: readonly ServiceZone[] = ZONE_DEFS.map((zone) => ({
   ...zone,
-  price: STANDARD_PRICES[zone.id] ?? null,
+  price: zonePriceRange(zone.id).min,
 }));
 
 /**
@@ -221,15 +339,46 @@ export const ZONE_DURATION_ESTIMATE_MIN: Readonly<Record<string, number | undefi
   sideburns: 10,
   chin: 10,
   'neck-nape': 15,
+  'brow-shape': 30,
+  'brow-tint': 30,
+  'brow-lamination': 60,
+  'lash-lamination': 60,
+  'polymer-mustache': 10,
+  'polymer-forehead': 10,
 };
 
-export const CATEGORY_LABELS = {
+/**
+ * Typed as a total Record so adding a ZoneCategory without a label is a compile
+ * error rather than an `undefined` heading in the price list.
+ */
+export const CATEGORY_LABELS: Readonly<Record<ZoneCategory, Localized>> = {
   face: { RU: 'Лицо', UZ: 'Yuz', EN: 'Face' },
   arms: { RU: 'Руки', UZ: 'Qo‘llar', EN: 'Arms' },
   legs: { RU: 'Ноги', UZ: 'Oyoqlar', EN: 'Legs' },
   bikini: { RU: 'Бикини', UZ: 'Bikini', EN: 'Bikini' },
   body: { RU: 'Тело', UZ: 'Tana', EN: 'Body' },
-} as const;
+  brows: { RU: 'Брови и ресницы', UZ: 'Qosh va kiprik', EN: 'Brows & lashes' },
+  polymer: {
+    RU: 'Депиляция полимером',
+    UZ: 'Polimer bilan depilyatsiya',
+    EN: 'Polymer depilation',
+  },
+};
+
+/**
+ * Display order of the price list. Lives here, next to the categories, so a new
+ * category cannot be added and then silently never rendered — which is what a
+ * copy of this list inside a component would allow.
+ */
+export const CATEGORY_ORDER: readonly ZoneCategory[] = [
+  'bikini',
+  'legs',
+  'arms',
+  'body',
+  'face',
+  'brows',
+  'polymer',
+];
 
 /* ---------------------------------------------------------------------------
  * Masters
@@ -244,36 +393,73 @@ const TUE_THU_SAT: readonly number[] = [2, 4, 6];
 /** Ренатин график меняется с этой даты. */
 const RENATA_AUTUMN_FROM = '2026-09-01';
 
-const BODY_ZONE_IDS: readonly string[] = ALL_SERVICE_ZONES.filter(
-  (z) => z.category !== 'face',
+/**
+ * Categories Ангелина and Муслима work in: sugaring of the body. Face sugaring,
+ * brows/lashes and polymer depilation are Рената's alone.
+ */
+const STANDARD_CATEGORIES: readonly ZoneCategory[] = ['arms', 'legs', 'bikini', 'body'];
+
+const STANDARD_ZONE_IDS: readonly string[] = ALL_SERVICE_ZONES.filter((z) =>
+  STANDARD_CATEGORIES.includes(z.category),
 ).map((z) => z.id);
 
 const ALL_ZONE_IDS: readonly string[] = ALL_SERVICE_ZONES.map((z) => z.id);
 
 /**
- * Мастера. There is no discount mechanic any more — every master carries her
- * own price list, and "любой мастер" quotes the price the visible masters share.
+ * −20% from 3 zones, shared by Ангелина and Муслима. Exported so marketing copy
+ * reads the numbers instead of hardcoding them — but note the discount belongs
+ * to those two masters, NOT to the studio: copy must never promise it for
+ * "любой мастер". Рената has no entry here at all.
+ */
+export const STANDARD_DISCOUNT: MasterDiscount = { minZones: 3, pct: 20 };
+
+/**
+ * Рената's fixed-price bundles. Each is cheaper than the sum of her own zone
+ * prices (190→180, 340→320, 390→380, 530→500), which is the whole point — and
+ * why they must never be offered with another master, whose sum can be lower
+ * than the set price.
+ */
+const RENATA_SETS: readonly ServiceSet[] = [
+  { id: 'set-bikini-underarms', zoneIds: ['bikini-deep', 'underarms'], price: 180_000 },
+  {
+    id: 'set-bikini-underarms-shins',
+    zoneIds: ['bikini-deep', 'underarms', 'legs-half'],
+    price: 320_000,
+  },
+  {
+    id: 'set-bikini-underarms-legs',
+    zoneIds: ['bikini-deep', 'underarms', 'legs-full'],
+    price: 380_000,
+  },
+  {
+    id: 'set-bikini-underarms-legs-arms',
+    zoneIds: ['bikini-deep', 'underarms', 'legs-full', 'arms-full'],
+    price: 500_000,
+  },
+];
+
+/**
+ * Мастера. Every master carries her own price list AND her own discount rule —
+ * neither is a studio-wide setting. "Любой мастер" therefore quotes the lowest
+ * per-zone price and NO discount; see calcTotal() in utils.ts for why.
  */
 export const ALL_MASTERS: readonly Master[] = [
   {
     id: 'renata',
     name: { RU: 'Рената', UZ: 'Renata', EN: 'Renata' },
-    // HIDDEN until her price list arrives. To publish her: delete this line,
-    // fill her entry in STANDARD_PRICES terms below (prices: {...}) and drop
-    // `hidden: true` from the face zones in ZONE_DEFS — she is the only master
-    // who does them.
-    hidden: true,
     title: { RU: 'Топ-мастер', UZ: 'Top-usta', EN: 'Top master' },
-    experienceYears: 7,
+    experienceMonths: 7 * 12,
     credentials: {
       RU: 'Среднее медицинское образование',
       UZ: 'O‘rta tibbiy ma’lumot',
       EN: 'Medical college degree',
     },
-    // Единственная, кто делает зоны лица.
+    // Единственная, кто делает лицо, брови/ресницы и депиляцию полимером.
     zoneIds: ALL_ZONE_IDS,
-    // Прайс не предоставлен — все её зоны идут «по запросу».
-    prices: {},
+    prices: RENATA_PRICES,
+    // Процентных скидок у неё нет — только сеты ниже. `discount` не задан
+    // намеренно: это позиция студии, а не пропуск в данных.
+    sets: RENATA_SETS,
     schedule: [
       // Август: часы известны, дни недели владелицей не уточнялись — берём
       // общий студийный режим (пн–сб).
@@ -285,14 +471,15 @@ export const ALL_MASTERS: readonly Master[] = [
   {
     id: 'angelina',
     name: { RU: 'Ангелина', UZ: 'Angelina', EN: 'Angelina' },
-    // Стаж владелицей не указан — поля experienceYears здесь быть не должно.
     title: {
       RU: 'Сертифицированный мастер',
       UZ: 'Sertifikatlangan usta',
       EN: 'Certified master',
     },
-    zoneIds: BODY_ZONE_IDS,
+    experienceMonths: 12,
+    zoneIds: STANDARD_ZONE_IDS,
     prices: STANDARD_PRICES,
+    discount: STANDARD_DISCOUNT,
     schedule: [{ effectiveFrom: null, weekdays: MON_TO_SAT, open: '09:00', close: '19:00' }],
   },
   {
@@ -303,8 +490,10 @@ export const ALL_MASTERS: readonly Master[] = [
       UZ: 'Sertifikatlangan usta',
       EN: 'Certified master',
     },
-    zoneIds: BODY_ZONE_IDS,
+    experienceMonths: 6,
+    zoneIds: STANDARD_ZONE_IDS,
     prices: STANDARD_PRICES,
+    discount: STANDARD_DISCOUNT,
     schedule: [{ effectiveFrom: null, weekdays: MON_TO_SAT, open: '08:00', close: '20:00' }],
   },
 ];
@@ -314,6 +503,16 @@ export const ALL_MASTERS: readonly Master[] = [
  * ALL_MASTERS is only for admin tooling that must still see hidden masters.
  */
 export const MASTERS: readonly Master[] = ALL_MASTERS.filter((m) => !m.hidden);
+
+/**
+ * Every bookable set with the master who offers it — the feed for the "Выгодные
+ * сеты" block. Carries the master because a set is meaningless without her: the
+ * price only holds if the visit is booked with her, so the card must say so and
+ * must select her along with the zones.
+ */
+export const VISIBLE_SETS: readonly { master: Master; set: ServiceSet }[] = MASTERS.flatMap(
+  (master) => (master.sets ?? []).map((set) => ({ master, set })),
+);
 
 /**
  * Canonical master identifier stored in bookings.master / blocked_slots.master.

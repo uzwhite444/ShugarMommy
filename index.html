@@ -64,10 +64,26 @@
     <!-- Structured data: the studio, its services and the FAQ, so Google can
          show the address, opening hours, prices and expandable questions.
 
-         Prices mirror src/data.ts (STANDARD_PRICES) — keep the two in step.
-         Zones the studio has not priced yet (Ягодицы, Поясница, зоны лица) are
-         deliberately absent: an Offer without a price is not eligible for rich
-         results, and inventing one would publish a price the studio never gave.
+         Prices mirror src/data.ts — keep the two in step.
+
+         A body zone genuinely costs two different amounts (STANDARD_PRICES vs
+         RENATA_PRICES), so it is published as an AggregateOffer carrying
+         lowPrice + highPrice. A plain Offer has one `price`, and either choice
+         would be a false statement: the low figure understates a visit with the
+         top master, the high one overstates every other booking. AggregateOffer
+         is a subtype of Offer, so it is valid wherever an Offer is expected —
+         including inside an OfferCatalog — and it is the schema.org-sanctioned
+         way to say "this service is sold at a range".
+
+         Face sugaring, brows/lashes and polymer depilation are one master's
+         alone: exactly one price exists, so those stay plain Offers. Полимерные
+         зоны sit in their own catalog AND name the technique, because they are
+         not sugaring and cost more than the sugaring zone of the same name.
+
+         Подбородок is absent on purpose — the studio has given no price for it,
+         an Offer without one is not eligible for rich results, and inventing a
+         number would publish a price the studio never quoted.
+
          Hours are the studio envelope (STUDIO_HOURS), widest of the masters'
          own windows; Sunday is simply not listed, which is how schema.org says
          "closed". NOTE: JSON-LD is strict JSON — no comments inside the script. -->
@@ -84,7 +100,7 @@
             "url": "https://shugarmommy.vercel.app/",
             "image": "https://shugarmommy.vercel.app/og-cover.jpg",
             "telephone": "+998900000000",
-            "priceRange": "30000-170000 UZS",
+            "priceRange": "30000-200000 UZS",
             "currenciesAccepted": "UZS",
             "address": {
               "@type": "PostalAddress",
@@ -110,85 +126,273 @@
             ],
             "hasOfferCatalog": {
               "@type": "OfferCatalog",
-              "name": "Услуги шугаринга",
+              "name": "Услуги студии",
               "itemListElement": [
                 {
-                  "@type": "Offer",
-                  "itemOffered": { "@type": "Service", "name": "Шугаринг — глубокое бикини" },
-                  "price": "110000",
-                  "priceCurrency": "UZS"
+                  "@type": "OfferCatalog",
+                  "name": "Шугаринг тела",
+                  "itemListElement": [
+                    {
+                      "@type": "AggregateOffer",
+                      "itemOffered": { "@type": "Service", "name": "Шугаринг — глубокое бикини" },
+                      "lowPrice": "110000",
+                      "highPrice": "130000",
+                      "offerCount": 2,
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "AggregateOffer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Шугаринг — ноги полностью + пальчики"
+                      },
+                      "lowPrice": "170000",
+                      "highPrice": "200000",
+                      "offerCount": 2,
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "AggregateOffer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Шугаринг — голени с захватом колена + пальчики"
+                      },
+                      "lowPrice": "130000",
+                      "highPrice": "150000",
+                      "offerCount": 2,
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "AggregateOffer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Шугаринг — бёдра с захватом колена"
+                      },
+                      "lowPrice": "90000",
+                      "highPrice": "100000",
+                      "offerCount": 2,
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "AggregateOffer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Шугаринг — руки полностью + кисти, пальчики"
+                      },
+                      "lowPrice": "120000",
+                      "highPrice": "140000",
+                      "offerCount": 2,
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "AggregateOffer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Шугаринг — руки до локтя + кисти, пальчики"
+                      },
+                      "lowPrice": "80000",
+                      "highPrice": "100000",
+                      "offerCount": 2,
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "AggregateOffer",
+                      "itemOffered": { "@type": "Service", "name": "Шугаринг — кисти + пальчики" },
+                      "lowPrice": "30000",
+                      "highPrice": "40000",
+                      "offerCount": 2,
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "AggregateOffer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Шугаринг — подмышечные впадины"
+                      },
+                      "lowPrice": "50000",
+                      "highPrice": "60000",
+                      "offerCount": 2,
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "AggregateOffer",
+                      "itemOffered": { "@type": "Service", "name": "Шугаринг — спина" },
+                      "lowPrice": "60000",
+                      "highPrice": "70000",
+                      "offerCount": 2,
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "AggregateOffer",
+                      "itemOffered": { "@type": "Service", "name": "Шугаринг — грудь" },
+                      "lowPrice": "60000",
+                      "highPrice": "70000",
+                      "offerCount": 2,
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "AggregateOffer",
+                      "itemOffered": { "@type": "Service", "name": "Шугаринг — живот" },
+                      "lowPrice": "60000",
+                      "highPrice": "70000",
+                      "offerCount": 2,
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "AggregateOffer",
+                      "itemOffered": { "@type": "Service", "name": "Шугаринг — ягодицы" },
+                      "lowPrice": "50000",
+                      "highPrice": "70000",
+                      "offerCount": 2,
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "AggregateOffer",
+                      "itemOffered": { "@type": "Service", "name": "Шугаринг — поясница" },
+                      "lowPrice": "50000",
+                      "highPrice": "70000",
+                      "offerCount": 2,
+                      "priceCurrency": "UZS"
+                    }
+                  ]
                 },
                 {
-                  "@type": "Offer",
-                  "itemOffered": {
-                    "@type": "Service",
-                    "name": "Шугаринг — ноги полностью + пальчики"
-                  },
-                  "price": "170000",
-                  "priceCurrency": "UZS"
+                  "@type": "OfferCatalog",
+                  "name": "Шугаринг лица и шеи",
+                  "itemListElement": [
+                    {
+                      "@type": "Offer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Шугаринг лица — лицо полностью"
+                      },
+                      "price": "120000",
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "Offer",
+                      "itemOffered": { "@type": "Service", "name": "Шугаринг лица — усики" },
+                      "price": "30000",
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "Offer",
+                      "itemOffered": { "@type": "Service", "name": "Шугаринг лица — бакенбарды" },
+                      "price": "50000",
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "Offer",
+                      "itemOffered": { "@type": "Service", "name": "Шугаринг лица — лобная часть" },
+                      "price": "30000",
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "Offer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Шугаринг — шея (затылочная часть)"
+                      },
+                      "price": "50000",
+                      "priceCurrency": "UZS"
+                    }
+                  ]
                 },
                 {
-                  "@type": "Offer",
-                  "itemOffered": {
-                    "@type": "Service",
-                    "name": "Шугаринг — голени с захватом колена + пальчики"
-                  },
-                  "price": "130000",
-                  "priceCurrency": "UZS"
+                  "@type": "OfferCatalog",
+                  "name": "Брови и ресницы",
+                  "itemListElement": [
+                    {
+                      "@type": "Offer",
+                      "itemOffered": { "@type": "Service", "name": "Архитектура бровей" },
+                      "price": "100000",
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "Offer",
+                      "itemOffered": { "@type": "Service", "name": "Окрашивание бровей" },
+                      "price": "100000",
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "Offer",
+                      "itemOffered": { "@type": "Service", "name": "Ламинация бровей" },
+                      "price": "200000",
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "Offer",
+                      "itemOffered": { "@type": "Service", "name": "Ламинация ресниц" },
+                      "price": "200000",
+                      "priceCurrency": "UZS"
+                    }
+                  ]
                 },
                 {
-                  "@type": "Offer",
-                  "itemOffered": { "@type": "Service", "name": "Шугаринг — бёдра с захватом колена" },
-                  "price": "90000",
-                  "priceCurrency": "UZS"
+                  "@type": "OfferCatalog",
+                  "name": "Депиляция полимером",
+                  "itemListElement": [
+                    {
+                      "@type": "Offer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Усики — депиляция полимером"
+                      },
+                      "price": "40000",
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "Offer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Лобная часть — депиляция полимером"
+                      },
+                      "price": "50000",
+                      "priceCurrency": "UZS"
+                    }
+                  ]
                 },
                 {
-                  "@type": "Offer",
-                  "itemOffered": {
-                    "@type": "Service",
-                    "name": "Шугаринг — руки полностью + кисти, пальчики"
-                  },
-                  "price": "120000",
-                  "priceCurrency": "UZS"
-                },
-                {
-                  "@type": "Offer",
-                  "itemOffered": {
-                    "@type": "Service",
-                    "name": "Шугаринг — руки до локтя + кисти, пальчики"
-                  },
-                  "price": "80000",
-                  "priceCurrency": "UZS"
-                },
-                {
-                  "@type": "Offer",
-                  "itemOffered": { "@type": "Service", "name": "Шугаринг — кисти + пальчики" },
-                  "price": "30000",
-                  "priceCurrency": "UZS"
-                },
-                {
-                  "@type": "Offer",
-                  "itemOffered": { "@type": "Service", "name": "Шугаринг — подмышечные впадины" },
-                  "price": "50000",
-                  "priceCurrency": "UZS"
-                },
-                {
-                  "@type": "Offer",
-                  "itemOffered": { "@type": "Service", "name": "Шугаринг — спина" },
-                  "price": "60000",
-                  "priceCurrency": "UZS"
-                },
-                {
-                  "@type": "Offer",
-                  "itemOffered": { "@type": "Service", "name": "Шугаринг — грудь" },
-                  "price": "60000",
-                  "priceCurrency": "UZS"
-                },
-                {
-                  "@type": "Offer",
-                  "itemOffered": { "@type": "Service", "name": "Шугаринг — живот" },
-                  "price": "60000",
-                  "priceCurrency": "UZS"
+                  "@type": "OfferCatalog",
+                  "name": "Выгодные сеты",
+                  "itemListElement": [
+                    {
+                      "@type": "Offer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Сет: глубокое бикини + подмышечные впадины"
+                      },
+                      "price": "180000",
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "Offer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Сет: глубокое бикини + подмышечные впадины + голени с захватом колена"
+                      },
+                      "price": "320000",
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "Offer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Сет: глубокое бикини + подмышечные впадины + ноги полностью"
+                      },
+                      "price": "380000",
+                      "priceCurrency": "UZS"
+                    },
+                    {
+                      "@type": "Offer",
+                      "itemOffered": {
+                        "@type": "Service",
+                        "name": "Сет: глубокое бикини + подмышечные впадины + ноги полностью + руки полностью"
+                      },
+                      "price": "500000",
+                      "priceCurrency": "UZS"
+                    }
+                  ]
                 }
               ]
             }
