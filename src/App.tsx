@@ -48,6 +48,10 @@ export default function App() {
     return param.split(',').filter((id) => validIds.has(id));
   });
   const [bookingOpen, setBookingOpen] = useState(false);
+  // One master choice for the whole page: the price list and the booking form
+  // read and write the same value, so the form can never quote «любой мастер»
+  // right after the visitor asked to see Рената's prices.
+  const [masterId, setMasterId] = useState('');
   const [cancelOpen, setCancelOpen] = useState(false);
   // Booking code the cancellation form should open with — set from the
   // reminder link or from the confirmation screen, empty when the visitor
@@ -178,6 +182,8 @@ export default function App() {
           selectedZoneIds={selectedZoneIds}
           onToggleZone={toggleZone}
           onBook={() => setBookingOpen(true)}
+          masterId={masterId}
+          onChangeMaster={setMasterId}
         />
         <Process language={language} />
         <Quiz
@@ -209,6 +215,8 @@ export default function App() {
             selectedZones={selectedZones}
             onClose={() => setBookingOpen(false)}
             onRemoveZone={toggleZone}
+            masterId={masterId}
+            onChangeMaster={setMasterId}
             onCancelBooking={(code) => {
               setBookingOpen(false);
               openCancel(code);

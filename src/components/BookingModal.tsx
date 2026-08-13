@@ -26,6 +26,9 @@ interface BookingModalProps {
   onRemoveZone?: (zoneId: string) => void;
   /** Opens the self-service cancellation form, pre-filled with the code. */
   onCancelBooking?: (code?: string) => void;
+  /** Master id, or '' for «любой мастер». Shared with the price list. */
+  masterId: string;
+  onChangeMaster: (masterId: string) => void;
 }
 
 /** Shortest bookable visit — one grid cell, even with no zones picked. */
@@ -37,6 +40,8 @@ export default function BookingModal({
   onClose,
   onRemoveZone,
   onCancelBooking,
+  masterId,
+  onChangeMaster,
 }: BookingModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, true, onClose);
@@ -63,7 +68,9 @@ export default function BookingModal({
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [masterId, setMasterId] = useState('');
+  // Comes from App, so the master picked in the price list is already selected
+  // here — and a change here is reflected back there. One choice, one number.
+  const setMasterId = onChangeMaster;
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [comment, setComment] = useState('');
@@ -114,6 +121,14 @@ export default function BookingModal({
   const selectedMaster = soleMaster ?? eligibleMasters.find((m) => m.id === masterId);
   // What the picker shows as chosen: the forced master wins over stale state.
   const activeMasterId = selectedMaster?.id ?? '';
+
+  // Push a forced master back to the shared state, so the price list behind the
+  // modal quotes the same visit. Without this the two disagree on the same
+  // basket: the list keeps the (now impossible) master and prints her cheaper
+  // total, while the form books the only master who can actually do the work.
+  useEffect(() => {
+    if (soleMaster && soleMaster.id !== masterId) onChangeMaster(soleMaster.id);
+  }, [soleMaster, masterId, onChangeMaster]);
   const calc = calcTotal(selectedZones, selectedMaster);
   // The number as it may be shown: without a master it is the lowest price of
   // the masters who could take the visit, so it has to read «от».

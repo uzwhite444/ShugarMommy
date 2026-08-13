@@ -31,6 +31,9 @@ interface ServicesProps {
   selectedZoneIds: string[];
   onToggleZone: (zoneId: string) => void;
   onBook: () => void;
+  /** Master id, or '' for «любой мастер». Shared with the booking form. */
+  masterId: string;
+  onChangeMaster: (masterId: string) => void;
 }
 
 const TR = {
@@ -206,11 +209,19 @@ function AnimatedPrice({
   return <>{from ? withFrom(text, language) : text}</>;
 }
 
-export default function Services({ language, selectedZoneIds, onToggleZone, onBook }: ServicesProps) {
-  // Whose price list is on screen. Local to this section on purpose: it decides
-  // what the visitor READS here, while the booking modal keeps its own master
-  // step as the thing that actually books.
-  const [masterId, setMasterId] = useState('');
+export default function Services({
+  language,
+  selectedZoneIds,
+  onToggleZone,
+  onBook,
+  masterId,
+  onChangeMaster,
+}: ServicesProps) {
+  // Whose price list is on screen. Lifted to App and shared with the booking
+  // form: picking a master to see her prices and then finding the form set to
+  // «любой мастер» made the site look like it had forgotten the choice — and
+  // «любой мастер» quotes a different, lower number.
+  const setMasterId = onChangeMaster;
   // `m` is motion's element factory in this file — never shadow it in a callback.
   const master = MASTERS.find((candidate) => candidate.id === masterId) ?? null;
 
