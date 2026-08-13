@@ -2,7 +2,7 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Menu, Moon, Sun, X } from 'lucide-react';
 import { LanguageCode } from '../types';
-import { getLocalized } from '../utils';
+import { getLocalized, STUDIO_NAME } from '../utils';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useTheme } from '../hooks/useTheme';
 import { subscribeScroll } from '../lib/scrollState';
@@ -43,7 +43,8 @@ const THEME_LABEL = {
 function Wordmark() {
   return (
     <span className="font-serif text-[22px] font-semibold tracking-tight text-ink">
-      Shugar Mommy<span className="text-primary">.</span>
+      {STUDIO_NAME}
+      <span className="text-primary">.</span>
     </span>
   );
 }
@@ -126,7 +127,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Press only, no rule: a hairline under the wordmark would compete
             with the terracotta full stop that is the mark's whole idea. */}
-        <a href="#top" aria-label="Shugar Mommy" className="btn-press flex min-h-11 items-center">
+        <a href="#top" aria-label={STUDIO_NAME} className="btn-press flex min-h-11 items-center">
           <Wordmark />
         </a>
 

@@ -50,7 +50,7 @@ export default function Reports({ bookings }: ReportsProps) {
 
   const filtered = useMemo(() => filterByPeriod(bookings, from, to), [bookings, from, to]);
   const metrics = useMemo(() => computeMetrics(filtered), [filtered]);
-  const filename = `shugarmommy-report-${from ?? 'start'}-${to ?? todayIso()}`;
+  const filename = `sugarmommy-report-${from ?? 'start'}-${to ?? todayIso()}`;
 
   const summary = [
     { label: 'Всего заявок', value: String(metrics.total) },

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { m, useReducedMotion } from 'motion/react';
 import { CheckCircle2, KeyRound, Loader2, Phone, Send, X } from 'lucide-react';
 import { LanguageCode } from '../types';
-import { getLocalized, MANAGER_TELEGRAM, PHONE } from '../utils';
+import { getLocalized, MANAGER_TELEGRAM, PHONE, telHref } from '../utils';
 import { cancelBookingByCode, formatBookingCode, normalizeBookingCode } from '../lib/bookings';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 
@@ -285,7 +285,7 @@ export default function CancelModal({ language, initialCode, onClose }: CancelMo
               <p className="text-xs leading-relaxed text-muted">{t(TR.lostCode)}</p>
               <div className="mt-2.5 flex flex-wrap gap-2">
                 <a
-                  href={`tel:${PHONE.replace(/[^+\d]/g, '')}`}
+                  href={telHref(PHONE)}
                   className="btn-press ink-rule rule-slab inline-flex items-center gap-2 rounded-lg border border-hairline px-4 py-2.5 text-sm font-semibold text-ink hover:border-ink"
                 >
                   <Phone size={15} /> {PHONE}

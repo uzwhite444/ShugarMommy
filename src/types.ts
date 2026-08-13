@@ -130,7 +130,8 @@ export interface Master {
   zoneIds: readonly string[];
   /**
    * zoneId → price in UZS. A missing key means this master has no price for
-   * that zone → "по запросу" (today: Подбородок, for Рената). Each master
+   * that zone → "по запросу". Every zone is priced today; the fallback exists
+   * so a zone added before its price cannot be quoted at a guess. Each master
    * carries her own price list; there is no studio-wide rate.
    */
   prices: Readonly<Record<string, number | undefined>>;

@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { m, useInView, useReducedMotion } from 'motion/react';
-import { MapPin, Phone, Clock, Send, Instagram } from 'lucide-react';
+import { MapPin, Phone, Clock, Send, Instagram, ExternalLink } from 'lucide-react';
 import Reveal from './ui/Reveal';
 import SectionHead from './ui/SectionHead';
 import SplitWords from './ui/SplitWords';
@@ -8,7 +8,18 @@ import { Stagger, StaggerItem } from './ui/Stagger';
 import { DUR, EASE_INK, VIEW } from '../lib/motion';
 import { MASTERS, toIsoDate } from '../data';
 import { LanguageCode, Master, WorkWindow } from '../types';
-import { ADDRESS, getLocalized, INSTAGRAM, MANAGER_TELEGRAM, PHONE, STUDIO_HOURS } from '../utils';
+import {
+  ADDRESS,
+  getLocalized,
+  INSTAGRAM,
+  MANAGER_TELEGRAM,
+  MAP_LABEL,
+  MAP_URL,
+  PHONE,
+  PHONES,
+  STUDIO_HOURS,
+  telHref,
+} from '../utils';
 
 /** Date.getDay() index → short weekday name. */
 const WEEKDAY_SHORT: Record<LanguageCode, readonly string[]> = {
@@ -91,10 +102,20 @@ const TR = {
   },
   cancelBtn: { RU: 'Отменить запись', UZ: 'Yozuvni bekor qilish', EN: 'Cancel booking' },
   callBtn: { RU: 'Позвонить', UZ: 'Qo‘ng‘iroq qilish', EN: 'Call us' },
+  openMap: {
+    RU: 'Открыть в Яндекс.Картах',
+    UZ: 'Yandex Xaritada ochish',
+    EN: 'Open in Yandex Maps',
+  },
+  mapNote: {
+    RU: `На карте: ${MAP_LABEL}`,
+    UZ: `Xaritada: ${MAP_LABEL}`,
+    EN: `On the map: ${MAP_LABEL}`,
+  },
 };
 
 export default function Contacts({ language, onCancelBooking }: ContactsProps) {
-  const phoneHref = `tel:${PHONE.replace(/[^+\d]/g, '')}`;
+  const phoneHref = telHref(PHONE);
   const reduced = useReducedMotion();
   const bandRef = useRef<HTMLDivElement>(null);
   const bandIn = useInView(bandRef, VIEW.far);
@@ -128,15 +149,30 @@ export default function Contacts({ language, onCancelBooking }: ContactsProps) {
   const cards: Array<{
     icon: typeof MapPin;
     label: string;
-    value: string;
-    href?: string;
+    /** Lead line. Omitted when the card leads with its links instead. */
+    value?: string;
+    /** Tappable rows — a phone number, a map. Each is its own 44px target. */
+    links?: Array<{ text: string; href: string; external?: boolean }>;
     note?: string;
     changes?: string[];
     rows?: Array<{ name: string; hours: string }>;
     rowsLabel?: string;
   }> = [
-    { icon: MapPin, label: getLocalized(TR.address, language), value: getLocalized(ADDRESS, language) },
-    { icon: Phone, label: getLocalized(TR.phone, language), value: PHONE, href: phoneHref },
+    {
+      icon: MapPin,
+      label: getLocalized(TR.address, language),
+      value: getLocalized(ADDRESS, language),
+      links: [{ text: getLocalized(TR.openMap, language), href: MAP_URL, external: true }],
+      note: getLocalized(TR.mapNote, language),
+    },
+    {
+      icon: Phone,
+      label: getLocalized(TR.phone, language),
+      // Both of the owner's lines, each dialable on its own — a second number
+      // printed as plain text next to the first is not a second way to reach
+      // the studio on a phone.
+      links: PHONES.map((phone) => ({ text: phone, href: telHref(phone) })),
+    },
     {
       icon: Clock,
       label: getLocalized(TR.hours, language),
@@ -159,21 +195,23 @@ export default function Contacts({ language, onCancelBooking }: ContactsProps) {
               <div className="ink-rule rule-top rule-long h-full rounded-xl bg-surface p-7">
                 <card.icon size={20} className="text-primary" strokeWidth={1.75} />
                 <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-muted">{card.label}</p>
-                {card.href ? (
-                  // Full-width 44px row: tapping the phone number on a small
+                {card.value && <p className="mt-1.5 font-medium text-ink">{card.value}</p>}
+                {card.links?.map((link) => (
+                  // Full-width 44px row: tapping a phone number on a small
                   // screen must not require hitting a 24px line of text.
                   // No rule here on purpose: the card already inks its top edge
                   // on the same hover, and a full-bleed rule under a short
                   // number would read as a divider, not an underline.
                   <a
-                    href={card.href}
-                    className="btn-press -mx-2 mt-0.5 flex min-h-11 items-center rounded-lg px-2 font-medium text-ink hover:text-primary-dark"
+                    key={link.href}
+                    href={link.href}
+                    {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                    className="btn-press -mx-2 mt-0.5 flex min-h-11 items-center gap-1.5 rounded-lg px-2 font-medium text-ink hover:text-primary-dark"
                   >
-                    {card.value}
+                    {link.text}
+                    {link.external && <ExternalLink size={14} className="shrink-0 text-faint" />}
                   </a>
-                ) : (
-                  <p className="mt-1.5 font-medium text-ink">{card.value}</p>
-                )}
+                ))}
                 {card.rows && card.rows.length > 0 && (
                   <>
                     <p className="mt-4 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-faint">

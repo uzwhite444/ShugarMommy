@@ -1,4 +1,5 @@
 import { Booking, BookingStatus } from '../types';
+import { STUDIO_NAME } from '../utils';
 
 /**
  * Report aggregation + client-side export builders (CSV / Excel / PDF / JSON).
@@ -173,7 +174,7 @@ function reportHtml(bookings: Booking[], metrics: ReportMetrics, periodLabel: st
   ];
 
   return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">
-<title>Shugar Mommy — отчёт</title>
+<title>${STUDIO_NAME} — отчёт</title>
 <style>
   body{font-family:Georgia,'Times New Roman',serif;color:#1D1712;background:#fff;margin:32px}
   h1{font-size:24px;margin:0 0 4px}
@@ -182,7 +183,7 @@ function reportHtml(bookings: Booking[], metrics: ReportMetrics, periodLabel: st
   table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;margin-top:6px}
   @media print { body{margin:12mm} }
 </style></head><body>
-<h1>Shugar Mommy<span style="color:#C17456">.</span> — отчёт</h1>
+<h1>${STUDIO_NAME}<span style="color:#C17456">.</span> — отчёт</h1>
 <p class="muted">Период: ${escapeHtml(periodLabel)} · Сформирован: ${new Date().toLocaleString('ru-RU')}</p>
 
 <h2>Сводка</h2>

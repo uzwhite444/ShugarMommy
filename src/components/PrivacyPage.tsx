@@ -1,6 +1,6 @@
 import { ArrowLeft } from 'lucide-react';
 import { LanguageCode, Localized } from '../types';
-import { ADDRESS, getLocalized, MANAGER_TELEGRAM, PHONE } from '../utils';
+import { ADDRESS, getLocalized, MANAGER_TELEGRAM, PHONES, STUDIO_NAME, telHref } from '../utils';
 
 interface PrivacyPageProps {
   language: LanguageCode;
@@ -122,12 +122,16 @@ export default function PrivacyPage({ language }: PrivacyPageProps) {
           <section className="rounded-xl bg-surface p-6">
             <h2 className="text-base font-semibold text-ink">{getLocalized(TR.contactTitle, language)}</h2>
             <ul className="mt-3 space-y-1.5 text-sm text-body">
-              <li>Shugar Mommy — {getLocalized(ADDRESS, language)}</li>
               <li>
-                <a href={`tel:${PHONE.replace(/[^+\d]/g, '')}`} className="font-semibold text-primary-dark hover:underline">
-                  {PHONE}
-                </a>
+                {STUDIO_NAME} — {getLocalized(ADDRESS, language)}
               </li>
+              {PHONES.map((phone) => (
+                <li key={phone}>
+                  <a href={telHref(phone)} className="font-semibold text-primary-dark hover:underline">
+                    {phone}
+                  </a>
+                </li>
+              ))}
               <li>
                 <a
                   href={`https://t.me/${MANAGER_TELEGRAM}`}

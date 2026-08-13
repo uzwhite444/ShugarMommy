@@ -1,24 +1,53 @@
 import { LanguageCode, Localized, Master, ServiceSet, ServiceZone } from './types';
 import { MASTERS, STUDIO_HOURS, ZONE_DURATION_ESTIMATE_MIN, zonePriceRange } from './data';
 
+/** Studio name, as the owner writes it. */
+export const STUDIO_NAME = 'Sugar Mommy';
+
 /** Telegram DM of the studio administrator — receives booking requests. */
-export const MANAGER_TELEGRAM = 'ShugarMommyUz'; // TODO: заменить на реальный ник
+export const MANAGER_TELEGRAM = 'ren_na_ta';
 
 /** Studio bot — sends visit reminders to clients who opt in. */
 export const MANAGER_BOT = 'Shugarr_Mommy_bot';
 
 /** Studio Instagram handle. */
-export const INSTAGRAM = 'shugar.mommy'; // TODO: заменить на реальный ник
+export const INSTAGRAM = 'sugar_mommy____';
 
-/** Studio phone number (display + tel: link). */
-export const PHONE = '+998 90 000-00-00'; // TODO: заменить на реальный номер
+/**
+ * Studio phone numbers, in the order they should be offered. Both are the
+ * owner's own lines; the first is what single-number surfaces (privacy page,
+ * structured data, the "позвонить" button after a failed cancellation) use.
+ */
+export const PHONES: readonly string[] = ['+998 91 602-44-71', '+998 99 989-41-60'];
+
+/** Primary phone — display form; run it through telHref() for the link. */
+export const PHONE = PHONES[0];
+
+/** "+998 91 602-44-71" → "tel:+998916024471". */
+export function telHref(phone: string): string {
+  return `tel:${phone.replace(/[^+\d]/g, '')}`;
+}
 
 /** Studio address per language. */
 export const ADDRESS: Localized = {
-  RU: 'г. Андижан, ул. Примерная, 1', // TODO: заменить на реальный адрес
-  UZ: "Andijon sh., Namuna ko'chasi, 1",
-  EN: '1 Example St., Andijan',
+  RU: 'Андижан, 2-й микрорайон — ориентир Uzum Market',
+  UZ: 'Andijon, 2-mikrorayon — mo‘ljal Uzum Market',
+  EN: 'Andijan, 2nd microdistrict — Uzum Market landmark',
 };
+
+/**
+ * How the studio is registered in Yandex Maps. Kept apart from ADDRESS because
+ * the two say different things to different readers: ADDRESS is what a person
+ * understands ("ориентир Uzum Market"), this is what the map search actually
+ * matches. Shown as-is next to the map link so a client can read it to a taxi
+ * driver.
+ */
+export const MAP_LABEL = 'Айланма халка, 23';
+
+/** Yandex Maps search for the studio. */
+export const MAP_URL = `https://yandex.uz/maps/?text=${encodeURIComponent(
+  `Андижан, ${MAP_LABEL}`,
+)}`;
 
 /**
  * Widest opening window across the current masters, re-exported so contact
@@ -198,9 +227,9 @@ export interface CalcResult {
   /** Selected zones that carry a price — the ones `subtotal` is built from. */
   pricedZones: ServiceZone[];
   /**
-   * Selected zones nobody has priced (today: Подбородок, and anything the
-   * chosen master does not perform). They are excluded from every number above;
-   * show them as "+ N зон по запросу" so the total is never quietly wrong.
+   * Selected zones nobody has priced — today only the zones the CHOSEN master
+   * does not perform. They are excluded from every number above; show them as
+   * "+ N зон по запросу" so the total is never quietly wrong.
    */
   onRequestZones: ServiceZone[];
   /** Estimated chair time for ALL selected zones, priced or not. */

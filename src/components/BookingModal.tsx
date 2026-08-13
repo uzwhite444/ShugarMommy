@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { m, useReducedMotion } from 'motion/react';
 import { X, Send, Loader2 } from 'lucide-react';
 import { LanguageCode, Localized, ServiceZone } from '../types';
-import { calcTotal, formatPrice, getLocalized, MANAGER_TELEGRAM } from '../utils';
+import { calcTotal, formatPrice, getLocalized, MANAGER_TELEGRAM, STUDIO_NAME } from '../utils';
 import { MASTERS, masterKey, toIsoDate } from '../data';
 import { createBooking, formatBookingCode, warnOnPriceDrift } from '../lib/bookings';
 import { fetchDayAvailability, isRangeTaken } from '../lib/availability';
@@ -266,10 +266,10 @@ export default function BookingModal({
 
       const greeting =
         language === 'RU'
-          ? '✨ Здравствуйте, Shugar Mommy!\nХочу записаться на шугаринг:'
+          ? `✨ Здравствуйте, ${STUDIO_NAME}!\nХочу записаться на шугаринг:`
           : language === 'UZ'
-            ? '✨ Assalomu alaykum, Shugar Mommy!\nShugaringga yozilmoqchiman:'
-            : '✨ Hello, Shugar Mommy!\nI would like to book a sugaring session:';
+            ? `✨ Assalomu alaykum, ${STUDIO_NAME}!\nShugaringga yozilmoqchiman:`
+            : `✨ Hello, ${STUDIO_NAME}!\nI would like to book a sugaring session:`;
 
       const labels =
         language === 'RU'

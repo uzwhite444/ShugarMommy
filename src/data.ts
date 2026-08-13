@@ -56,8 +56,10 @@ export const STANDARD_PRICES: Readonly<Record<string, number | undefined>> = {
  * Рената's own price list — higher on every shared zone, plus the four
  * categories only she performs.
  *
- * `chin` is deliberately absent: the studio gave no price for Подбородок, so it
- * quotes as «по запросу». Never fill it in with a guess.
+ * Every zone she performs now carries a price: Подбородок was the last «по
+ * запросу» one and the studio quoted 30 000 on 13.08.2026. The «по запросу»
+ * path in the UI is kept anyway — it is what protects the client if a future
+ * zone is added here before its price is known.
  */
 export const RENATA_PRICES: Readonly<Record<string, number | undefined>> = {
   // Тело (шугаринг)
@@ -80,7 +82,7 @@ export const RENATA_PRICES: Readonly<Record<string, number | undefined>> = {
   sideburns: 50_000,
   forehead: 30_000,
   'neck-nape': 50_000,
-  // chin: цены нет → «по запросу».
+  chin: 30_000,
   // Брови и ресницы
   'brow-shape': 100_000,
   'brow-tint': 100_000,
@@ -224,7 +226,6 @@ const ZONE_DEFS: readonly ZoneDef[] = [
     category: 'face',
     name: { RU: 'Бакенбарды', UZ: 'Bakenbardlar', EN: 'Sideburns' },
   },
-  // Единственная зона без цены у кого бы то ни было — «по запросу».
   {
     id: 'chin',
     category: 'face',

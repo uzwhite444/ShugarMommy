@@ -1,5 +1,5 @@
 import { LanguageCode } from '../types';
-import { getLocalized } from '../utils';
+import { getLocalized, STUDIO_NAME } from '../utils';
 
 interface FooterProps {
   language: LanguageCode;
@@ -21,7 +21,8 @@ export default function Footer({ language }: FooterProps) {
       <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
         <div>
           <p className="font-serif text-xl font-semibold">
-            Shugar Mommy<span className="text-primary">.</span>
+            {STUDIO_NAME}
+            <span className="text-primary">.</span>
           </p>
           <p className="mt-2 max-w-xs text-sm text-ondark-soft">{getLocalized(TR.tagline, language)}</p>
         </div>
@@ -30,7 +31,7 @@ export default function Footer({ language }: FooterProps) {
             {getLocalized(TR.privacy, language)}
           </a>
           <p className="mt-2">
-            © {new Date().getFullYear()} Shugar Mommy · {getLocalized(TR.rights, language)}
+            © {new Date().getFullYear()} {STUDIO_NAME} · {getLocalized(TR.rights, language)}
           </p>
         </div>
       </div>

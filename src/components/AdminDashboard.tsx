@@ -3,6 +3,7 @@ import { CalendarClock, CalendarOff, FileBarChart, Home, LayoutDashboard, Loader
 import { Booking, BookingStatus } from '../types';
 import { deleteBooking, fetchBookings, updateBookingStatus } from '../lib/bookings';
 import { supabase } from '../lib/supabase';
+import { STUDIO_NAME } from '../utils';
 import Overview from './admin/Overview';
 import BookingsManager from './admin/BookingsManager';
 import Schedule from './admin/Schedule';
@@ -94,7 +95,8 @@ export default function AdminDashboard() {
       <aside className="hidden bg-dark lg:flex lg:flex-col">
         <div className="border-b border-ondark/10 px-5 py-5">
           <p className="font-serif text-lg font-semibold text-ondark">
-            Shugar Mommy<span className="text-primary">.</span>
+            {STUDIO_NAME}
+            <span className="text-primary">.</span>
           </p>
           <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-ondark-soft">
             панель управления
@@ -135,7 +137,8 @@ export default function AdminDashboard() {
       <header className="sticky top-0 z-10 border-b border-hairline bg-canvas/95 backdrop-blur-sm lg:hidden">
         <div className="flex h-14 items-center justify-between px-4">
           <p className="font-serif text-lg font-semibold">
-            Shugar Mommy<span className="text-primary">.</span>{' '}
+            {STUDIO_NAME}
+            <span className="text-primary">.</span>{' '}
             <span className="font-sans text-xs font-medium text-muted">· админ</span>
           </p>
           <div className="flex items-center gap-1">
