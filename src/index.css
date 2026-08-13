@@ -26,8 +26,19 @@
   --color-dark-2: #2A221B;       /* elevated cards on dark */
   --color-ondark: #FAF7F2;       /* text on dark (echoes canvas) */
   --color-ondark-soft: #A79C8E;  /* secondary text on dark */
-  --color-success: #5D8B62;
-  --color-danger: #C05548;
+  /* Darkened from #5D8B62 (3.2:1 as text on a cream card — the admin's
+     «Подтверждена» badge). This is the tone index.css already used to make
+     white-on-success buttons pass, so the palette gains nothing new. */
+  --color-success: #3F6B45;
+  /* Darkened from #C05548, which was 4.24:1 on canvas and 3.99:1 on the dark
+     receipt — under AA on the very lines that stop a wrong booking («мастер не
+     выполняет эти зоны», «свободных слотов нет»). Now 6.0:1 and 5.6:1. Used as
+     TEXT only, never as a fill, so one token closes every one of them. */
+  --color-danger: #A63C2F;
+  /* Focus ring. Not --color-primary: terracotta on a cream card is 2.92:1,
+     under the 3:1 a focus indicator owes (WCAG 1.4.11), and the contact cards
+     are exactly that surface. Night mode keeps the accent — there it is 6.7:1. */
+  --color-focus: #96503A;
 
   /* Pinned pair for buttons that stay white in both themes (the terracotta
      callout keeps its light-on-warm treatment at night): primary-dark and
@@ -109,6 +120,7 @@
   --color-ondark-soft: #A99B8B;
   --color-success: #7BA680;
   --color-danger: #D97B6B;
+  --color-focus: #D9946F;
   color-scheme: dark;
 }
 
@@ -254,9 +266,18 @@ html {
 
 /* Visible, on-brand keyboard focus everywhere. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
   border-radius: 6px;
+}
+
+/* The form fields carry no visible <label> — the placeholder IS the label, and
+   Tailwind's preflight leaves it at currentColor 50%, i.e. 3.33:1 on cream.
+   Pin it to the caption token instead (5.5:1) so «Ваше имя» is legible in
+   daylight on a phone. */
+::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
 }
 
 ::selection {

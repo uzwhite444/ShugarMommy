@@ -131,7 +131,11 @@ export default function AdminGate() {
             className="field w-full rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm outline-none focus:border-primary"
           />
         </div>
-        {error && <p className="mt-3 text-sm font-semibold text-danger">{error}</p>}
+        {error && (
+          <p role="alert" className="mt-3 text-sm font-semibold text-danger">
+            {error}
+          </p>
+        )}
         <button
           type="submit"
           disabled={submitting}

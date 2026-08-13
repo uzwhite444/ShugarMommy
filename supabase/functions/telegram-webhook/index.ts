@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
   if (!UUID_RE.test(payload)) {
     await reply(
       chatId,
-      'Здравствуйте! Это бот студии <b>Shugar Mommy</b>.\n\nЧтобы получать напоминание за час до визита, запишитесь на сайте и нажмите там кнопку «Напомнить в Telegram».\n\nhttps://shugarmommy.vercel.app',
+      'Здравствуйте! Это бот студии <b>Sugar Mommy</b>.\n\nЧтобы получать напоминание за час до визита, запишитесь на сайте и нажмите там кнопку «Напомнить в Telegram».\n\nhttps://shugarmommy.vercel.app',
     );
     return new Response('ok');
   }

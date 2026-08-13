@@ -23,6 +23,7 @@ import {
   masterInitial,
   PRICE_ON_REQUEST,
   setListPrice,
+  withFrom,
   zonePriceFor,
 } from '../utils';
 
@@ -148,15 +149,6 @@ const CATEGORY_MASTERS = new Map<ZoneCategory, readonly Master[]>(
     return [category, MASTERS.filter((master) => ids.some((id) => master.zoneIds.includes(id)))];
   }),
 );
-
-/**
- * Marks a number as a FLOOR, not a quote. Russian and English take a prefix,
- * Uzbek the ablative suffix on the already-formatted "170 000 so'm".
- */
-function withFrom(price: string, lang: LanguageCode): string {
-  if (lang === 'UZ') return `${price}dan`;
-  return `${lang === 'EN' ? 'from' : 'от'} ${price}`;
-}
 
 /** One master's discount rule, worded from her own data. */
 function discountRule(master: Master, lang: LanguageCode): string {

@@ -1,7 +1,7 @@
 /** Small display-only helpers shared across the booking modal's steps. */
 import { LanguageCode, ServiceSet } from '../../types';
 import { findZone } from '../../data';
-import { formatPrice, getLocalized } from '../../utils';
+import { getLocalized } from '../../utils';
 
 /**
  * A set's title, composed from its zone names — ServiceSet carries no name of
@@ -15,17 +15,6 @@ export function setTitle(set: ServiceSet, lang: LanguageCode): string {
       return zone ? getLocalized(zone.name, lang) : id;
     })
     .join(' + ');
-}
-
-/**
- * «от 140 000 сум» — a floor, not a quote. Uzbek marks it with the ablative
- * suffix, so this cannot be a shared prefix in all three languages.
- */
-export function priceFrom(price: number, lang: LanguageCode): string {
-  const value = formatPrice(price, lang);
-  if (lang === 'UZ') return `${value}dan`;
-  if (lang === 'EN') return `from ${value}`;
-  return `от ${value}`;
 }
 
 /** Next `count` days starting today, as local dates. */

@@ -7,16 +7,16 @@
  * this hook only reads and clears them, it never introduces its own copy, so
  * the rest of the form keeps a single source of truth for what is selected.
  */
-import { Dispatch, SetStateAction, useEffect, useMemo, useState } from 'react';
+import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useState } from 'react';
 import { Master, WorkWindow } from '../../types';
-import { masterHoursOn, masterKey, toIsoDate } from '../../data';
+import { toIsoDate } from '../../data';
 import {
   fetchDayAvailability,
   isRangeTaken,
   timeToMinutes,
   type DayAvailability,
 } from '../../lib/availability';
-import { buildTimeSlots, unionHoursOn, widestHours } from './scheduleMath';
+import { buildTimeSlots, mastersCovering, unionHoursOn, widestHours } from './scheduleMath';
 
 interface UseBookingScheduleArgs {
   date: string;
@@ -39,7 +39,12 @@ export interface BookingSchedule {
   setAvailability: Dispatch<SetStateAction<DayAvailability | null>>;
   loadingSlots: boolean;
   workHours: WorkWindow | null;
-  roster: string[];
+  /**
+   * Masters who could take a visit starting at this exact slot. The caller must
+   * use it for the submit-time recheck too — a day-level list answers «свободно»
+   * for an hour whose only master on shift is already busy.
+   */
+  rosterFor: (slot: string) => string[];
   slots: string[];
   takenSet: Set<string>;
   tooLateSet: Set<string>;
@@ -93,23 +98,30 @@ export function useBookingSchedule({
     return unionHoursOn(masters, date);
   }, [date, selectedMaster, eligibleMasters]);
 
-  // Masters on shift that date — without it "любой мастер" is blacked out as
+  // Who could take THIS slot — without a roster "любой мастер" is blacked out as
   // soon as a single master is busy. Only the eligible ones count: a slot that
-  // is free solely because Муслима is idle is not free for a face zone.
-  const roster = useMemo(
-    () => (date ? eligibleMasters.filter((m) => masterHoursOn(m, date)).map(masterKey) : []),
-    [date, eligibleMasters],
+  // is free solely because Муслима is idle is not free for a face zone. And it
+  // is computed per slot, not per day: see mastersCovering().
+  const rosterFor = useCallback(
+    (slot: string) => (date ? mastersCovering(eligibleMasters, date, slot, comboDuration) : []),
+    [date, eligibleMasters, comboDuration],
   );
 
   const slots = useMemo(() => buildTimeSlots(workHours), [workHours]);
   const takenSet = useMemo(() => {
     if (!availability) return new Set<string>();
     return new Set(
-      slots.filter((slot) =>
-        isRangeTaken(availability, slot, selectedMasterName, comboDuration, roster),
-      ),
+      slots.filter((slot) => {
+        const slotRoster = rosterFor(slot);
+        // Nobody on shift can fit this visit at this hour. Said explicitly,
+        // because an empty roster would otherwise fall through to isSlotTaken's
+        // last branch, which infers the answer from whoever happens to have a
+        // booking — and answers «свободно» for an hour the studio cannot serve.
+        if (!selectedMasterName && slotRoster.length === 0) return true;
+        return isRangeTaken(availability, slot, selectedMasterName, comboDuration, slotRoster);
+      }),
     );
-  }, [availability, slots, selectedMasterName, comboDuration, roster]);
+  }, [availability, slots, selectedMasterName, comboDuration, rosterFor]);
 
   // A long combo cannot start so late that it would run past closing.
   const tooLateSet = useMemo(() => {
@@ -118,9 +130,14 @@ export function useBookingSchedule({
     return new Set(slots.filter((slot) => timeToMinutes(slot) + comboDuration > close));
   }, [slots, comboDuration, workHours]);
 
-  // When "today" is picked, times that already passed cannot be booked.
+  // Times that have already passed cannot be booked.
   const pastSet = useMemo(() => {
-    if (!date || date !== toIsoDate(new Date())) return new Set<string>();
+    if (!date) return new Set<string>();
+    const today = toIsoDate(new Date());
+    // A tab left open overnight keeps yesterday selected. Every hour of it is
+    // past — without this the grid re-opens fully bookable at 00:01.
+    if (date < today) return new Set(slots);
+    if (date !== today) return new Set<string>();
     const now = new Date();
     const nowMin = now.getHours() * 60 + now.getMinutes();
     return new Set(
@@ -165,7 +182,7 @@ export function useBookingSchedule({
     setAvailability,
     loadingSlots,
     workHours,
-    roster,
+    rosterFor,
     slots,
     takenSet,
     tooLateSet,

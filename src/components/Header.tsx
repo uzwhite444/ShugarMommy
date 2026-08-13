@@ -39,6 +39,20 @@ const THEME_LABEL = {
   EN: 'Switch theme',
 };
 
+/**
+ * Landmark and control names a screen reader announces. They were English
+ * literals sitting next to localized siblings, so a Russian voice read the menu
+ * as «Меню», «Сменить тему» … «цлосе».
+ */
+const CLOSE_LABEL = { RU: 'Закрыть', UZ: 'Yopish', EN: 'Close' };
+const NAV_LABEL = { RU: 'Основная навигация', UZ: 'Asosiy navigatsiya', EN: 'Main navigation' };
+const MOBILE_NAV_LABEL = {
+  RU: 'Мобильная навигация',
+  UZ: 'Mobil navigatsiya',
+  EN: 'Mobile navigation',
+};
+const LANG_LABEL = { RU: 'Язык', UZ: 'Til', EN: 'Language' };
+
 /** Wordmark: quiet serif with a single terracotta full stop. */
 function Wordmark() {
   return (
@@ -131,7 +145,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
           <Wordmark />
         </a>
 
-        <nav aria-label="Main navigation" className="hidden items-center gap-7 lg:flex">
+        <nav aria-label={getLocalized(NAV_LABEL, language)} className="hidden items-center gap-7 lg:flex">
           {NAV_ITEMS.map((item) => (
             <a
               key={item.href}
@@ -144,7 +158,7 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
         </nav>
 
         <div className="flex items-center gap-3">
-          <div className="hidden items-center sm:flex" role="group" aria-label="Language">
+          <div className="hidden items-center sm:flex" role="group" aria-label={getLocalized(LANG_LABEL, language)}>
             {LANGS.map((lang, i) => (
               <Fragment key={lang}>
                 {/* Standalone rule: the 44px hit area would stretch a border on
@@ -216,14 +230,14 @@ export default function Header({ language, onChangeLanguage, onBook }: HeaderPro
               <Wordmark />
               <button
                 onClick={() => setMenuOpen(false)}
-                aria-label="Close"
+                aria-label={getLocalized(CLOSE_LABEL, language)}
                 className="press-inner flex min-h-11 min-w-11 items-center justify-center rounded-lg"
               >
                 <X size={22} />
               </button>
             </div>
             {/* Compact rhythm so the CTA still fits on short phones (568px). */}
-            <nav aria-label="Mobile navigation" className="flex flex-col px-6 pt-3">
+            <nav aria-label={getLocalized(MOBILE_NAV_LABEL, language)} className="flex flex-col px-6 pt-3">
               {NAV_ITEMS.map((item) => (
                 <a
                   key={item.href}

@@ -3,7 +3,14 @@ import { createPortal } from 'react-dom';
 import { m, useReducedMotion } from 'motion/react';
 import { X, Send, Loader2 } from 'lucide-react';
 import { LanguageCode, Localized, ServiceZone } from '../types';
-import { calcTotal, formatPrice, getLocalized, MANAGER_TELEGRAM, STUDIO_NAME } from '../utils';
+import {
+  calcTotal,
+  formatPrice,
+  getLocalized,
+  MANAGER_TELEGRAM,
+  priceFrom,
+  STUDIO_NAME,
+} from '../utils';
 import { MASTERS, masterKey, toIsoDate } from '../data';
 import { createBooking, formatBookingCode, warnOnPriceDrift } from '../lib/bookings';
 import { fetchDayAvailability, isRangeTaken } from '../lib/availability';
@@ -15,7 +22,7 @@ import { StepContacts } from './booking/StepContacts';
 import { StepMaster } from './booking/StepMaster';
 import { StepSchedule } from './booking/StepSchedule';
 import { useBookingSchedule } from './booking/useBookingSchedule';
-import { buildDays, inputCls, INTL_LOCALE, priceFrom, setTitle } from './booking/bookingDisplay';
+import { buildDays, inputCls, INTL_LOCALE, setTitle } from './booking/bookingDisplay';
 import { TR } from './booking/tr';
 
 interface BookingModalProps {
@@ -171,7 +178,7 @@ export default function BookingModal({
     setAvailability,
     loadingSlots,
     workHours,
-    roster,
+    rosterFor,
     slots,
     takenSet,
     tooLateSet,
@@ -232,15 +239,19 @@ export default function BookingModal({
       setError(t(TR.errDate));
       return;
     }
-    // The form may sit open long enough for the chosen time to pass.
-    if (date === toIsoDate(new Date())) {
-      const [h, m] = time.split(':').map(Number);
-      const now = new Date();
-      if (h * 60 + m <= now.getHours() * 60 + now.getMinutes()) {
-        setTime('');
-        setError(t(TR.errPast));
-        return;
-      }
+    // The form may sit open long enough for the chosen time to pass — including
+    // past midnight. The old check only ran when `date` was still today, so a
+    // tab left open overnight skipped it entirely and sent the booking for a
+    // time that had not merely passed but belonged to yesterday. Compare the
+    // whole moment instead. (Bare `${date}T${time}` parses as LOCAL time, which
+    // is what we want: the client and the studio share Asia/Tashkent.)
+    if (new Date(`${date}T${time}:00`).getTime() <= Date.now()) {
+      setTime('');
+      // The date itself is stale after midnight, so clear it too — otherwise
+      // the grid re-opens on a day that is over.
+      if (date !== toIsoDate(new Date())) setDate('');
+      setError(t(TR.errPast));
+      return;
     }
     // Everything below awaits the network, so take the lock and disable the
     // button *before* the first await — a double-tap would otherwise insert twice.
@@ -249,7 +260,13 @@ export default function BookingModal({
     try {
       // Someone may have taken the slot while the form was open.
       const fresh = await fetchDayAvailability(date);
-      if (isRangeTaken(fresh, time, selectedMasterName, comboDuration, roster)) {
+      // Same per-slot roster the grid used: with the day-level one this recheck
+      // agreed with a grid that was already wrong and let the booking through.
+      const slotRoster = rosterFor(time);
+      if (
+        (!selectedMasterName && slotRoster.length === 0) ||
+        isRangeTaken(fresh, time, selectedMasterName, comboDuration, slotRoster)
+      ) {
         setAvailability(fresh);
         setTime('');
         setError(t(TR.errTaken));

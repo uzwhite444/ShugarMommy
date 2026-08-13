@@ -3,7 +3,7 @@ import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { LanguageCode } from '../types';
 import { EASE_INK } from '../lib/motion';
 import { subscribeScroll } from '../lib/scrollState';
-import { formatPrice, getLocalized, PRICE_ON_REQUEST } from '../utils';
+import { formatPrice, getLocalized, PRICE_ON_REQUEST, priceFrom } from '../utils';
 
 interface StickyCtaProps {
   language: LanguageCode;
@@ -14,6 +14,12 @@ interface StickyCtaProps {
    * legitimate 0 that must never be printed as a price.
    */
   hasPricedZones: boolean;
+  /**
+   * `total` is a FLOOR, not a quote — see CalcResult.priceVaries. The bar sits
+   * on the same screen as the receipt, so printing a bare number here while the
+   * receipt reads «от …» puts two different prices in front of one client.
+   */
+  priceVaries: boolean;
   zoneCount: number;
   onBook: () => void;
   /** Hidden while any modal is open. */
@@ -53,6 +59,7 @@ export default function StickyCta({
   language,
   total,
   hasPricedZones,
+  priceVaries,
   zoneCount,
   onBook,
   hidden,
@@ -116,9 +123,11 @@ export default function StickyCta({
                   {/* A basket of nothing but unpriced zones has no total —
                       "0 сум" here would read as "free". */}
                   <p className="font-serif text-lg font-semibold leading-tight text-ink">
-                    {hasPricedZones
-                      ? formatPrice(total, language)
-                      : getLocalized(PRICE_ON_REQUEST, language)}
+                    {!hasPricedZones
+                      ? getLocalized(PRICE_ON_REQUEST, language)
+                      : priceVaries
+                        ? priceFrom(total, language)
+                        : formatPrice(total, language)}
                   </p>
                 </>
               ) : (

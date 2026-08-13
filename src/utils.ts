@@ -38,15 +38,25 @@ export const ADDRESS: Localized = {
 /**
  * How the studio is registered in Yandex Maps. Kept apart from ADDRESS because
  * the two say different things to different readers: ADDRESS is what a person
- * understands ("ориентир Uzum Market"), this is what the map search actually
- * matches. Shown as-is next to the map link so a client can read it to a taxi
- * driver.
+ * understands ("ориентир Uzum Market"), this is what the map search matches.
+ * Shown next to the map link so a client can read it to a taxi driver — which
+ * is why it is localized: the Uzbek and English pages are in Latin script, and
+ * a lone Cyrillic line inside them ("Xaritada: Айланма халка, 23") is exactly
+ * the string a client has to read aloud.
  */
-export const MAP_LABEL = 'Айланма халка, 23';
+export const MAP_LABEL: Localized = {
+  RU: 'Айланма халка, 23',
+  UZ: 'Aylanma halqa, 23',
+  EN: 'Aylanma halqa, 23',
+};
 
-/** Yandex Maps search for the studio. */
+/**
+ * Yandex Maps search for the studio. Deliberately pinned to the RU spelling
+ * whatever the page language: that is how the studio is actually written in
+ * Yandex, and the search has to match the registry, not the reader.
+ */
 export const MAP_URL = `https://yandex.uz/maps/?text=${encodeURIComponent(
-  `Андижан, ${MAP_LABEL}`,
+  `Андижан, ${MAP_LABEL.RU}`,
 )}`;
 
 /**
@@ -112,6 +122,26 @@ export function formatPrice(price: number, lang: LanguageCode = 'RU'): string {
   const formatted = new Intl.NumberFormat(lang === 'EN' ? 'en-US' : 'ru-RU').format(price);
   const unit = lang === 'RU' ? 'сум' : lang === 'UZ' ? "so'm" : 'UZS';
   return `${formatted} ${unit}`;
+}
+
+/**
+ * Marks an ALREADY-FORMATTED price as a FLOOR, not a quote. Russian and English
+ * take a prefix, Uzbek the ablative suffix on the formatted string, so this can
+ * never collapse into one shared prefix.
+ *
+ * Lives here, beside formatPrice, because it had drifted into three private
+ * copies — Services, Quiz and the booking modal — and the one surface that
+ * never got a copy, the mobile StickyCta, printed the studio's floor as a firm
+ * price. A fourth copy is how that happens again.
+ */
+export function withFrom(formatted: string, lang: LanguageCode = 'RU'): string {
+  if (lang === 'UZ') return `${formatted}dan`;
+  return `${lang === 'EN' ? 'from' : 'от'} ${formatted}`;
+}
+
+/** «от 140 000 сум» — formatPrice and withFrom in one call. */
+export function priceFrom(price: number, lang: LanguageCode = 'RU'): string {
+  return withFrom(formatPrice(price, lang), lang);
 }
 
 /** Price of a zone, or the localized «по запросу» when the studio has none. */

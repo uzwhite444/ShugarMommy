@@ -5,18 +5,14 @@ import Reveal from './ui/Reveal';
 import SectionHead from './ui/SectionHead';
 import { LanguageCode, Localized } from '../types';
 import { SERVICE_ZONES, zonePriceRange } from '../data';
-import { calcTotal, formatPrice, formatZonePrice, getLocalized, PRICE_ON_REQUEST } from '../utils';
-
-/**
- * «от 110 000 сум» — a floor, not a quote. Uzbek marks it with the ablative
- * suffix, so this cannot be a shared prefix in all three languages.
- */
-function priceFrom(price: number, lang: LanguageCode): string {
-  const value = formatPrice(price, lang);
-  if (lang === 'UZ') return `${value}dan`;
-  if (lang === 'EN') return `from ${value}`;
-  return `от ${value}`;
-}
+import {
+  calcTotal,
+  formatPrice,
+  formatZonePrice,
+  getLocalized,
+  PRICE_ON_REQUEST,
+  priceFrom,
+} from '../utils';
 
 interface QuizProps {
   language: LanguageCode;
@@ -248,7 +244,11 @@ export default function Quiz({ language, onApplyZones, onBook }: QuizProps) {
                       </button>
                     ))}
                   </div>
-                  {error && <p className="mt-3 text-sm font-semibold text-danger">{error}</p>}
+                  {error && (
+                <p role="alert" className="mt-3 text-sm font-semibold text-danger">
+                  {error}
+                </p>
+              )}
                   <div className="mt-7 flex justify-end">
                     {/* Hover must keep an inverting surface: `ink` and `body` both
                         flip with the theme, so the canvas label stays readable in

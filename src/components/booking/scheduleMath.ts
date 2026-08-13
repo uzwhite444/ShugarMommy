@@ -3,7 +3,7 @@
  * date-strip UI: no state, no side effects, just WorkWindow arithmetic.
  */
 import { Master, WorkWindow } from '../../types';
-import { masterHoursOn, STUDIO_HOURS } from '../../data';
+import { masterHoursOn, masterKey, STUDIO_HOURS } from '../../data';
 import { timeToMinutes } from '../../lib/availability';
 
 /** Shortest bookable visit — one grid cell, even with no zones picked. */
@@ -64,4 +64,35 @@ export function unionHoursOn(masters: readonly Master[], date: string): WorkWind
     if (hours) combined = widen(combined, hours);
   }
   return combined;
+}
+
+/**
+ * Canonical names of the masters who could actually take a visit STARTING at
+ * `slot` and running `durationMin` — on shift that date AND with the whole
+ * visit inside their own window.
+ *
+ * Per-SLOT, not per-day, and that is the entire point. "Любой мастер" is only
+ * blocked when every master in the roster is busy, so a day-level roster counts
+ * a master whose shift starts at 11:00 as "free" at 08:00. One booking with
+ * Муслима then left 08:00 clickable, because Рената and Ангелина — who are not
+ * in the building — looked idle. The grid runs on the union window (08:00–20:00),
+ * so those edge hours exist every working day.
+ */
+export function mastersCovering(
+  masters: readonly Master[],
+  date: string,
+  slot: string,
+  durationMin: number,
+): string[] {
+  const start = timeToMinutes(slot);
+  const end = start + durationMin;
+  const covering: string[] = [];
+  for (const master of masters) {
+    const hours = masterHoursOn(master, date);
+    if (!hours) continue;
+    if (timeToMinutes(hours.open) <= start && end <= timeToMinutes(hours.close)) {
+      covering.push(masterKey(master));
+    }
+  }
+  return covering;
 }

@@ -139,7 +139,13 @@ export default function Promos({ language, onBook }: PromosProps) {
                 {/* The badge carries the masters, not a «всем клиенткам» claim:
                     Рената gives no percentage, so naming them is the difference
                     between a promo and a promise the total cannot keep. */}
-                <span className="self-start rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em]">
+                {/* Outlined, not filled: `bg-white/15` lifted the terracotta
+                    under the label to #B6785C and dropped the white 12px text
+                    to 3.61:1 (measured), below the 4.5:1 the rest of the card
+                    already meets. An outline leaves the text on the card's own
+                    corrected background, and `current` keeps it right in both
+                    themes — night mode flips this card to dark ink. */}
+                <span className="self-start rounded-full border border-current/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em]">
                   {masterNames(DISCOUNT_MASTERS, language)}
                 </span>
                 <p className="display mt-6 text-5xl sm:text-6xl">−{DISCOUNT_RULE.pct}%</p>

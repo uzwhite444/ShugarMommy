@@ -108,9 +108,9 @@ const TR = {
     EN: 'Open in Yandex Maps',
   },
   mapNote: {
-    RU: `На карте: ${MAP_LABEL}`,
-    UZ: `Xaritada: ${MAP_LABEL}`,
-    EN: `On the map: ${MAP_LABEL}`,
+    RU: `На карте: ${MAP_LABEL.RU}`,
+    UZ: `Xaritada: ${MAP_LABEL.UZ}`,
+    EN: `On the map: ${MAP_LABEL.EN}`,
   },
 };
 

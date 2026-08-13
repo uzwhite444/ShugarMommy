@@ -125,9 +125,15 @@ export default function PrivacyPage({ language }: PrivacyPageProps) {
               <li>
                 {STUDIO_NAME} — {getLocalized(ADDRESS, language)}
               </li>
+              {/* Each contact is its own 44px row. Two phone numbers stacked as
+                  bare 20px lines of text sat 6px apart — on a phone that is one
+                  thumb covering both, and the wrong one dials. */}
               {PHONES.map((phone) => (
                 <li key={phone}>
-                  <a href={telHref(phone)} className="font-semibold text-primary-dark hover:underline">
+                  <a
+                    href={telHref(phone)}
+                    className="-mx-2 flex min-h-11 items-center rounded-lg px-2 font-semibold text-primary-dark hover:underline"
+                  >
                     {phone}
                   </a>
                 </li>
@@ -137,7 +143,7 @@ export default function PrivacyPage({ language }: PrivacyPageProps) {
                   href={`https://t.me/${MANAGER_TELEGRAM}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-semibold text-primary-dark hover:underline"
+                  className="-mx-2 flex min-h-11 items-center rounded-lg px-2 font-semibold text-primary-dark hover:underline"
                 >
                   Telegram: @{MANAGER_TELEGRAM}
                 </a>

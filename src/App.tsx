@@ -30,7 +30,7 @@ const importBookingModal = () => import('./components/BookingModal');
 const importCancelModal = () => import('./components/CancelModal');
 const BookingModal = lazy(importBookingModal);
 const CancelModal = lazy(importCancelModal);
-import { SERVICE_ZONES } from './data';
+import { MASTERS, SERVICE_ZONES } from './data';
 import { LanguageCode } from './types';
 import { loadFromStorage } from './utils';
 
@@ -163,8 +163,12 @@ export default function App() {
   }
 
   const selectedZones = SERVICE_ZONES.filter((z) => selectedZoneIds.includes(z.id));
-  // Shared price list — no master is chosen at this level.
-  const selectionCalc = calcTotal(selectedZones);
+  // The SAME master the price list and the form are using. Counting without her
+  // here made the mobile bar disagree with the receipt on the same screen: with
+  // Рената and «глубокое бикини» the receipt said 130 000 and the bar 110 000,
+  // and with Ангелина and three zones the bar missed her −20% by 66 000.
+  const selectedMaster = MASTERS.find((m) => m.id === masterId) ?? null;
+  const selectionCalc = calcTotal(selectedZones, selectedMaster);
 
   return (
     <div className="relative min-h-screen bg-canvas font-sans text-ink antialiased">
@@ -203,6 +207,7 @@ export default function App() {
         language={language}
         total={selectionCalc.total}
         hasPricedZones={selectionCalc.pricedZones.length > 0}
+        priceVaries={selectionCalc.priceVaries}
         zoneCount={selectedZones.length}
         onBook={() => setBookingOpen(true)}
         hidden={bookingOpen}

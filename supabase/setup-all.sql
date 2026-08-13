@@ -264,7 +264,7 @@ begin
   end if;
 
   msg := format(
-    E'💆‍♀️ <b>Новая запись Shugar Mommy</b>\n\n👤 %s\n📞 %s\n✨ %s\n👩‍🔬 %s\n📅 %s · 🕐 %s\n💰 %s сум\n\n#%s',
+    E'💆‍♀️ <b>Новая запись Sugar Mommy</b>\n\n👤 %s\n📞 %s\n✨ %s\n👩‍🔬 %s\n📅 %s · 🕐 %s\n💰 %s сум\n\n#%s',
     replace(replace(replace(coalesce(new.customer_name, '—'), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'),
     replace(replace(replace(coalesce(new.phone, '—'), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'),
     replace(replace(replace(coalesce(new.services, '—'), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'),
